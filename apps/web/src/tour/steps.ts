@@ -194,7 +194,7 @@ export function tourSteps(browserOnly: boolean): TourStep[] {
     {
       id: 'files',
       title: 'Import and export',
-      text: 'Export saves the open diagram as SVG, PNG, Mermaid or D2. Import reads Mermaid and D2, pasted or from a file. The button between them empties the workspace.',
+      text: 'Export saves the open diagram as SVG, PNG, Mermaid or D2. Import reads Mermaid and D2, pasted or from a file, and what is copied on a Miro board. The button between them empties the workspace.',
       target: [button('Import'), button('Export')],
     },
     {

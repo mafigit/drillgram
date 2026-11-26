@@ -208,6 +208,19 @@ Project started 2026-11-03.
   in the system or container the file frames them in (a new object with its own diagram, or the
   open diagram's object if it is of that kind), else in the open diagram's object; if nothing
   fits, the dialog says why. A line the app cannot read is named with its number.
+- Miro boards (J67, 2026-11-26): "Import", then "Miro". Miro has no open file export
+  (pictures, a CSV of text, a backup only Miro reads); Confluence reads the vector PDF and
+  loses connectors and frames. Two ways in, both read by `miroDiagram` in `@drillgram/model`:
+  items copied on a board and pasted (`miroPastedDiagram`: the `text/html` of the copy holds
+  `(miro-data-v1)…`, base64 of JSON with every byte moved up by 59; undocumented, found in
+  copies of real boards, so it can break when Miro changes it), or a whole board through
+  Miro's REST API with a link and an access token (`readMiroBoard`, from the browser: Miro
+  answers any origin; no server, Worker or stored token; making the token needs a Miro app,
+  which not every team allows). Frames are boxes with their items inside; sticky notes,
+  shapes, texts and cards are boxes (first line the name, the rest the description, a shape's
+  outline where we have it); connectors are connections with their captions and colour;
+  images, documents and embeds only where a connector ends at them. Laid out as any import,
+  not at Miro's places. Not over MCP.
 - Server (`apps/server`, 2026-11-26): Go with Fiber and PostgreSQL. Users (made by an admin, the
   first start makes the admin), sign-in four ways (password, single sign-on through OpenID
   Connect, the header of a proxy, a signed token in a header: the last two as Grafana does it),
@@ -306,7 +319,7 @@ Project started 2026-11-03.
   kept in the browser (`drillgram.locked.<workspace or room>`, `useLock`). The controls that
   change anything are disabled or gone, and the editor's own `dispatch` does nothing while
   locked; agents write to the store directly and are not held back.
-- Journeys J1 to J5, J7, J9, J11, J15 and J18 to J66 are real tests. J6, J8, J10,
+- Journeys J1 to J5, J7, J9, J11, J15 and J18 to J67 are real tests. J6, J8, J10,
   J12 to J14, J16 and J17 are still `test.fixme`.
 - Event sourcing (owner's call, 2026-11-22; begun 2026-11-26): the events are the truth and the
   workspace is what they add up to: the server keeps the log, the editor makes the workspace

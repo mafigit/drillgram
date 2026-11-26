@@ -117,7 +117,11 @@ Project started 2026-11-03.
   to a part") and in the SVG and PNG export.
 - Look: Tailwind CSS with shadcn-vue components, four themes (Light, Dark, Solarized Light, Solarized Dark), a floating toolbar, cards
   with one colour per C4 kind, the font shipped with the app.
-- Canvas on Vue Flow (J9): pan, zoom, fit to screen, drag a card to move it (saved).
+- Canvas on Vue Flow (J9): pan, zoom, fit to screen, drag a card to move it (saved). A fit
+  (the button, a diagram that opens with a card out of sight, a new card out of sight) leaves
+  room around the cards for what stands over the canvas: the title, the toolbar, air at the
+  sides, the frame of an opened box, and the minimap when a card would lie under it
+  (`canvas/fit.ts`, J21).
 - C4 as on c4model.com (J20): every diagram has a title and a key; elements carry a description,
   a technology (containers, components) and an external mark; relationships a label and a
   technology; the title of a diagram is the name of the box it is inside. Open gaps are listed in

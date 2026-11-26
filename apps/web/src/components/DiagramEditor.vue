@@ -1659,7 +1659,7 @@ const keyKinds = computed(() =>
             :to-frame="boundaryLinks.length > 0"
             :groups="groupFrames.length > 0"
           />
-          <CanvasControls :reveal="added" :centre="found" :diagram="viewId" :corner="minimapShown ? MINIMAP_ROOM : undefined" />
+          <CanvasControls :reveal="added" :centre="found" :diagram="viewId" :corner="minimapShown ? MINIMAP_ROOM : undefined" :framed="boundary !== undefined" />
           <CanvasQuickMenu
             :items="quickMenuItems"
             :open-at="quickMenuAt"

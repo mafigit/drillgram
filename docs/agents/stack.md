@@ -78,5 +78,9 @@
   be found by the selectors that look for objects.
 - The canvas and `body` use `overflow: clip`. With `hidden` the browser can still scroll them
   (focus, scrolling a half-visible card into view), which shifts Vue Flow's coordinates.
+- Fit the view through `fit()` in `CanvasControls.vue`, which takes its padding from
+  `canvas/fit.ts`. Since Vue Flow 2 a number as `padding` of `fitView` is pixels, not a share
+  of the diagram: `padding: 0.15` is no padding at all, and the diagram ran to the very edge
+  of the canvas until 2026-11-26.
 - Keep the small "Vue Flow" attribution: the project asks for it unless one subscribes.
 - When an issue sets or changes the stack, the commands or the repo layout, record it here.

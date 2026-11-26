@@ -5,7 +5,9 @@ import { KeyboardIcon, MaximizeIcon, MinusIcon, PlusIcon } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { SHORTCUTS } from './shortcuts'
+import { FRAME } from '@drillgram/model'
 import { CARD } from './geometry'
+import { TOOLBAR_HEIGHT, fitPadding } from './fit'
 
 const props = defineProps<{
   /** The card that was just added. If it is not fully on screen, the view zooms out to show all. */
@@ -16,22 +18,40 @@ const props = defineProps<{
   diagram?: string
   /** Room the minimap takes in the top right corner, when it is shown: a card under it is out of sight. */
   corner?: { width: number; height: number }
+  /** The open diagram draws a frame around its cards (an opened box): a fit leaves room for it. */
+  framed?: boolean
 }>()
-
-/** Room the floating toolbar takes at the bottom of the canvas. */
-const TOOLBAR_HEIGHT = 80
 
 const { zoomIn, zoomOut, fitView, getNode, getNodes, setCenter } = useVueFlow()
 const { transform, dimensions } = storeToRefs(useVueFlowStore())
 
-const fit = () => fitView({ padding: 0.15, maxZoom: 1 })
+/** The whole diagram on the canvas, clear of the title, the toolbar and the minimap (fit.ts). */
+function fit() {
+  const cards = getNodes.value.map((node) => ({
+    x: node.position.x,
+    y: node.position.y,
+    width: typeof node.width === 'number' ? node.width : CARD.width,
+    height: typeof node.height === 'number' ? node.height : CARD.height,
+  }))
+  return fitView({ padding: fitPadding(cards, dimensions.value, { framed: props.framed, corner: props.corner }), maxZoom: 1 })
+}
 
-/** Whether a box of the screen is in sight: on the canvas, clear of the toolbar and of the minimap. */
-function inSight(left: number, top: number, width: number, height: number): boolean {
+/**
+ * Whether a card is in sight: on the canvas, clear of the toolbar and of the minimap. On a
+ * diagram with a frame around its cards, with the room the frame takes beyond them: the frame
+ * is no card, and a card at the edge of the screen has its frame cut off.
+ */
+function inSight(node: { position: { x: number; y: number }; width?: unknown; height?: unknown }): boolean {
+  const [x, y, zoom] = transform.value
+  const left = node.position.x * zoom + x
+  const top = node.position.y * zoom + y
+  const right = left + (typeof node.width === 'number' ? node.width : CARD.width) * zoom
+  const bottom = top + (typeof node.height === 'number' ? node.height : CARD.height) * zoom
+  const room = props.framed ? { side: FRAME.side * zoom, top: FRAME.top * zoom, bottom: FRAME.bottom * zoom } : { side: 0, top: 0, bottom: 0 }
   const { width: canvasWidth, height: canvasHeight } = dimensions.value
-  if (left < 0 || top < 0 || left + width > canvasWidth || top + height > canvasHeight - TOOLBAR_HEIGHT) return false
+  if (left - room.side < 0 || top - room.top < 0 || right + room.side > canvasWidth || bottom + room.bottom > canvasHeight - TOOLBAR_HEIGHT) return false
   const corner = props.corner
-  return !corner || left + width <= canvasWidth - corner.width || top >= corner.height
+  return !corner || right <= canvasWidth - corner.width || top >= corner.height
 }
 
 watch(
@@ -40,13 +60,7 @@ watch(
     if (!card) return
     await nextTick()
     const node = getNode(card.id)
-    if (!node) return
-    const [x, y, zoom] = transform.value
-    const left = node.position.x * zoom + x
-    const top = node.position.y * zoom + y
-    const width = (typeof node.width === 'number' ? node.width : CARD.width) * zoom
-    const height = (typeof node.height === 'number' ? node.height : CARD.height) * zoom
-    if (!inSight(left, top, width, height)) fit()
+    if (node && !inSight(node)) fit()
   },
 )
 
@@ -59,15 +73,7 @@ watch(
     await nextTick()
     await nextTick()
     if (toCentre !== undefined) return
-    const [x, y, zoom] = transform.value
-    const hidden = getNodes.value.some((node) => {
-      const left = node.position.x * zoom + x
-      const top = node.position.y * zoom + y
-      const width = (typeof node.width === 'number' ? node.width : CARD.width) * zoom
-      const height = (typeof node.height === 'number' ? node.height : CARD.height) * zoom
-      return !inSight(left, top, width, height)
-    })
-    if (hidden) fit()
+    if (getNodes.value.some((node) => !inSight(node))) fit()
   },
 )
 

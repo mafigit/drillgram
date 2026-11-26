@@ -65,6 +65,7 @@ export class WorkspaceLog {
   /** No more writing: the session is over or the workspace is gone. */
   private stopped = false
   private waiting: (() => void)[] = []
+  private confirmations = new Map<string, (saved: boolean) => void>()
 
   private constructor(
     private deps: LogDeps,
@@ -104,6 +105,17 @@ export class WorkspaceLog {
     this.took(changeEntry(this.history, event, at, this.deps.newId()))
   }
 
+  /** Makes a change and reports whether its specific entry reached storage. */
+  dispatchSaved(event: WorkspaceEvent, at: string): Promise<boolean> {
+    const id = this.deps.newId()
+    const change = changeEntry(this.history, event, at, id)
+    if (this.stopped || !change.entry) return Promise.resolve(false)
+    return new Promise((resolve) => {
+      this.confirmations.set(id, resolve)
+      this.took(change)
+    })
+  }
+
   /** Goes to the workspace as it was after `position` changes. */
   goTo(position: number): void {
     const { history, entry } = moveEntry(this.history, position, this.deps.newId())
@@ -137,10 +149,12 @@ export class WorkspaceLog {
 
   /** Deletes the workspace's log on the server: an empty workspace, nothing to undo. */
   async clear(): Promise<void> {
+    this.declinePending()
     this.pending = []
     this.keep()
     const { head } = await this.deps.server.clear()
     // What was on its way when the log was cleared is refused or gone with it.
+    this.declinePending()
     this.pending = []
     this.head = head
     this.keep()
@@ -192,6 +206,12 @@ export class WorkspaceLog {
     this.pending = this.pending.filter((entry) => !written.has(entry.id))
     this.head = Math.max(this.head, head)
     this.keep()
+    if (this.confirmations.size === 0) return
+    for (const { id } of batch) {
+      if (id === undefined) continue
+      this.confirmations.get(id)?.(true)
+      this.confirmations.delete(id)
+    }
   }
 
   /** The log has entries this browser has not seen. Its own, from a request whose answer got lost? Then on. */
@@ -217,6 +237,7 @@ export class WorkspaceLog {
   /** The workspace as the server has it; what was not written is dropped. */
   private async reload(): Promise<void> {
     const { head, entries } = await this.deps.server.read(0)
+    this.declinePending()
     this.pending = []
     this.head = head
     this.keep()
@@ -224,8 +245,14 @@ export class WorkspaceLog {
     this.onHistory(this.history)
   }
 
+  private declinePending(): void {
+    for (const confirm of this.confirmations.values()) confirm(false)
+    this.confirmations.clear()
+  }
+
   private stop(problem: Problem): void {
     this.stopped = true
+    this.declinePending()
     this.deps.onProblem(problem)
   }
 }

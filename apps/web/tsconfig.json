@@ -16,6 +16,9 @@
     },
     {
       "path": "./tsconfig.vitest.json"
+    },
+    {
+      "path": "./tsconfig.worker.json"
     }
   ]
 }

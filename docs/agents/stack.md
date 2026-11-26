@@ -31,7 +31,7 @@
   types; `src/issues/` holds the provider-neutral issue model and `IssueProvider` interface;
   `src/diagram/` holds the editor's `Workspace` (model plus views), the format-neutral C4 `Diagram`
   model and the `DiagramFormat` converters (Mermaid first); property tests use fast-check), `deploy/licences` (`@drillgram/licences`, the licence checks, see
-  [licences.md](licences.md)), `apps/server` (the server, Go), later `apps/mcp-server`.
+  [licences.md](licences.md)), `apps/server` (the server, Go), `apps/web/worker` (the Cloudflare MCP relay for the browser-only build).
 - **PWA:** the manifest config lives in `apps/web/vite.config.ts` (`VitePWA`). Icons are generated
   from `apps/web/public/logo.svg` by `@vite-pwa/assets-generator` (`apps/web/pwa-assets.config.ts`,
   `minimal2023Preset`). Run `pnpm --filter @drillgram/web generate-pwa-assets` after changing the SVG, and

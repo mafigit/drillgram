@@ -99,12 +99,16 @@ Expected: the app loads offline and the new element is shown.
 
 ## J7 Agent changes the diagram
 
-Test: `apps/web/e2e/j7-agent-changes-the-diagram.spec.ts`
+Test: `apps/web/e2e/j7-agent-changes-the-diagram.spec.ts`. Project `browser-only` only.
 
-1. Open the app.
-2. A test MCP client adds a software system "Payment Service".
+1. Open the Cloudflare build and start sharing the workspace with an agent.
+2. Open the Claude, Codex and Claude Code instructions in the sharing dialog.
+3. Connect an MCP client with the URL and bearer token. Add a software system "Payment Service".
+4. Read the diagram through MCP. Stop sharing and try to use the same token again.
+5. Reload the app.
 
-Expected: the open editor shows "Payment Service" without a reload.
+Expected: the box appears without a reload. The client reads it. After you stop sharing, the
+relay refuses the token. The box is still there after a reload.
 
 ## J8 Tablet
 

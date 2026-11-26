@@ -13,6 +13,7 @@ export interface WorkspaceStore {
   history: ShallowRef<History>
   /** The one way to change the workspace: the change is applied and logged with its time. */
   dispatch: (event: WorkspaceEvent) => void
+  dispatchSaved: (event: WorkspaceEvent) => Promise<boolean>
   undo: () => void
   redo: () => void
   /** Go to the workspace as it was after this many changes. */
@@ -69,6 +70,7 @@ export async function openWorkspaceStore(workspaceId: string, onProblem: (proble
     workspace: computed(() => now.value.states[now.value.cursor]!),
     history: now,
     dispatch: (event) => log.dispatch(event, new Date().toISOString()),
+    dispatchSaved: (event) => log.dispatchSaved(event, new Date().toISOString()),
     undo: () => log.goTo(now.value.cursor - 1),
     redo: () => log.goTo(now.value.cursor + 1),
     goTo: (position) => log.goTo(position),

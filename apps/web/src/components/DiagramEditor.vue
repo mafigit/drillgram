@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, markRaw, provide, ref, shallowRef, watch } from 'vue'
+import { computed, defineAsyncComponent, markRaw, provide, ref, shallowRef, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { useEventListener } from '@vueuse/core'
 import {
@@ -87,7 +87,8 @@ import type { ConnectionEdge, ObjectNode } from './canvas/types'
 import { arrangeInBackground, useLayoutEngine } from '../composables/useLayoutEngine'
 import type { Scene, SceneConnector } from '../export/svg'
 import { useWorkspaceStore } from '../composables/useWorkspaceStore'
-import { failureText } from '../lib/api'
+import { browserOnly, failureText } from '../lib/api'
+import type { AgentTool } from '../lib/agentProtocol'
 import { BROUGHT_KEY, localHistory } from '../lib/localWorkspace'
 import { viewPath } from '../router'
 import { TOUR_BOX } from '../tour/steps'
@@ -181,11 +182,34 @@ let selectNext: string[] | undefined
 function addToView(event: WorkspaceEvent) {
   const before = new Set(Object.keys(view.value.positions))
   dispatch(event)
+  showAdded(before)
+}
+
+function showAdded(before: Set<string>): string | undefined {
   const id = Object.keys(view.value.positions).find((key) => !before.has(key))
   if (!id) return
   added.value = { id }
   // A new card is the selected one: what comes next (connect, move, delete) is about it.
   selectNext = [id]
+  return id
+}
+
+const AgentConnectionDialog = browserOnly && import.meta.env.VITE_AGENT_RELAY === '1'
+  ? defineAsyncComponent(() => import('./AgentConnectionDialog.vue'))
+  : undefined
+
+async function runAgentTool(tool: AgentTool): Promise<Record<string, unknown>> {
+  if (tool.name === 'read_diagram') return { ...diagramOfView(workspace.value, viewId.value) }
+
+  const { name, kind } = tool.args
+  const before = new Set(Object.keys(view.value.positions))
+  const room = cardRoom({ name, kind, icons: 0 })
+  const saved = store.dispatchSaved({
+    type: 'objectAdded', view: viewId.value, kind, name, ...(room !== CARD && { size: room }),
+  })
+  const id = showAdded(before)
+  if (!(await saved) || !id) throw new Error('Drillgram could not save that box. Check the diagram before retrying.')
+  return { id, name, kind }
 }
 
 /**
@@ -1517,6 +1541,7 @@ const keyKinds = computed(() =>
         </BreadcrumbList>
       </Breadcrumb>
       <template #actions>
+        <AgentConnectionDialog v-if="AgentConnectionDialog" :run-tool="runAgentTool" />
         <ObjectSearch v-model:open="searching" :objects="searchable" @pick="goTo" />
         <Button
           variant="ghost"

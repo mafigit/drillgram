@@ -26,7 +26,7 @@ you sign in, and your diagrams are kept there, in as many workspaces as you like
 
 ## Not built yet
 
-- **MCP server**: agents read, create and change diagrams through MCP tools.
+- **MCP sharing**: let an agent read the open diagram and add boxes in the Cloudflare build.
 - **Working together**: several people on one diagram at the same time, sharing a workspace
   in the app (the server can already), comments.
 - **More export formats**, decided in issues. iOS and Android apps may follow the web app.
@@ -64,7 +64,7 @@ bundled PostgreSQL database or an external PostgreSQL connection.
 ### Without a server
 
 The same app can be built to run in the browser alone: nobody signs in, and the diagrams are
-kept in the browser that drew them, on that device and nowhere else.
+kept on the device in the browser that drew them.
 
 ```sh
 mise run browser     # on http://localhost:5174
@@ -72,8 +72,9 @@ mise run browser     # on http://localhost:5174
 
 `pnpm --filter @drillgram/web build:browser` writes it to `apps/web/dist-browser`: files for any
 static host. Before you host it for others, put your own name into `apps/web/imprint.html`
-and `apps/web/privacy.html`: they say who runs the site. `mise run cloudflare` puts them on Cloudflare, where the free plan is enough
-([context/operations.md](context/operations.md), "Without a server").
+and `apps/web/privacy.html`: they say who runs the site. `mise run cloudflare` deploys the app
+with optional MCP sharing on Cloudflare Workers Free. See
+[how to connect Claude, Codex, or Claude Code](context/operations.md#connect-an-mcp-client).
 
 ## What is where
 

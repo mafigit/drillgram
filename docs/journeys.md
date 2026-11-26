@@ -1134,7 +1134,8 @@ Test: `apps/web/e2e/j63-tour.spec.ts`. Also on the project `browser-only`.
 1. Open the app in a browser the tour was never shown to, on a workspace nothing was done in.
 2. Press "Start the tour".
 3. Do what the steps ask for: open "Web Shop", go back with the breadcrumb, add a shape,
-   connect two cards, press "Arrange", press "History". Go through the others with "Next".
+   connect "Customer" to "Web Shop", press "Arrange", press "History". In the history, press
+   the first change. Go through the others with "Next".
 4. Press "Done", then reload.
 
 Also: reload at the welcome, then press "Skip the tour", add a card and reload; delete the
@@ -1143,9 +1144,13 @@ what they ask for, then press "End the tour". Also: open a workspace that has a 
 browser the tour was never shown to.
 
 Expected: a card in the middle of the screen welcomes and says how long the tour takes; the
-page behind it waits. "Start the tour" loads the example, and each of the 15 steps that follow
-("Step 1 of 15") says what a part of the app is for, with a frame of light around that part
-and the card beside it, never on it. The page under the tour is the app: a step that asks for
+page behind it waits. "Start the tour" loads the example, and each of the 17 steps that follow
+("Step 1 of 17") says what a part of the app is for, with a frame of light around that part
+and the card beside it, never on it. Where the canvas itself is worked on (connecting, moving,
+a card's focus) the card stands in the far corner, and the cards around the lit one are in
+sight. The step about the history has the history open, opened by the tour for who did not
+press "History", and stays while the timeline is tried; going on closes the history and brings
+the diagram back to now. The page under the tour is the app: a step that asks for
 something is done on the real thing and the tour goes on by itself, after the label of a new
 connection was typed; "Next" goes on without, and opens the diagram the next step is about.
 "Back" goes to the step before, on its diagram. The tour ends with "Done", "End the tour" or

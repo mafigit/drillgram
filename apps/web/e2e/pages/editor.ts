@@ -80,6 +80,20 @@ export class DiagramEditor {
     expect(apart, 'the card stands beside what it points at').toBe(true)
   }
 
+  /** Which of the things given lie under the card of the tour, by their names; empty when none does. */
+  async underTheTour(things: Locator[]): Promise<string[]> {
+    const card = await this.tour.boundingBox()
+    if (!card) throw new Error('The tour is not there')
+    const found: string[] = []
+    for (const thing of things) {
+      const box = await thing.boundingBox()
+      if (box && box.x < card.x + card.width && card.x < box.x + box.width && box.y < card.y + card.height && card.y < box.y + box.height) {
+        found.push((await thing.getAttribute('aria-label')) ?? 'something')
+      }
+    }
+    return found
+  }
+
   /** Resolve once a service worker is active for this page (production build only). */
   async waitForServiceWorker(): Promise<void> {
     await this.page.evaluate(async () => {

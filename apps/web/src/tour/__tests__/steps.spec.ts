@@ -62,6 +62,23 @@ describe('tourSteps', () => {
     expect(done('arrange', { changes: 2, lastChange: 'objectsMoved' })).toBe(false)
   })
 
+  it('stays out of the way where the canvas itself is worked on or looked at', () => {
+    for (const id of ['connect', 'move', 'card']) expect(step(id).side, id).toBe('away')
+  })
+
+  it('shows the frame of the opened box before it goes on to its views', () => {
+    expect(steps.map((known) => known.id).slice(1, 5)).toEqual(['open', 'inside', 'views', 'back'])
+    expect(step('inside').at).toBe('inside')
+  })
+
+  it('opens the history for the step that is about it, and for no other', () => {
+    expect(steps.filter((known) => known.history).map((known) => known.id)).toEqual(['timeline'])
+    // Right after the step that asks to press "History".
+    expect(steps[steps.indexOf(step('history')) + 1]!.id).toBe('timeline')
+    // It is played with, not answered: the tour does not run off while the timeline is dragged.
+    expect(step('timeline').done).toBeUndefined()
+  })
+
   it('knows that the history was opened', () => {
     expect(done('history', {})).toBe(false)
     expect(done('history', { historyOpen: true })).toBe(true)

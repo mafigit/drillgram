@@ -13,14 +13,17 @@ test('J63 The first visit starts a tour that leads through the app on the exampl
   // The tour is about the example: starting it loads the bookshop.
   await editor.tourPress('Start the tour')
   await expect(editor.tourStep).toHaveText('Boxes that open')
-  await expect(editor.tour).toContainText('Step 1 of 15')
+  await expect(editor.tour).toContainText('Step 1 of 17')
   await expect(editor.element('Web Shop')).toBeVisible()
   await editor.expectTourPointsAt(editor.element('Web Shop'))
 
   // Doing what a step asks for leads to the next one.
   await editor.drillDown('Web Shop')
-  await expect(editor.tourStep).toHaveText('Several views of one box')
+  await expect(editor.tourStep).toHaveText('Inside the box')
   await expect(editor.element('Shop API')).toBeVisible()
+  await editor.expectTourPointsAt(editor.boundary)
+  await editor.tourPress('Next')
+  await expect(editor.tourStep).toHaveText('Several views of one box')
   await editor.expectTourPointsAt(page.getByRole('tablist', { name: 'Views' }), page.getByRole('button', { name: 'New view' }))
 
   await editor.tourPress('Next')
@@ -36,10 +39,13 @@ test('J63 The first visit starts a tour that leads through the app on the exampl
   // The label of the new line is typed before the tour goes on.
   await expect(editor.tourStep).toHaveText('Connect two cards')
   await editor.expectTourPointsAt(editor.element('Customer'))
-  await editor.element('Warehouse Worker').getByTestId('connection-handle').dragTo(editor.element('Shipping Carrier'))
+  // The card of the tour is out of the way: the cards a line could go to are in sight.
+  const near = ['Customer', 'Support Agent', 'Web Shop', 'Support Desk'].map((name) => editor.element(name))
+  expect(await editor.underTheTour(near)).toEqual([])
+  await editor.element('Customer').getByTestId('connection-handle').dragTo(editor.element('Web Shop'))
   await expect(page.getByRole('textbox', { name: 'Relationship label' })).toBeVisible()
   await expect(editor.tourStep).toHaveText('Connect two cards')
-  await page.getByRole('textbox', { name: 'Relationship label' }).fill('Hands parcels to')
+  await page.getByRole('textbox', { name: 'Relationship label' }).fill('Buys books in')
   await page.keyboard.press('Enter')
 
   await expect(editor.tourStep).toHaveText('Move a card')
@@ -50,10 +56,20 @@ test('J63 The first visit starts a tour that leads through the app on the exampl
   await editor.expectTourPointsAt(editor.arrangeButton)
   await editor.arrange()
 
-  await expect(editor.tourStep).toHaveText('Undo and the timeline')
+  await expect(editor.tourStep).toHaveText('Undo and redo')
   await editor.expectTourPointsAt(page.getByRole('button', { name: 'Undo' }), page.getByRole('button', { name: 'History' }))
   await editor.openHistory()
-  await expect(editor.timeline).toBeVisible()
+
+  // The history itself: the tour stays while it is tried, and the diagram shows itself as it was.
+  await expect(editor.tourStep).toHaveText('The history')
+  await editor.expectTourPointsAt(page.getByRole('complementary', { name: 'History' }))
+  await editor.changes.filter({ hasText: 'Loaded the example' }).getByRole('button').click()
+  await expect(editor.element('Gift Cards')).toHaveCount(0)
+  await expect(editor.tourStep).toHaveText('The history')
+  // On with the tour: back to now, and the history makes room again.
+  await editor.tourPress('Next')
+  await expect(editor.element('Gift Cards')).toBeVisible()
+  await expect(editor.timeline).toHaveCount(0)
 
   // The steps that only show something: each with its light on what it is about.
   await expect(editor.tourStep).toHaveText('Find anything')
@@ -75,7 +91,7 @@ test('J63 The first visit starts a tour that leads through the app on the exampl
   await editor.expectTourPointsAt(page.getByRole('button', { name: 'Theme' }))
   await editor.tourPress('Next')
   await expect(editor.tourStep).toHaveText('Where your diagrams are')
-  await expect(editor.tour).toContainText('Step 15 of 15')
+  await expect(editor.tour).toContainText('Step 17 of 17')
   await editor.expectTourPointsAt(editor.workspace)
   await editor.tourPress('Next')
 
@@ -84,7 +100,7 @@ test('J63 The first visit starts a tour that leads through the app on the exampl
   await expect(editor.tour).toHaveCount(0)
   // What was done on the way stays.
   await expect(editor.element('Gift Cards')).toBeVisible()
-  await expect(editor.relationship('Hands parcels to')).toBeVisible()
+  await expect(editor.relationship('Buys books in')).toBeVisible()
 
   // It was seen: it does not come again.
   await page.reload()
@@ -131,7 +147,7 @@ test('J63 "Next" does what a step asks for, "Back" goes back, and the tour ends 
 
   // The box is opened for who does not open it.
   await editor.tourPress('Next')
-  await expect(editor.tourStep).toHaveText('Several views of one box')
+  await expect(editor.tourStep).toHaveText('Inside the box')
   await expect(editor.title).toHaveText('Web Shop')
   await expect(editor.element('Shop API')).toBeVisible()
 
@@ -143,10 +159,24 @@ test('J63 "Next" does what a step asks for, "Back" goes back, and the tour ends 
 
   await editor.tourPress('Next')
   await editor.tourPress('Next')
+  await editor.tourPress('Next')
   await expect(editor.tourStep).toHaveText('The way back')
   await editor.tourPress('Next')
   await expect(editor.tourStep).toHaveText('Add a shape')
   await expect(editor.title).toHaveText('Overview')
+
+  // The history is opened for who does not open it, and closed again behind its step.
+  for (const name of ['Connect two cards', 'Move a card', 'Arrange', 'Undo and redo']) {
+    await editor.tourPress('Next')
+    await expect(editor.tourStep).toHaveText(name)
+  }
+  await expect(editor.timeline).toHaveCount(0)
+  await editor.tourPress('Next')
+  await expect(editor.tourStep).toHaveText('The history')
+  await expect(editor.timeline).toBeVisible()
+  await editor.tourPress('Back')
+  await expect(editor.tourStep).toHaveText('Undo and redo')
+  await expect(editor.timeline).toHaveCount(0)
 
   // The page under the tour is the app: a card can be worked on while the tour is there.
   await editor.tourPress('End the tour')

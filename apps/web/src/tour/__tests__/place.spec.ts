@@ -50,6 +50,13 @@ describe('placeCard', () => {
     expect(placeCard({ x: 20, y: 80, width: 960, height: 500 }, CARD, { width: 1000, height: 600 })).toEqual({ x: 350, y: 12 })
   })
 
+  it('goes to the corner farthest from its target when a step asks to stay out of the way', () => {
+    // Under the top bar and over the toolbar: the corners of the canvas, not of the screen.
+    expect(placeCard({ x: 300, y: 200, width: 100, height: 50 }, CARD, SCREEN, 'away')).toEqual({ x: 688, y: 504 })
+    expect(placeCard({ x: 700, y: 600, width: 100, height: 50 }, CARD, SCREEN, 'away')).toEqual({ x: 12, y: 60 })
+    expect(placeCard({ x: 700, y: 100, width: 100, height: 50 }, CARD, SCREEN, 'away')).toEqual({ x: 12, y: 504 })
+  })
+
   it('fits a screen narrower than the card', () => {
     expect(placeCard(undefined, CARD, { width: 280, height: 800 }).x).toBe(12)
   })

@@ -22,6 +22,8 @@ you sign in, and your diagrams are kept there, in as many workspaces as you like
 - **Working together**: without a server, share a workspace under a link. Whoever opens it
   changes the diagrams with you, live, and you see each other's pointers. The browsers talk to
   each other directly (WebRTC).
+- **A workspace as a file**: export a workspace with its history, and import it in another
+  browser or on another server.
 - **A tour**: the first visit offers a tour of three minutes through all of this, on an
   example.
 - **Sign-in your way**: a password, single sign-on (OpenID Connect), or the proxy in front of

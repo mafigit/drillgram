@@ -99,7 +99,7 @@ export async function pngOfSvg(svg: string): Promise<Blob> {
 }
 
 /** Hand a file to the browser to save. */
-function save(blob: Blob, name: string): void {
+export function save(blob: Blob, name: string): void {
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url

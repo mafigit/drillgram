@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { CheckIcon, ChevronsUpDownIcon, LayersIcon, LoaderCircleIcon, PencilIcon, PlusIcon, Trash2Icon } from '@lucide/vue'
+import { CheckIcon, ChevronsUpDownIcon, FileDownIcon, FileUpIcon, LayersIcon, LoaderCircleIcon, PencilIcon, PlusIcon, Trash2Icon } from '@lucide/vue'
+import { WorkspaceFileError } from '@drillgram/model'
 import {
   DropdownMenuContent,
   DropdownMenuItem,
@@ -19,13 +20,14 @@ import { Input } from '@/components/ui/input'
 import { useBusy } from '../composables/useBusy'
 import { showError } from '../composables/useErrors'
 import { useWorkspaces } from '../composables/useWorkspaces'
+import { save } from '../export/download'
 import { failureText } from '../lib/api'
 
 // The workspaces of the user: which one is open, the way to another, and what an owner does
 // with the open one (a new one, another name, away with it).
 const route = useRoute()
 const router = useRouter()
-const { workspaces, load, create, rename, remove } = useWorkspaces()
+const { workspaces, load, create, rename, remove, fileOf, fromFile } = useWorkspaces()
 const { busy, run } = useBusy()
 
 const openId = computed(() => String(route.params.workspace ?? ''))
@@ -71,6 +73,37 @@ const takeAway = () =>
     // On to another one, or to the page that offers to make one.
     await router.replace('/')
   })
+
+// A workspace as a file (J64): to keep a copy, and to have it in another browser. The open
+// one is saved; a file becomes a workspace of its own, beside those that are there.
+const exportFile = () =>
+  run(async () => {
+    try {
+      const file = await fileOf(openId.value)
+      save(new Blob([file.text], { type: 'application/json' }), file.name)
+    } catch (failure) {
+      showError(failureText(failure))
+    }
+  })
+
+/** A file larger than any workspace: not read at all. */
+const MAX_FILE = 200_000_000
+const picker = ref<HTMLInputElement>()
+function importFile() {
+  const file = picker.value?.files?.[0]
+  // The same file can be chosen again: the field forgets it.
+  if (picker.value) picker.value.value = ''
+  if (!file) return
+  void run(async () => {
+    try {
+      if (file.size > MAX_FILE) throw new WorkspaceFileError('This file is too large to be a workspace of Drillgram.')
+      const made = await fromFile(await file.text())
+      await router.push(`/w/${made.id}`)
+    } catch (failure) {
+      showError(failure instanceof WorkspaceFileError ? failure.message : failureText(failure))
+    }
+  })
+}
 </script>
 
 <template>
@@ -78,8 +111,17 @@ const takeAway = () =>
     <DropdownMenuTrigger as-child>
       <!-- The bar is short of room on a tablet and a phone: there the button is its sign alone,
            and the name is for those who do not see the sign. -->
-      <Button variant="ghost" size="sm" class="max-w-48 min-w-0 shrink max-lg:px-1.5" :aria-label="`Workspace: ${open?.name ?? 'none'}`" :title="`Workspace: ${open?.name ?? 'none'}`">
-        <LayersIcon class="lg:hidden" aria-hidden="true" />
+      <!-- Busy while a file is written or read: a press on a menu entry ends in something seen. -->
+      <Button
+        variant="ghost"
+        size="sm"
+        class="max-w-48 min-w-0 shrink max-lg:px-1.5"
+        :aria-label="`Workspace: ${open?.name ?? 'none'}`"
+        :title="`Workspace: ${open?.name ?? 'none'}`"
+        :aria-busy="busy && asking === undefined"
+      >
+        <LoaderCircleIcon v-if="busy && asking === undefined" class="animate-spin" aria-hidden="true" />
+        <LayersIcon v-else class="lg:hidden" aria-hidden="true" />
         <span class="truncate max-lg:sr-only">{{ open?.name ?? 'Workspace' }}</span>
         <ChevronsUpDownIcon class="text-muted-foreground max-lg:hidden" aria-hidden="true" />
       </Button>
@@ -108,6 +150,23 @@ const takeAway = () =>
           <PlusIcon class="size-4" aria-hidden="true" />
           New workspace
         </DropdownMenuItem>
+        <DropdownMenuItem
+          class="data-highlighted:bg-accent flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 outline-none"
+          title="Open a workspace that was saved as a file, as a workspace of its own"
+          @select="picker?.click()"
+        >
+          <FileUpIcon class="size-4" aria-hidden="true" />
+          Import workspace
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          v-if="open"
+          class="data-highlighted:bg-accent flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 outline-none"
+          title="Save this workspace as a file, with its history: to keep it, or to open it in another browser"
+          @select="exportFile"
+        >
+          <FileDownIcon class="size-4" aria-hidden="true" />
+          Export workspace
+        </DropdownMenuItem>
         <!-- Only its owner changes a workspace. -->
         <template v-if="open?.role === 'owner'">
           <DropdownMenuItem class="data-highlighted:bg-accent flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 outline-none" @select="ask('rename')">
@@ -122,6 +181,9 @@ const takeAway = () =>
       </DropdownMenuContent>
     </DropdownMenuPortal>
   </DropdownMenuRoot>
+
+  <!-- The file a workspace is made from: the menu's entry opens it, the menu itself is gone by then. -->
+  <input ref="picker" type="file" accept=".json,application/json" aria-label="Workspace file" class="sr-only" tabindex="-1" @change="importFile" />
 
   <Dialog :open="asking === 'new' || asking === 'rename'" @update:open="(shown) => shown || (asking = undefined)">
     <DialogContent class="sm:max-w-md">

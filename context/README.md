@@ -238,8 +238,8 @@ Project started 2026-11-03.
   postal address and the e-mail address are still to be filled in, and the pages say so). Workspaces and their change logs are in the browser's
   IndexedDB, behind the same API the server answers (`lib/browserServer.ts`), so the editor,
   several workspaces, the history and the two-tabs rule of J60 work as with a server. Not
-  there: users, sharing, the same diagrams on a second device. Not yet: a workspace as a file,
-  to take it to another browser or keep a copy. `mise run cloudflare` puts the build on
+  there: users, the same diagrams on a second device by themselves (a workspace goes there as
+  a file, J64). `mise run cloudflare` puts the build on
   Cloudflare (Workers static assets, the free plan; `operations.md`, "Without a server").
 - A tour on the first visit (J63, 2026-11-26): on a workspace nothing was ever done in, in a
   browser the tour was never shown to, a card welcomes and offers a tour. It loads the example
@@ -270,6 +270,14 @@ Project started 2026-11-03.
   `architecture.md` ("Working together"). The session lasts while the one who shares has the workspace open.
   Not yet: two changes at the same moment (the later one is not kept), undo of one's own
   changes only, the app with a server.
+- A workspace as a file (J64, 2026-11-26): "Export workspace" in the workspace menu saves
+  the open workspace as `<name>.drillgram.json`, its name and its change log
+  (`writeWorkspaceFile` in `@drillgram/model`, an entry a line; what a "cleared" wiped is
+  left out). "Import workspace" makes a workspace of its own from such a file, beside those
+  that are there, and opens it: as it was left, with its history (`fromFile` in
+  `useWorkspaces.ts`: a new workspace, the entries appended in pieces the server takes, with
+  ids of their own; nothing stays when the server does not take all). With and without a
+  server alike, through the same API, so a workspace also goes from the one to the other.
 - Run as a stack (2026-11-26): `docker compose up --build` builds one image with the server and
   the web app and runs it with a PostgreSQL (`Dockerfile`, `compose.yaml`; `operations.md`,
   "The stack").
@@ -279,7 +287,7 @@ Project started 2026-11-03.
   The client can read the workspace, switch views, edit the diagram, arrange cards, import and
   export, and move through history. The sharing dialog gives setup instructions for Claude, Codex
   and Claude Code. Changes go into the browser's change log. See [operations](operations.md#on-cloudflare).
-- Journeys J1 to J5, J7, J9, J11, J15 and J18 to J63 are real tests. J6, J8, J10,
+- Journeys J1 to J5, J7, J9, J11, J15 and J18 to J64 are real tests. J6, J8, J10,
   J12 to J14, J16 and J17 are still `test.fixme`.
 - Event sourcing (owner's call, 2026-11-22; begun 2026-11-26): the events are the truth and the
   workspace is what they add up to: the server keeps the log, the editor makes the workspace

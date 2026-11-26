@@ -206,7 +206,7 @@ export function tourSteps(browserOnly: boolean): TourStep[] {
         browserOnly
           ? 'In this browser, on this device, and nowhere else: export what you want to keep.'
           : 'On the server: every browser you sign in to has them.'
-      } This menu names the open workspace and leads to the others. You can have as many as you like.`,
+      } This menu names the open workspace and leads to the others; you can have as many as you like. It also saves a workspace as a file, to keep it or to open it in another browser.`,
       target: ['button[aria-label^="Workspace: "]'],
     },
     {

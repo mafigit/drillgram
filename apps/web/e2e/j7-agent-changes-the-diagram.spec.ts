@@ -47,6 +47,77 @@ test('J7 A paired MCP client reads and changes the open diagram', async ({ edito
   expect(consoleErrors).toEqual([])
 })
 
+test('J7 The workspace glows while an agent is connected, and leaving it asks first', async ({ editor, page, request, consoleErrors }) => {
+  await editor.open()
+  const glow = page.getByTestId('agent-glow')
+  const said = page.getByRole('status').filter({ hasText: 'An agent is connected' })
+  await expect(glow).toHaveCount(0)
+  await expect(said).toHaveCount(0)
+
+  // With an agent connected: a glow around the whole window, and the words for who does not see it.
+  const { url, token } = await editor.connectAgent()
+  await expect(glow).toBeVisible()
+  await expect(said).toHaveCount(1)
+  const [around, window] = [(await glow.boundingBox())!, page.viewportSize()!]
+  expect(around).toEqual({ x: 0, y: 0, width: window.width, height: window.height })
+  // It takes no click: the app under it is used as ever.
+  await editor.addElement('Software System', 'Online Shop')
+  await expect(editor.element('Online Shop')).toBeVisible()
+
+  const works = async () =>
+    (await request.post(url, {
+      headers: { Accept: 'application/json, text/event-stream', Authorization: `Bearer ${token}` },
+      data: { jsonrpc: '2.0', id: 1, method: 'tools/list' },
+    })).status()
+  expect(await works()).toBe(200)
+
+  // Another diagram of the same workspace is no leaving: no question.
+  const asking = page.getByRole('dialog', { name: 'Leave this workspace?' })
+  await editor.drillDown('Online Shop')
+  await expect(editor.title).toHaveText('Online Shop')
+  await editor.backTo('Overview')
+  await expect(asking).toHaveCount(0)
+
+  // On the way to another workspace: asked first, and "Stay" changes nothing.
+  await editor.workspace.click()
+  await page.getByRole('menuitem', { name: 'New workspace' }).click()
+  await page.getByRole('dialog', { name: 'New workspace' }).getByLabel('Name').fill('Other')
+  await page.getByRole('dialog', { name: 'New workspace' }).getByRole('button', { name: 'Create' }).click()
+  await expect(asking).toBeVisible()
+  await expect(asking).toContainText('ends the agent\'s connection')
+  await asking.getByRole('button', { name: 'Stay' }).click()
+  await expect(asking).toHaveCount(0)
+  await expect(editor.workspace).toContainText('My workspace')
+  await expect(editor.element('Online Shop')).toBeVisible()
+  await expect(glow).toBeVisible()
+  expect(await works()).toBe(200)
+
+  // A press on the other workspace asks again; leaving ends the agent's connection.
+  await editor.workspace.click()
+  await page.getByRole('menuitemradio', { name: 'Other' }).click()
+  await expect(asking).toBeVisible()
+  await asking.getByRole('button', { name: 'Leave and stop sharing' }).click()
+  await expect(editor.workspace).toContainText('Other')
+  await expect(editor.element('Online Shop')).toHaveCount(0)
+  await expect(glow).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Connect agent' })).toBeVisible()
+  await expect.poll(works).toBe(401)
+
+  // Without an agent nobody is asked.
+  await editor.workspace.click()
+  await page.getByRole('menuitemradio', { name: 'My workspace' }).click()
+  await expect(editor.element('Online Shop')).toBeVisible()
+  await expect(asking).toHaveCount(0)
+
+  // The glow goes with the connection, also when sharing is stopped by hand.
+  await editor.connectAgent()
+  await expect(glow).toBeVisible()
+  await editor.disconnectAgent()
+  await page.keyboard.press('Escape')
+  await expect(glow).toHaveCount(0)
+  expect(consoleErrors).toEqual([])
+})
+
 test('J7 An agent edits boxes, relationships, views and history', async ({ editor, page, consoleErrors }) => {
   await editor.open()
   const { url, token } = await editor.connectAgent()

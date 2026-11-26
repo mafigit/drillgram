@@ -114,10 +114,20 @@ Test: `apps/web/e2e/j7-agent-changes-the-diagram.spec.ts`. Project `browser-only
 8. In an empty workspace, load the example and return to history position zero. Attach an
    icon, copy a box, place an existing box on a new view, and export SVG and PNG. Remove the
    view, a group, a relationship and a box.
+9. Start sharing, add a box and open it. Make a workspace "Other" and press "Stay". Press
+   "Other" in the workspace menu and press "Leave and stop sharing". Go back to the first
+   workspace. Start sharing and stop it.
 
 Expected: changes appear in the editor as the calls succeed and the current diagram survives
 reload. An overlapping move leaves all cards in place. The PNG is returned as an MCP image.
 After you stop sharing, the relay refuses the token.
+
+While an agent is connected, the whole window has a glow around its edge, which takes no
+click, and says so to who cannot see it. On the way out of that workspace (another workspace
+from the menu, a new one) a dialog asks first: leaving ends the agent's connection. "Stay"
+changes nothing: the workspace, the glow and the token are as before. "Leave and stop
+sharing" opens the other workspace, the glow is gone and the relay refuses the token.
+Another diagram of the same workspace is no leaving, and without an agent nobody is asked.
 
 ## J8 Tablet
 

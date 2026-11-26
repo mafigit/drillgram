@@ -1,5 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useSession } from '../composables/useSession'
+import { useWorkspaces } from '../composables/useWorkspaces'
+import { mayLeave } from '../lib/agentSharing'
 import { browserOnly } from '../lib/api'
 
 /**
@@ -36,6 +38,14 @@ const router = createRouter({
       : []),
     { path: '/:unknown(.*)*', redirect: '/' },
   ],
+})
+
+// With an agent connected to the open workspace (J7), leaving it ends the agent's connection:
+// asked first, for every way out (the workspace menu, a link, the browser's back button),
+// out of a shared session too. A workspace that was just deleted is left without a question.
+router.beforeEach((to, from) => {
+  const { workspaces } = useWorkspaces()
+  return mayLeave(to, from, (place) => from.params.room !== undefined || workspaces.value.some((known) => known.id === place))
 })
 
 // Nobody uses the app without being signed in. The server is asked once who that is; when it

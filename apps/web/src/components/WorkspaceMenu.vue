@@ -64,6 +64,9 @@ const act = (work: () => Promise<void>) =>
 const make = () =>
   act(async () => {
     const made = await create(name.value)
+    // Made: the dialog has done its work. The way there may ask a question of its own (an
+    // agent is connected to the workspace that is left, J7), and asks it alone.
+    asking.value = undefined
     await router.push(`/w/${made.id}`)
   })
 const giveName = () => act(() => rename(openId.value, name.value))

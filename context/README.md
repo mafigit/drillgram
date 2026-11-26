@@ -289,6 +289,10 @@ Project started 2026-11-03.
   The client can read the workspace, switch views, edit the diagram, arrange cards, import and
   export, and move through history. The sharing dialog gives setup instructions for Claude, Codex
   and Claude Code. Changes go into the browser's change log. See [operations](operations.md#on-cloudflare).
+  While a client is connected the window glows at its edge, stronger while a tool call runs
+  (`AgentPresence.vue` in `App.vue`), and the router asks before the workspace is left, which
+  ends the connection (`lib/agentSharing.ts`: a guard for every way out but a deleted
+  workspace).
 - Journeys J1 to J5, J7, J9, J11, J15 and J18 to J64 are real tests. J6, J8, J10,
   J12 to J14, J16 and J17 are still `test.fixme`.
 - Event sourcing (owner's call, 2026-11-22; begun 2026-11-26): the events are the truth and the

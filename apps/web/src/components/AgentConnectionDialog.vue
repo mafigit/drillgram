@@ -10,6 +10,7 @@ import { showError } from '../composables/useErrors'
 import { connectAgent } from '../lib/agentConnection'
 import type { AgentConnection } from '../lib/agentConnection'
 import type { AgentTool } from '../lib/agentProtocol'
+import { agentActive, agentCalls } from '../lib/agentSharing'
 
 const props = defineProps<{ runTool: (tool: AgentTool, signal: AbortSignal) => Promise<Record<string, unknown>> }>()
 const open = ref(false)
@@ -47,16 +48,28 @@ const commands = computed(() => {
   ]
 })
 
+/** A tool call of the agent, counted while it runs: the window shows that the agent is at work. */
+const runTool: typeof props.runTool = async (tool, signal) => {
+  agentCalls.value++
+  try {
+    return await props.runTool(tool, signal)
+  } finally {
+    agentCalls.value--
+  }
+}
+
 function start() {
   void run(async () => {
     const attempt = new AbortController()
     sharing = attempt
     try {
-      connection.value = await connectAgent(props.runTool, (reason) => {
+      connection.value = await connectAgent(runTool, (reason) => {
         if (sharing !== attempt) return
         stop()
         if (reason !== 'Sharing expired') showError('Agent sharing disconnected. Start sharing again to reconnect.')
       }, attempt.signal)
+      // The rest of the app knows: the window glows, and leaving the workspace asks first.
+      agentActive.value = sharing === attempt
     } catch {
       if (sharing !== attempt) return
       stop()
@@ -70,6 +83,7 @@ function stop() {
   sharing = undefined
   current?.abort()
   connection.value = undefined
+  agentActive.value = false
 }
 
 onBeforeUnmount(stop)

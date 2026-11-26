@@ -16,9 +16,10 @@ export interface ShapeDrawing {
   /**
    * How the outline shows, when not as a line around a ground: `ground` is the ground alone (a
    * data store has a line above and below, none at its sides), `none` is nothing (a text, a
-   * comment beside a brace). The outline is then still the card's extent.
+   * comment beside a brace), `solid` is filled with the colour of the line (a junction). The
+   * outline is then still the card's extent.
    */
-  look?: 'ground' | 'none'
+  look?: 'ground' | 'none' | 'solid'
 }
 
 /** What each shape is called and is for, for the picker and the form. */
@@ -69,11 +70,54 @@ export const SHAPE_ABOUT: Record<BoxShape, { label: string; about: string }> = {
   bucket: { label: 'Bucket', about: 'A bucket: object storage' },
   console: { label: 'Console', about: 'A window with a prompt: a terminal' },
   dataStore: { label: 'Data store', about: 'A line above and below: a store in a data flow' },
+  star: { label: 'Star', about: 'A five-pointed star: something to stand out' },
+  pentagon: { label: 'Pentagon', about: 'A five-sided box' },
+  octagon: { label: 'Octagon', about: 'An eight-sided box: a stop' },
+  cross: { label: 'Cross', about: 'A plus: something to add, a help' },
+  arrowRight: { label: 'Arrow right', about: 'A block arrow to the right: a way on' },
+  arrowLeft: { label: 'Arrow left', about: 'A block arrow to the left: a way back' },
+  arrowBoth: { label: 'Arrow both ways', about: 'A block arrow to both sides: an exchange' },
+  tag: { label: 'Tag', about: 'A box pointed at its right: a label, a milestone' },
+  circlePlus: { label: 'Or', about: 'A circle with a plus: one way or the other' },
+  circleCross: { label: 'Summing junction', about: 'A circle with a cross: flows that join' },
+  filledCircle: { label: 'Junction', about: 'A filled circle: where lines meet' },
+  offPage: { label: 'Off-page link', about: 'A box pointed at its bottom: goes on elsewhere' },
+  hourglass: { label: 'Collate', about: 'An hourglass: what is put in order' },
+  bolt: { label: 'Lightning bolt', about: 'A bolt: a link of communication' },
+  magneticTape: { label: 'Magnetic tape', about: 'A reel with its tape: data on tape' },
+  bracket: { label: 'Comment, bracket', about: 'Words beside a square bracket' },
+  speechBubble: { label: 'Speech bubble', about: 'An oval bubble: something said' },
   table: { label: 'Table', about: 'A table with its columns: name, type and key of each' },
 }
 
 /** The shapes of the Basic library; the others stand in the Flowchart library. */
-export const BASIC_SHAPES: BoxShape[] = ['cylinder', 'queue', 'document', 'hexagon', 'diamond', 'circle', 'stadium', 'parallelogram', 'cloud', 'subroutine', 'page', 'folder', 'step', 'callout', 'storedData', 'text', 'table']
+export const BASIC_SHAPES: BoxShape[] = [
+  'cylinder',
+  'queue',
+  'document',
+  'hexagon',
+  'diamond',
+  'circle',
+  'stadium',
+  'parallelogram',
+  'cloud',
+  'subroutine',
+  'page',
+  'folder',
+  'step',
+  'callout',
+  'storedData',
+  'text',
+  'table',
+  'star',
+  'pentagon',
+  'octagon',
+  'cross',
+  'arrowRight',
+  'arrowLeft',
+  'arrowBoth',
+  'tag',
+]
 
 const n = (value: number) => Math.round(value * 100) / 100
 
@@ -104,6 +148,18 @@ function brace(x: number, way: 1 | -1, h: number): string {
   const [far, mid] = [x + way * BRACE, x + (way * BRACE) / 2]
   return `M${n(far)} 0Q${n(mid)} 0 ${n(mid)} ${n(r)}V${n(h / 2 - r)}Q${n(mid)} ${n(h / 2)} ${n(x)} ${n(h / 2)}Q${n(mid)} ${n(h / 2)} ${n(mid)} ${n(h / 2 + r)}V${n(h - r)}Q${n(mid)} ${n(h)} ${n(far)} ${n(h)}`
 }
+
+/** A closed path through points given in a box one wide and one high. */
+const polygon = (w: number, h: number, points: readonly (readonly [number, number])[]) =>
+  `M${points.map(([x, y]) => `${n(x * w)} ${n(y * h)}`).join('L')}Z`
+
+/** A five-pointed star filling the box: its points and the corners between them. */
+const STAR = Array.from({ length: 10 }, (_, at) => {
+  const angle = -Math.PI / 2 + (at * Math.PI) / 5
+  const reach = at % 2 === 0 ? 1 : 0.42
+  // The star is 2 cos 18° wide and 1 + cos 36° high: scaled to fill the box.
+  return [0.5 + (Math.cos(angle) * reach) / (2 * Math.cos(Math.PI / 10)), (1 + Math.sin(angle) * reach) / (1 + Math.cos(Math.PI / 5))] as const
+})
 
 /** The drawing of a shape for a box `w` wide and `h` high, its top left corner at 0, 0. */
 export function boxShape(shape: BoxShape, w: number, h: number): ShapeDrawing {
@@ -356,6 +412,96 @@ export function boxShape(shape: BoxShape, w: number, h: number): ShapeDrawing {
     }
     case 'dataStore':
       return { outline: box, lines: [`M0 0H${n(w)}`, `M0 ${n(h)}H${n(w)}`], inset: none, look: 'ground' }
+    case 'star':
+      return { outline: polygon(w, h, STAR), lines: [], inset: { top: h * 0.3, bottom: h * 0.16, left: w * 0.24, right: w * 0.24 } }
+    case 'pentagon':
+      return {
+        outline: polygon(w, h, [[0.5, 0], [1, 0.38], [0.81, 1], [0.19, 1], [0, 0.38]]),
+        lines: [],
+        inset: { top: h * 0.2, bottom: 0, left: w * 0.12, right: w * 0.12 },
+      }
+    case 'octagon': {
+      const c = Math.min(w, h) * 0.29
+      return {
+        outline: `M${n(c)} 0H${n(w - c)}L${n(w)} ${n(c)}V${n(h - c)}L${n(w - c)} ${n(h)}H${n(c)}L0 ${n(h - c)}V${n(c)}Z`,
+        lines: [],
+        inset: { top: 0, bottom: 0, left: c / 2, right: c / 2 },
+      }
+    }
+    case 'cross': {
+      const [x1, x2, y1, y2] = [w / 3, (2 * w) / 3, h / 3, (2 * h) / 3]
+      return {
+        outline: `M${n(x1)} 0H${n(x2)}V${n(y1)}H${n(w)}V${n(y2)}H${n(x2)}V${n(h)}H${n(x1)}V${n(y2)}H0V${n(y1)}H${n(x1)}Z`,
+        lines: [],
+        inset: { top: h * 0.24, bottom: h * 0.24, left: w * 0.24, right: w * 0.24 },
+      }
+    }
+    case 'arrowRight': {
+      const d = Math.min(h * 0.6, w * 0.4)
+      return {
+        outline: `M0 ${n(h / 4)}H${n(w - d)}V0L${n(w)} ${n(h / 2)}L${n(w - d)} ${n(h)}V${n((3 * h) / 4)}H0Z`,
+        lines: [],
+        inset: { top: h / 5, bottom: h / 5, left: 0, right: d / 2 },
+      }
+    }
+    case 'arrowLeft': {
+      const d = Math.min(h * 0.6, w * 0.4)
+      return {
+        outline: `M${n(w)} ${n(h / 4)}H${n(d)}V0L0 ${n(h / 2)}L${n(d)} ${n(h)}V${n((3 * h) / 4)}H${n(w)}Z`,
+        lines: [],
+        inset: { top: h / 5, bottom: h / 5, left: d / 2, right: 0 },
+      }
+    }
+    case 'arrowBoth': {
+      const d = Math.min(h * 0.5, w * 0.3)
+      return {
+        outline: `M0 ${n(h / 2)}L${n(d)} 0V${n(h / 4)}H${n(w - d)}V0L${n(w)} ${n(h / 2)}L${n(w - d)} ${n(h)}V${n((3 * h) / 4)}H${n(d)}V${n(h)}Z`,
+        lines: [],
+        inset: { top: h / 5, bottom: h / 5, left: d / 2, right: d / 2 },
+      }
+    }
+    case 'tag': {
+      const d = Math.min(22, w / 7)
+      return { outline: `M0 0H${n(w - d)}L${n(w)} ${n(h / 2)}L${n(w - d)} ${n(h)}H0Z`, lines: [], inset: { ...none, right: d } }
+    }
+    case 'circlePlus':
+      return { outline: ellipse(0, w, h), lines: [`M${n(w / 2)} 0V${n(h)}`, `M0 ${n(h / 2)}H${n(w)}`], inset: { top: h / 8, bottom: h / 8, left: w / 8, right: w / 8 } }
+    case 'circleCross': {
+      const [dx, dy] = [(w / 2) * Math.SQRT1_2, (h / 2) * Math.SQRT1_2]
+      const [l, r, t, b] = [w / 2 - dx, w / 2 + dx, h / 2 - dy, h / 2 + dy]
+      return {
+        outline: ellipse(0, w, h),
+        lines: [`M${n(l)} ${n(t)}L${n(r)} ${n(b)}`, `M${n(r)} ${n(t)}L${n(l)} ${n(b)}`],
+        inset: { top: h / 8, bottom: h / 8, left: w / 8, right: w / 8 },
+      }
+    }
+    case 'filledCircle':
+      return { outline: ellipse(0, w, h), lines: [], inset: { top: h / 8, bottom: h / 8, left: w / 8, right: w / 8 }, look: 'solid' }
+    case 'offPage':
+      return { outline: `M0 0H${n(w)}V${n(h * 0.65)}L${n(w / 2)} ${n(h)}L0 ${n(h * 0.65)}Z`, lines: [], inset: { ...none, bottom: h * 0.3 } }
+    case 'hourglass':
+      return { outline: `M0 0H${n(w)}L0 ${n(h)}H${n(w)}Z`, lines: [], inset: none }
+    case 'bolt':
+      return {
+        outline: polygon(w, h, [[0.62, 0], [0.12, 0.56], [0.46, 0.56], [0.34, 1], [0.88, 0.4], [0.54, 0.4], [0.72, 0]]),
+        lines: [],
+        inset: none,
+      }
+    case 'magneticTape':
+      return { outline: ellipse(0, w, h), lines: [`M${n(w / 2)} ${n(h)}H${n(w)}`], inset: { top: h / 8, bottom: h / 8, left: w / 8, right: w / 8 } }
+    case 'bracket':
+      return { outline: box, lines: [`M${BRACE} 0H0V${n(h)}H${BRACE}`], inset: { ...none, left: BRACE }, look: 'none' }
+    case 'speechBubble': {
+      const e = h * 0.85
+      const [rx, ry] = [w / 2, e / 2]
+      const at = (x: number) => ry + ry * Math.sqrt(1 - ((x - rx) / rx) ** 2)
+      const [x1, x2] = [w * 0.28, w * 0.42]
+      return {
+        outline: `M${n(x2)} ${n(at(x2))}A${n(rx)} ${n(ry)} 0 1 0 ${n(x1)} ${n(at(x1))}L${n(w * 0.2)} ${n(h)}Z`,
+        lines: [],
+        inset: { top: e / 8, bottom: h - e + e / 8, left: w / 8, right: w / 8 },
+      }
+    }
     case 'table': {
       // For a list of shapes only: on the canvas a table is a card of its own make, with its
       // columns as rows (ObjectNode.vue).

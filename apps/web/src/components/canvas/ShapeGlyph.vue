@@ -12,7 +12,7 @@ const drawing = computed(() => boxShape(props.shape, 24, 16))
 <template>
   <svg class="size-5" viewBox="-1 -1 26 18" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
     <path v-if="drawing.look === 'none'" :d="drawing.outline" stroke-width="1" stroke-dasharray="2 2" opacity="0.5" />
-    <path v-else :d="drawing.outline" :stroke="drawing.look === 'ground' ? 'none' : undefined" />
+    <path v-else :d="drawing.outline" :stroke="drawing.look === 'ground' ? 'none' : undefined" :fill="drawing.look === 'solid' ? 'currentColor' : undefined" />
     <path v-for="line in drawing.lines" :key="line" :d="line" />
   </svg>
 </template>

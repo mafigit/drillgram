@@ -25,6 +25,16 @@ export interface PdfPage {
 }
 export type PdfOps = Record<string, number>
 
+/** Points along a Bézier curve of any degree (de Casteljau), the first one left out. */
+function along(control: Point[], steps = 8): Point[] {
+  return Array.from({ length: steps }, (_, i) => {
+    const t = (i + 1) / steps
+    let level = control
+    while (level.length > 1) level = level.slice(1).map((p, j) => ({ x: level[j]!.x + (p.x - level[j]!.x) * t, y: level[j]!.y + (p.y - level[j]!.y) * t }))
+    return level[0]!
+  })
+}
+
 /** pdf.js's codes for the pieces of a path (`DrawOPS`). */
 const MOVE = 0
 const LINE = 1
@@ -75,18 +85,16 @@ export async function drawingOfPage(page: PdfPage, OPS: PdfOps): Promise<Drawing
         } else if (code === LINE) {
           piece?.points.push(at(data[k]!, data[k + 1]!))
           k += 2
-        } else if (code === CURVE) {
+        } else if (code === CURVE || code === QUADRATIC) {
+          // Points along the curve, not its handles: the outline goes through them.
+          const count = code === CURVE ? 6 : 4
           if (piece) {
-            piece.points.push(at(data[k]!, data[k + 1]!), at(data[k + 2]!, data[k + 3]!), at(data[k + 4]!, data[k + 5]!))
+            const p0 = piece.points.at(-1)!
+            const handles = Array.from({ length: count / 2 }, (_, i) => at(data[k + 2 * i]!, data[k + 2 * i + 1]!))
+            piece.points.push(...along([p0, ...handles]))
             piece.curved = true
           }
-          k += 6
-        } else if (code === QUADRATIC) {
-          if (piece) {
-            piece.points.push(at(data[k]!, data[k + 1]!), at(data[k + 2]!, data[k + 3]!))
-            piece.curved = true
-          }
-          k += 4
+          k += count
         } else if (code === CLOSE) {
           if (piece) piece.closed = true
         } else break

@@ -343,7 +343,7 @@ function card(card: SceneCard, options: SvgOptions): string {
   const iconsRoom = icons.length > 0 ? icons.length * CARD.iconStep + 14 : 0
   const parts: string[] = [
     outline
-      ? `<g transform="translate(${n(card.x + 0.5)} ${n(card.y + 0.5)})">${outline.look === 'none' ? '' : `<path d="${outline.outline}" fill="${fill}" stroke="${outline.look === 'ground' ? 'none' : COLOURS.border}"/>`}${outline.lines.map((line) => `<path d="${line}" fill="none" stroke="${COLOURS.border}"/>`).join('')}</g>`
+      ? `<g transform="translate(${n(card.x + 0.5)} ${n(card.y + 0.5)})">${outline.look === 'none' ? '' : `<path d="${outline.outline}" fill="${outline.look === 'solid' ? COLOURS.border : fill}" stroke="${outline.look === 'ground' ? 'none' : COLOURS.border}"/>`}${outline.lines.map((line) => `<path d="${line}" fill="none" stroke="${COLOURS.border}"/>`).join('')}</g>`
       : `<rect x="${n(card.x + 0.5)}" y="${n(card.y + 0.5)}" width="${n(card.width - 1)}" height="${n(card.height - 1)}" rx="${CARD.radius}" fill="${fill}" stroke="${COLOURS.border}"/>`,
   ]
   if (card.kind === 'person') {

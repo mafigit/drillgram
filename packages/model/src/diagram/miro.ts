@@ -39,20 +39,37 @@ const OTHERS = new Map([
   ['preview', 'Link'],
 ])
 
-/** Miro's shapes (`data.shape`) and the outline of ours nearest to each; the rest are plain boxes. */
+/**
+ * Miro's shapes and the outline of ours for each: by the name the API gives a shape (`data.shape`),
+ * and the name of an element of Miro's newer libraries (`flowchart-delay`), which a copy and the
+ * board give. Read off a board holding every shape of Miro's panel (2026-11-26). A name that is
+ * not here, or a plain rectangle, is a plain box.
+ */
 const SHAPES = new Map<string, BoxShape>([
+  // The basic shapes, as the API names them; `chevron` and `pentagon_arrow` are not in its
+  // reference, but are the two shapes after the braces in the panel.
   ['circle', 'circle'],
   ['triangle', 'triangle'],
   ['rhombus', 'diamond'],
-  ['parallelogram', 'parallelogram'],
-  ['trapezoid', 'trapezoid'],
-  ['hexagon', 'hexagon'],
   ['wedge_round_rectangle_callout', 'callout'],
+  ['parallelogram', 'parallelogram'],
+  ['star', 'star'],
+  ['right_arrow', 'arrowRight'],
+  ['left_arrow', 'arrowLeft'],
+  ['left_right_arrow', 'arrowBoth'],
+  ['pentagon', 'pentagon'],
+  ['octagon', 'octagon'],
+  ['hexagon', 'hexagon'],
+  ['flow_chart_predefined_process', 'subroutine'],
+  ['trapezoid', 'trapezoid'],
   ['cloud', 'cloud'],
+  ['cross', 'cross'],
   ['can', 'cylinder'],
   ['left_brace', 'brace'],
   ['right_brace', 'braceRight'],
-  ['flow_chart_predefined_process', 'subroutine'],
+  ['chevron', 'step'],
+  ['pentagon_arrow', 'tag'],
+  // The flowchart shapes of the API (`/v2-experimental`).
   ['flow_chart_predefined_process_2', 'subroutine'],
   ['flow_chart_connector', 'circle'],
   ['flow_chart_magnetic_disk', 'cylinder'],
@@ -69,13 +86,66 @@ const SHAPES = new Map<string, BoxShape>([
   ['flow_chart_multidocuments', 'documents'],
   ['flow_chart_note_curly_left', 'brace'],
   ['flow_chart_note_curly_right', 'braceRight'],
-  ['flow_chart_or', 'circle'],
+  ['flow_chart_note_square', 'bracket'],
+  ['flow_chart_offpage_connector', 'offPage'],
+  ['flow_chart_or', 'circlePlus'],
   ['flow_chart_preparation', 'hexagon'],
   ['flow_chart_online_storage', 'storedData'],
-  ['flow_chart_summing_junction', 'circle'],
+  ['flow_chart_summing_junction', 'circleCross'],
   ['flow_chart_terminator', 'stadium'],
-  // Shapes of Miro's newer libraries, as a copy names them (`callouts-callout`).
-  ['callouts_callout', 'callout'],
+  // The elements of the Flowchart and Callouts libraries, as a copy and the board name them.
+  ['flowchart-decision', 'diamond'],
+  ['flowchart-terminator', 'stadium'],
+  ['flowchart-predefined-process', 'subroutine'],
+  ['flowchart-document', 'document'],
+  ['flowchart-multiple-documents', 'documents'],
+  ['flowchart-manual-input', 'manualInput'],
+  ['flowchart-preparation', 'hexagon'],
+  ['flowchart-data', 'parallelogram'],
+  ['flowchart-database', 'cylinder'],
+  ['flowchart-hard-disk', 'queue'],
+  ['flowchart-internal-storage', 'internalStorage'],
+  ['flowchart-manual-operation', 'invTrapezoid'],
+  ['flowchart-delay', 'delay'],
+  ['flowchart-stored-data', 'storedData'],
+  ['flowchart-merge', 'flippedTriangle'],
+  ['flowchart-connector', 'circle'],
+  ['flowchart-or', 'circlePlus'],
+  ['flowchart-summing-junction', 'circleCross'],
+  ['flowchart-display', 'display'],
+  ['flowchart-off-page-link', 'offPage'],
+  ['flowchart-note-curly-right', 'braceRight'],
+  ['flowchart-note-curly-left', 'brace'],
+  ['flowchart-note-square', 'bracket'],
+  ['flowchart-magnetic-tape', 'magneticTape'],
+  ['flowchart-multiproc', 'processes'],
+  ['flowchart-lined-shaded', 'linedProcess'],
+  ['flowchart-lined-document', 'linedDocument'],
+  ['flowchart-divided', 'divided'],
+  ['flowchart-trapezoid', 'trapezoid'],
+  ['flowchart-asymmetric', 'odd'],
+  ['flowchart-lean-left', 'leanLeft'],
+  ['flowchart-double-circle', 'doubleCircle'],
+  ['flowchart-start', 'circle'],
+  ['flowchart-stop', 'doubleCircle'],
+  ['flowchart-junction', 'filledCircle'],
+  ['flowchart-card', 'card'],
+  ['flowchart-tagged-process', 'taggedProcess'],
+  ['flowchart-loop-limit', 'loopLimit'],
+  ['flowchart-collate', 'hourglass'],
+  ['flowchart-extract', 'triangle'],
+  ['flowchart-tagged-document', 'taggedDocument'],
+  ['flowchart-disk-storage', 'disk'],
+  ['flowchart-lightning-bolt', 'bolt'],
+  ['flowchart-text-block', 'text'],
+  ['flowchart-note-curly-both', 'braces'],
+  ['flowchart-cloud', 'cloud'],
+  ['flowchart-bang', 'bang'],
+  ['flowchart-folder', 'folder'],
+  ['flowchart-bucket', 'bucket'],
+  ['callouts-callout', 'callout'],
+  ['callouts-speech-bubble', 'speechBubble'],
+  ['callouts-bracket', 'brace'],
 ])
 
 /**
@@ -86,6 +156,9 @@ const SHAPE_CODES = new Map([
   ['3', 'rectangle'],
   ['4', 'circle'],
   ['8', 'rhombus'],
+  // Known from atman-33/workhub (MIT), which wrote them from copies of its own.
+  ['7', 'round_rectangle'],
+  ['26', 'can'],
 ])
 
 const ENTITIES = new Map([
@@ -297,11 +370,10 @@ export function miroClipboardBoard(data: unknown): { items: MiroItem[]; connecto
     } else if (type === 'shape') {
       items.push({ id, type: 'shape', data: { content: json.text, shape: SHAPE_CODES.get(String(json.shape)) }, ...within })
     } else if (type === 'stencil') {
-      // `flowchart-document` is the API's `flow_chart_document`; a container holds what is put in it.
+      // Named by its element (`flowchart-document`); a container holds what is put in it.
       const element = String(asRecord(json['ns:diagrammingNotation']).element ?? asRecord(json.schema).id ?? '')
       const container = element.endsWith('-container')
-      const shape = element.replace(/^flowchart-/, 'flow_chart_').replace(/-/g, '_')
-      items.push({ id, type: container ? 'frame' : 'shape', data: { [container ? 'title' : 'content']: stencilText(json), shape }, ...within })
+      items.push({ id, type: container ? 'frame' : 'shape', data: { [container ? 'title' : 'content']: stencilText(json), shape: element }, ...within })
     } else if (type === 'frame') {
       items.push({ id, type: 'frame', data: { title: json.title ?? json.text }, ...within })
     } else if (type === 'text') {

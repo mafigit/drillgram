@@ -13,7 +13,7 @@ export interface Drawing {
 }
 
 export interface DrawnPath {
-  /** Its pieces: each a list of points; a curve is given by its end points and control points. */
+  /** Its pieces: each a list of points on the outline; a curve as points along it (`curved`). */
   pieces: { points: Point[]; closed: boolean; curved: boolean }[]
   /** `#rrggbb`, where the path is filled. */
   fill?: string

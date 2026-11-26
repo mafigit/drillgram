@@ -44,18 +44,21 @@ const SHAPES: [open: string, close: [closing: string, shape?: BoxShape][]][] = [
 /**
  * The shapes a node is given by name (`a@{ shape: cyl }`, Mermaid 11.3 and later), under every
  * name Mermaid has for each (mermaid.js.org/syntax/flowchart.html). `plain`: a box without a
- * shape, which is what a rectangle is here, and what a sign without room for a name becomes (an
- * hourglass, a bolt, a bar).
+ * shape, which is what a rectangle is here, and what a fork or join bar becomes.
  */
 const NAMED: [shape: BoxShape | 'plain' | 'person', names: string][] = [
-  ['plain', 'rect proc process rectangle rounded event hourglass collate bolt com-link lightning-bolt fork join'],
+  ['plain', 'rect proc process rectangle rounded event fork join'],
+  ['hourglass', 'hourglass collate'],
+  ['bolt', 'bolt com-link lightning-bolt'],
   ['person', 'person'],
   ['stadium', 'stadium pill terminal'],
   ['subroutine', 'fr-rect framed-rectangle subproc subprocess subroutine'],
   ['cylinder', 'cyl cylinder database db'],
   ['queue', 'h-cyl das horizontal-cylinder'],
   ['disk', 'lin-cyl disk lined-cylinder'],
-  ['circle', 'circle circ sm-circ small-circle start f-circ filled-circle junction cross-circ crossed-circle summary'],
+  ['circle', 'circle circ sm-circ small-circle start'],
+  ['filledCircle', 'f-circ filled-circle junction'],
+  ['circleCross', 'cross-circ crossed-circle summary'],
   ['doubleCircle', 'dbl-circ double-circle fr-circ framed-circle stop'],
   ['diamond', 'diam decision diamond question'],
   ['hexagon', 'hex hexagon prepare'],

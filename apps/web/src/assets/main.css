@@ -798,6 +798,10 @@
   stroke: none;
 }
 
+.card-shape-outline.is-solid {
+  fill: var(--muted-foreground);
+}
+
 .card-shape-outline.is-none,
 .object-card.is-external .card-shape-outline.is-none {
   fill: none;

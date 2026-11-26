@@ -587,16 +587,21 @@ Test: `apps/web/e2e/j34-quick-menu.spec.ts`
 
 1. Open the app and right-click the empty canvas.
 2. Press Escape, then right-click the same point again.
-3. Pick "Add Software System", type "Online Shop" and press Enter.
+3. Pick "Add Box", type "Online Shop" and press Enter.
 4. In a fresh app: add the software systems "Online Shop" and "Billing" with "Add shape", then
    press Delete.
+5. In a fresh app: pick Person, Software System, Container, Component, Database, Queue and Cloud
+   in "Add shape", pressing Escape after each, and right-click the canvas. Pick "Add Database"
+   there, add "Orders DB", then right-click again, and once more after a reload.
 
-Expected: the form of step 3 floats where the ring was, not in the toolbar. In step 1 a round menu opens around the pointer with what the toolbar adds on this
-diagram: "Add Box", "Add Person", "Add Software System" and "Add existing object" (not available while the
-model has no object to add). Escape closes it and adds nothing. After step 3 "Online Shop" lies
-on the point that was clicked (its middle there, on the grid, moved to the nearest free place if
-a card is in the way). In step 4 Delete removes "Billing" only: a card that was just added is
-the selected one.
+Expected: the form of step 3 floats where the ring was, not in the toolbar. In step 1 a round
+menu opens around the pointer with "Add Box" and "Add existing object" (not available while the
+model has no object to add): no shape was picked yet. Escape closes it and adds nothing. After
+step 3 "Online Shop" lies on the point that was clicked (its middle there, on the grid, moved to
+the nearest free place if a card is in the way). In step 4 Delete removes "Billing" only: a card
+that was just added is the selected one. In step 5 the ring offers the last six shapes picked,
+the latest first: Cloud, Queue, Database, Component, Container, Software System. "Add Database"
+starts a box as a cylinder and moves Database to the front, and the reload keeps the order.
 
 ## J35 Keyboard shortcuts
 

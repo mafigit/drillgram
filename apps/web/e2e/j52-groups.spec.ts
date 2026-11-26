@@ -73,7 +73,7 @@ test('J52 Cards of a view stand in frames with a name, as the nodes of a deploym
   // A double-click on the name opens the frame: another name, what it is, or no frame at all.
   await page.getByRole('button', { name: 'Group prod-data', exact: true }).dblclick()
   const edit = page.getByRole('form', { name: 'Edit the group' })
-  await edit.getByRole('textbox', { name: 'Name' }).fill('prod-mssql')
+  await edit.getByRole('textbox', { name: 'Title' }).fill('prod-mssql')
   await edit.getByRole('textbox', { name: 'What it is' }).fill('Deployment Node: Azure SQL Server')
   await edit.getByRole('button', { name: 'Save' }).click()
   await expect(editor.group('prod-mssql')).toContainText('[Deployment Node: Azure SQL Server]')

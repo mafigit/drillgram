@@ -27,7 +27,7 @@ test('J35 The canvas lists its keyboard shortcuts, and A arranges the diagram', 
   // Typing an "a" into a field arranges nothing.
   const typed = await editor.recordAttribute(editor.arrangeButton, 'aria-busy')
   await editor.pickShape('Software System')
-  await editor.page.getByRole('textbox', { name: 'Name' }).fill('a')
+  await editor.page.getByRole('textbox', { name: 'Title' }).fill('a')
   await editor.page.keyboard.press('a')
   await editor.page.keyboard.press('Enter')
   await expect(editor.element('aa')).toBeVisible()

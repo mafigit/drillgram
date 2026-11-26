@@ -38,7 +38,7 @@ test('J34 A right-click on the canvas opens a round menu that adds a card there'
   expect(at.x).toBeLessThan(form.x + form.width)
   expect(at.y).toBeGreaterThan(form.y)
   expect(at.y).toBeLessThan(form.y + form.height)
-  await editor.page.getByRole('textbox', { name: 'Name' }).fill('Online Shop')
+  await editor.page.getByRole('textbox', { name: 'Title' }).fill('Online Shop')
   await editor.page.keyboard.press('Enter')
   // The card lands where the menu was opened.
   const shop = editor.element('Online Shop')

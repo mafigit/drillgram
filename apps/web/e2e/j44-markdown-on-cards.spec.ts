@@ -84,7 +84,7 @@ test('J44 The text of a card is Markdown, and the card grows to hold it', async 
   await expect(plain).toContainText('Now bold.')
   // On the name a double-click still renames; below it, on a card without text, it starts one.
   await plain.getByText('Plain', { exact: true }).dblclick()
-  await expect(plain.getByRole('textbox', { name: 'Name' })).toBeFocused()
+  await expect(plain.getByRole('textbox', { name: 'Title' })).toBeFocused()
   await editor.page.keyboard.press('Escape')
   const bare = await editor.addElement('Box', 'Bare')
   // The field is as large on the screen however small the diagram is shown.

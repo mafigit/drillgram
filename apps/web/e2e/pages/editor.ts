@@ -276,7 +276,7 @@ export class DiagramEditor {
       await this.page.getByRole('textbox', { name: 'Description' }).fill(details.description)
     }
     if (details.external) await this.page.getByRole('checkbox', { name: 'External' }).check()
-    await this.page.getByRole('textbox', { name: 'Name' }).fill(name)
+    await this.page.getByRole('textbox', { name: 'Title' }).fill(name)
     await this.page.keyboard.press('Enter')
     return this.element(name)
   }
@@ -296,7 +296,7 @@ export class DiagramEditor {
   async rename(from: string, to: string): Promise<void> {
     // On the name: a double-click elsewhere on the card opens its text.
     await this.element(from).getByText(from, { exact: true }).dblclick()
-    await this.page.getByRole('textbox', { name: 'Name' }).fill(to)
+    await this.page.getByRole('textbox', { name: 'Title' }).fill(to)
     await this.page.keyboard.press('Enter')
   }
 
@@ -366,7 +366,7 @@ export class DiagramEditor {
     for (const other of names.slice(1)) await this.selectAlso(other)
     await this.page.getByRole('button', { name: 'Group', exact: true }).click()
     const form = this.page.getByRole('form', { name: 'Group the selection' })
-    await form.getByRole('textbox', { name: 'Name' }).fill(name)
+    await form.getByRole('textbox', { name: 'Title' }).fill(name)
     if (what !== undefined) await form.getByRole('textbox', { name: 'What it is' }).fill(what)
     await form.getByRole('button', { name: 'Group', exact: true }).click()
   }
@@ -381,7 +381,7 @@ export class DiagramEditor {
     await this.page.getByRole('button', { name: 'New view' }).click()
     const form = this.page.getByRole('form', { name: 'New view' })
     if (options.empty) await form.getByRole('checkbox', { name: 'Start with the cards of this view' }).uncheck()
-    await form.getByRole('textbox', { name: 'Name' }).fill(name)
+    await form.getByRole('textbox', { name: 'Title' }).fill(name)
     await form.getByRole('button', { name: 'Add view' }).click()
   }
 
@@ -654,7 +654,7 @@ export class DiagramEditor {
     await this.page.getByRole('button', { name: 'Add shape' }).click()
     await this.page.getByRole('tab', { name: library }).click()
     await this.page.getByRole('button', { name: `Add ${shape}` }).click()
-    await this.page.getByRole('textbox', { name: 'Name' }).fill(text)
+    await this.page.getByRole('textbox', { name: 'Title' }).fill(text)
     await this.page.keyboard.press('Enter')
     return this.element(text)
   }
@@ -747,7 +747,7 @@ export class DiagramEditor {
 
   async tapToAdd(kind: ElementKind, name: string): Promise<Locator> {
     await this.pickShape(kind, 'tap')
-    await this.page.getByRole('textbox', { name: 'Name' }).fill(name)
+    await this.page.getByRole('textbox', { name: 'Title' }).fill(name)
     await this.page.keyboard.press('Enter')
     return this.element(name)
   }
@@ -771,6 +771,35 @@ export class DiagramEditor {
     await this.touchGesture([spread(50), spread(50 * ((1 + scale) / 2)), spread(50 * scale)])
   }
 
+  /**
+   * Drag a card with one finger, from its middle, in small steps. A phone sends touch events
+   * only while a finger moves; the mouse events it makes of a tap never come.
+   */
+  async fingerDrag(name: string, by: Point): Promise<void> {
+    const start = await centre(this.element(name))
+    const steps = 12
+    const at = (step: number) => [{ x: start.x + (by.x * step) / steps, y: start.y + (by.y * step) / steps }]
+    // A frame between two moves, as a hand makes them: the page answers a move before the next.
+    await this.touchGesture(Array.from({ length: steps + 1 }, (_, step) => at(step)), 20)
+  }
+
+  /** Whether all of it is on the screen. */
+  async onScreen(thing: Locator): Promise<boolean> {
+    const box = await thing.boundingBox()
+    const screen = this.page.viewportSize()
+    if (!box || !screen) return false
+    return box.x >= 0 && box.y >= 0 && box.x + box.width <= screen.width && box.y + box.height <= screen.height
+  }
+
+  /** Whether a press in its middle reaches it, and not something drawn over it. */
+  async reachable(thing: Locator): Promise<boolean> {
+    return thing.evaluate((element) => {
+      const box = element.getBoundingClientRect()
+      const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2)
+      return hit !== null && (element === hit || element.contains(hit))
+    })
+  }
+
   /** Drag the empty canvas with one finger, starting at the middle of its right edge. */
   async touchPan(by: Point): Promise<void> {
     const box = await this.canvas.boundingBox()
@@ -785,8 +814,8 @@ export class DiagramEditor {
    * API, and not every engine can construct a `Touch`. The canvas reads `touches` and
    * `changedTouches` only, so plain events carry them.
    */
-  private async touchGesture(steps: Point[][]): Promise<void> {
-    await this.page.evaluate((steps) => {
+  private async touchGesture(steps: Point[][], pause = 0): Promise<void> {
+    await this.page.evaluate(async ([steps, pause]) => {
       const first = steps[0]![0]!
       const target = document.elementFromPoint(first.x, first.y)
       if (!target) throw new Error('Nothing to touch at this point')
@@ -808,10 +837,15 @@ export class DiagramEditor {
         })
         target.dispatchEvent(event)
       }
+      const wait = () => (pause > 0 ? new Promise((done) => setTimeout(done, pause)) : undefined)
       send('touchstart', steps[0]!)
-      for (const step of steps.slice(1)) send('touchmove', step)
+      for (const step of steps.slice(1)) {
+        await wait()
+        send('touchmove', step)
+      }
+      await wait()
       send('touchend', [], steps.at(-1)!)
-    }, steps)
+    }, [steps, pause] as const)
   }
 }
 

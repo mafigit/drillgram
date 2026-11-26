@@ -21,6 +21,10 @@ describe('fitPadding', () => {
     expect(fitPadding([card(0, 0)], CANVAS, {})).toEqual({ top: 56, bottom: 80, left: 24, right: 24 })
   })
 
+  it('keeps room on a phone for the zoom buttons and the key, which stand above the toolbar there', () => {
+    expect(fitPadding([card(0, 0)], { width: 393, height: 560 }, {})).toEqual({ top: 56, bottom: 130, left: 24, right: 24 })
+  })
+
   it('keeps room for the frame of an opened box, which is no card', () => {
     expect(fitPadding([card(0, 0)], CANVAS, { framed: true })).toEqual({ top: 128, bottom: 120, left: 64, right: 64 })
   })

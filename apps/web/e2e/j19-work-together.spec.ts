@@ -132,7 +132,7 @@ test('J19 A guest who leaves is gone for the others, and the name is asked only 
   // Ada closes the workspace by going to another one: the session ends for both.
   await editor.workspace.click()
   await page.getByRole('menuitem', { name: 'New workspace' }).click()
-  await page.getByRole('dialog', { name: 'New workspace' }).getByLabel('Name').fill('Another')
+  await page.getByRole('dialog', { name: 'New workspace' }).getByLabel('Title').fill('Another')
   await page.getByRole('dialog', { name: 'New workspace' }).getByRole('button', { name: 'Create' }).click()
   await expect(ben.page.getByRole('heading', { name: 'This session is over' })).toBeVisible()
   await expect(cleo.page.getByRole('heading', { name: 'This session is over' })).toBeVisible()

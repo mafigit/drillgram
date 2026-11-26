@@ -98,4 +98,17 @@ describe('tourSteps', () => {
     expect(keep(true)).toContain('this browser')
     expect(keep(true)).not.toContain('server')
   })
+
+  it('speaks of fingers where the screen is worked with one: no keys, no mouse', () => {
+    for (const known of [...tourSteps(false), ...tourSteps(true)]) {
+      expect(known.touch ?? known.text, known.id).not.toMatch(/\b(Ctrl|Cmd|click|double-click|right-click|Shift|Scroll|hover)\b/i)
+    }
+  })
+
+  it('brings near, on a phone, the cards a step asks to work on', () => {
+    const near = (id: string) => steps.find((known) => known.id === id)!.near
+    expect(near('open')).toEqual(['Web Shop'])
+    expect(near('connect')).toEqual(['Customer', 'Web Shop'])
+    expect(near('move')).toEqual(['Customer'])
+  })
 })

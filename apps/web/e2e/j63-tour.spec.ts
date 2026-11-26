@@ -207,3 +207,20 @@ test('J63 A workspace that has something in it starts no tour', async ({ page, e
   await expect(editor.element('Online Shop')).toBeVisible()
   await expect(editor.tour).toHaveCount(0)
 })
+
+test('J63 A reload in the middle of the tour goes on at the step it was at', async ({ page, editor, consoleErrors }) => {
+  await editor.open()
+  await editor.tourPress('Start the tour')
+  await editor.tourPress('Next')
+  await editor.tourPress('Next')
+  await expect(editor.tourStep).toHaveText('Several views of one box')
+
+  await page.reload()
+  await expect(editor.tourStep).toHaveText('Several views of one box')
+  await expect(editor.title).toHaveText('Web Shop')
+  await editor.tourPress('End the tour')
+  await page.reload()
+  await expect(editor.element('Shop API')).toBeVisible()
+  await expect(editor.tour).toHaveCount(0)
+  expect(consoleErrors).toEqual([])
+})

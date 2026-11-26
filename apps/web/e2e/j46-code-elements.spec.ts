@@ -21,7 +21,7 @@ test('J46 A shape for code says its language and what it is, and reads like a cl
   expect(options).not.toContain('class')
   await what.selectOption('struct')
   await form.getByRole('textbox', { name: 'Description' }).fill('ID string\nTotal Money\n---\nPlace() error\nCancel()')
-  await form.getByRole('textbox', { name: 'Name' }).fill('Order')
+  await form.getByRole('textbox', { name: 'Title' }).fill('Order')
   await form.getByRole('button', { name: 'Add', exact: true }).click()
 
   const order = editor.element('Order')
@@ -73,7 +73,7 @@ test('J46 A shape for code says its language and what it is, and reads like a cl
   await page.getByRole('button', { name: 'Add Rust', exact: true }).click()
   await expect(form.getByRole('combobox', { name: 'What it is' }).getByRole('option')).toContainText(['trait'])
   await form.getByRole('combobox', { name: 'What it is' }).selectOption('trait')
-  await form.getByRole('textbox', { name: 'Name' }).fill('Repository')
+  await form.getByRole('textbox', { name: 'Title' }).fill('Repository')
   await page.keyboard.press('Enter')
   const repository = editor.element('Repository')
   await expect(repository.getByTestId('card-type')).toHaveText('Rust trait')

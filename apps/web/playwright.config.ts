@@ -39,6 +39,8 @@ export default defineConfig<Options>({
     { name: 'chromium', testIgnore: WITHOUT_A_SERVER, use: { ...devices['Desktop Chrome'] } },
     { name: 'webkit', testIgnore: WITHOUT_A_SERVER, use: { ...devices['Desktop Safari'] } },
     { name: 'tablet', testIgnore: WITHOUT_A_SERVER, use: { ...devices['iPad Pro 11'], hasTouch: true } },
+    // A narrow screen and a finger (J65): its own journey only, the others are for wider screens.
+    { name: 'phone', testMatch: /j65-phone\.spec\.ts$/, use: { ...devices['iPhone 15'] } },
     // The same app without a server: its own journey, and those of the others that are about
     // what a workspace keeps (the cards, the change log, clearing, several workspaces), and the
     // tour (J63): the site without a server is where most first visits are. And working

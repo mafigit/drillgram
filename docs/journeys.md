@@ -6,7 +6,8 @@ file under `apps/web/e2e/`, named after its entry. A journey whose feature is no
 (see [testing.md](agents/testing.md)).
 
 Projects: `chromium` (desktop), `webkit` (desktop, closest to iOS Safari) and `tablet` (iPad,
-touch). Journeys run on all three unless the entry says otherwise.
+touch). Journeys run on all three unless the entry says otherwise. The project `phone` (iPhone,
+touch) runs J65 only.
 
 The journeys run against the server (`apps/server`) with the built app, on a database of its
 own. Every test starts signed in, as a user made for it with an empty workspace; "open the app"
@@ -1197,6 +1198,7 @@ Test: `apps/web/e2e/j63-tour.spec.ts`. Also on the project `browser-only`.
    the first change. Go through the others with "Next".
 4. Press "Done", then reload.
 
+Also: reload in the middle of the tour, then press "End the tour" and reload.
 Also: reload at the welcome, then press "Skip the tour", add a card and reload; delete the
 card and press "Take the tour". Also: go through steps with "Next" and "Back" without doing
 what they ask for, then press "End the tour". Also: open a workspace that has a card in a
@@ -1215,7 +1217,9 @@ connection was typed; "Next" goes on without, and opens the diagram the next ste
 "Back" goes to the step before, on its diagram. The tour ends with "Done", "End the tour" or
 "Skip the tour", and what was done on the way stays. It starts by itself once in a browser,
 and only on a workspace nothing was ever done in: not again after it was begun or skipped (it
-is there again after a reload at the welcome), and not on a workspace that has something. An
+is there again after a reload at the welcome), and not on a workspace that has something. A
+reload in the middle of the tour goes on at the step it was at, on its diagram; after "End the
+tour" a reload brings no tour. An
 empty workspace offers it with "Take the tour".
 
 ## J64 A workspace as a file
@@ -1238,3 +1242,33 @@ of the workspace it came from, or that name with "(imported)" where a workspace 
 already. It stays over a reload. A file that is no workspace is refused on a card ("This
 file is not a workspace of Drillgram"), the same file again too, and one of a later version
 with the advice to reload the app; nothing is made of them.
+
+## J65 On a phone
+
+Test: `apps/web/e2e/j65-phone.spec.ts`. Phone project only (an iPhone: narrow, touch).
+
+1. Open the app and press "Load an example". Open "Web Shop" and go back with the breadcrumb.
+2. Unfold the key.
+3. Add a person "Customer" and drag it down with a finger. Reload.
+4. Reload with the example, then add a software system "Gift Cards".
+5. Connect "Support Agent" to "Web Shop" and type the label.
+6. Press "Add shape" and pick a person.
+7. Add two cards, press "Select several" and tap both, then one of them again.
+8. In a browser the tour was never shown to, start the tour and go through it.
+
+Expected: every button of the top bar is on the screen and takes a press, in two rows; the
+page is no wider than the screen. The breadcrumb's "Overview" is there to be pressed. The zoom
+buttons and the key stand above the toolbar of the canvas, not under it; the key folds into
+its name. The card follows the finger and lands where it was let go, on the grid. After a
+reload the diagram is in sight, whole, not the empty corner of it; a card that is added comes
+into sight even where the whole diagram cannot be shown. The form for the label of a
+connection is as big as any form and on the screen, however small the diagram is shown. The
+list of shapes stays clear of the edges of the screen, its search waits for a tap (the
+keyboard would cover the shapes), and its field is called "Title", with `autocomplete="off"`:
+iOS Safari offers a contact for any field called "Name", whatever its `autocomplete` says. So
+is every field that names a thing (a view, a group, a workspace, a column); a field for a
+person (sharing, users) keeps "Name", where a contact is what fits.
+"Select several" stays pressed: each tap adds a card to the selection or takes it out, and the
+toolbar with "Group" and "Delete" keeps to the screen. The tour brings "Web Shop" near enough
+to press its magnifier, its light is never beyond the screen, and it speaks of taps and fingers,
+not of clicks, keys or scrolling; at the history the diagram stays in sight beside the tour.

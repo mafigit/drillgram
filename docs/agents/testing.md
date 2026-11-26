@@ -73,6 +73,9 @@ Every change is test-driven. No production code without a failing test that dema
 - Playwright has no multi-touch API. Pinch and one-finger pan go through `touchGesture` in
   `e2e/pages/editor.ts`, which dispatches plain events carrying `touches`. That proves the canvas
   logic, not a real device: try gestures on a real tablet through the preview.
+- Give a drag a moment between its moves (`fingerDrag` pauses 20 ms): moves sent all at once
+  reach the page before Vue answers any of them, and hide what goes wrong while a finger moves
+  (the touch drag that `@xyflow/vue` 2.0.2 lost after its first move).
 
 ### Selectors
 
@@ -108,7 +111,7 @@ Every change is test-driven. No production code without a failing test that dema
   `apps/server`. Each test gets a database of its own. See [server.md](server.md).
 - `pnpm typecheck` type-checks every package (vue-tsc for `apps/web`, tsc for `packages/*`).
 - Browser end-to-end tests use Playwright (`apps/web/playwright.config.ts`), with three projects:
-  `chromium`, `webkit` and `tablet` (iPad, touch). Playwright starts `e2e/serve` itself: it
+  `chromium`, `webkit` and `tablet` (iPad, touch), and `phone` (iPhone, touch) for J65 only. Playwright starts `e2e/serve` itself: it
   builds the app and the server and runs the server, which gives out the app, on a PostgreSQL
   from `bin/with-postgres`.
 - The PWA end-to-end tests (`e2e/pwa-*.spec.ts`) run against the built app, because there is

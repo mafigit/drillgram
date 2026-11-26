@@ -55,7 +55,7 @@ test('J51 A box has several views, each with its own cards and layout', async ({
 
   // A view that was added is renamed in its tab and deleted with the button in it; the first one is neither.
   await editor.views.nth(2).dblclick()
-  await page.getByRole('textbox', { name: 'View name' }).fill('Checkout flow')
+  await page.getByRole('textbox', { name: 'View title' }).fill('Checkout flow')
   await page.keyboard.press('Enter')
   await expect(editor.views).toHaveText(['Structure', 'Deployment', 'Checkout flow'])
   await page.getByRole('button', { name: 'Delete the view Checkout flow' }).click()

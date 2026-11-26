@@ -81,7 +81,7 @@ test('J7 The workspace glows while an agent is connected, and leaving it asks fi
   // On the way to another workspace: asked first, and "Stay" changes nothing.
   await editor.workspace.click()
   await page.getByRole('menuitem', { name: 'New workspace' }).click()
-  await page.getByRole('dialog', { name: 'New workspace' }).getByLabel('Name').fill('Other')
+  await page.getByRole('dialog', { name: 'New workspace' }).getByLabel('Title').fill('Other')
   await page.getByRole('dialog', { name: 'New workspace' }).getByRole('button', { name: 'Create' }).click()
   await expect(asking).toBeVisible()
   await expect(asking).toContainText('ends the agent\'s connection')

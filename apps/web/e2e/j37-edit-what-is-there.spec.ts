@@ -10,8 +10,8 @@ test('J37 A card gets other details, a connector another label, and a connector 
   // The card's form opens with what the card says now.
   await editor.openEditForm('Online Shop')
   const form = editor.page.getByRole('form', { name: 'Edit software system' })
-  await expect(form.getByRole('textbox', { name: 'Name' })).toHaveValue('Online Shop')
-  await form.getByRole('textbox', { name: 'Name' }).fill('Web Shop')
+  await expect(form.getByRole('textbox', { name: 'Title' })).toHaveValue('Online Shop')
+  await form.getByRole('textbox', { name: 'Title' }).fill('Web Shop')
   await form.getByRole('textbox', { name: 'Description' }).fill('Sells books to customers')
   await form.getByRole('checkbox', { name: 'External' }).check()
   await form.getByRole('button', { name: 'Save' }).click()

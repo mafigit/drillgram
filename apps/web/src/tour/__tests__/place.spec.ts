@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { placeCard } from '../place'
+import { placeCard, roomBelow } from '../place'
 
 const SCREEN = { width: 1000, height: 800 }
 const CARD = { width: 300, height: 200 }
@@ -59,5 +59,12 @@ describe('placeCard', () => {
 
   it('fits a screen narrower than the card', () => {
     expect(placeCard(undefined, CARD, { width: 280, height: 800 }).x).toBe(12)
+  })
+
+  it('stays within the room below it says it takes, out of the way of something high on a phone', () => {
+    const phone = { width: 393, height: 714 }
+    const card = { width: 369, height: 270 }
+    const at = placeCard({ x: 100, y: 150, width: 160, height: 90 }, card, phone, 'away')
+    expect(phone.height - at.y).toBeLessThanOrEqual(roomBelow(card.height))
   })
 })

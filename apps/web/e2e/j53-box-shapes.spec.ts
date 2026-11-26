@@ -16,7 +16,7 @@ test('J53 A box takes a shape that says what it is: a database is a cylinder', a
   // The form starts with that shape; the card is drawn as it.
   const form = page.getByRole('form', { name: 'New box' })
   await expect(form.getByRole('combobox', { name: 'Shape' })).toHaveValue('cylinder')
-  await form.getByRole('textbox', { name: 'Name' }).fill('Orders DB')
+  await form.getByRole('textbox', { name: 'Title' }).fill('Orders DB')
   await page.keyboard.press('Enter')
   const db = editor.element('Orders DB')
   const shape = db.getByTestId('card-shape')
@@ -85,7 +85,7 @@ test('J53 The Flowchart library has the rest of the shapes; a text has no outlin
   // A pile of documents: its outline and the edges of the two sheets behind.
   await page.getByRole('searchbox', { name: 'Search shapes' }).fill('pile of documents')
   await page.getByRole('list', { name: 'Shapes found' }).getByRole('listitem', { name: 'Add Documents', exact: true }).click()
-  await page.getByRole('form', { name: 'New box' }).getByRole('textbox', { name: 'Name' }).fill('Reports')
+  await page.getByRole('form', { name: 'New box' }).getByRole('textbox', { name: 'Title' }).fill('Reports')
   await page.keyboard.press('Enter')
   const reports = editor.element('Reports').getByTestId('card-shape')
   await expect(reports).toHaveAttribute('data-shape', 'documents')
@@ -95,7 +95,7 @@ test('J53 The Flowchart library has the rest of the shapes; a text has no outlin
   await page.getByRole('button', { name: 'Add shape' }).click()
   await page.getByRole('tab', { name: 'Basic' }).click()
   await page.getByRole('button', { name: 'Add Text', exact: true }).click()
-  await page.getByRole('form', { name: 'New box' }).getByRole('textbox', { name: 'Name' }).fill('Only words')
+  await page.getByRole('form', { name: 'New box' }).getByRole('textbox', { name: 'Title' }).fill('Only words')
   await page.keyboard.press('Enter')
   const words = editor.element('Only words')
   await expect(words.getByTestId('card-shape')).toHaveAttribute('data-shape', 'text')

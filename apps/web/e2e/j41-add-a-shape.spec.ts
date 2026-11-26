@@ -70,7 +70,7 @@ test('J41 The shapes of every library are found by a search', async ({ editor, p
   const form = page.getByRole('form', { name: 'New code' })
   await expect(form.getByRole('combobox', { name: 'Language' })).toHaveValue('Rust')
   await expect(form.getByRole('combobox', { name: 'What it is' })).toHaveValue('trait')
-  await form.getByRole('textbox', { name: 'Name' }).fill('Repository')
+  await form.getByRole('textbox', { name: 'Title' }).fill('Repository')
   await page.keyboard.press('Enter')
   await expect(editor.element('Repository').getByTestId('card-type')).toHaveText('Rust trait')
 

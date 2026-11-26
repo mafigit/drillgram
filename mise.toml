@@ -46,10 +46,9 @@ description = "The app without a server: the browser keeps the workspaces, on ht
 depends = ["setup"]
 run = "pnpm --filter @drillgram/web dev:browser --port 5174 --strictPort"
 
-# Asks for CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID (context/operations.md, "Without a
-# server"). wrangler is fetched for the run: it is no part of the app.
+# Asks for CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID (context/operations.md, "On Cloudflare").
 [tasks.cloudflare]
 description = "Build the app without a server and put it on Cloudflare, as the Worker `drillgram`"
 depends = ["setup"]
 dir = "apps/web"
-run = ["pnpm run build:browser", "pnpm dlx wrangler@4.168.0 deploy"]
+run = ["pnpm run build:cloudflare", "pnpm exec wrangler deploy"]

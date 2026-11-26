@@ -81,7 +81,7 @@ with `index.html`.
   address of the app: another browser, another device or another address starts empty, and
   clearing the site's data deletes them. The app asks the browser once to keep its storage
   when the disk runs full (`navigator.storage.persist`); a browser may say no.
-- Nothing is sent anywhere: the host sees requests for files only.
+- A static host sees requests for files. The Cloudflare build also supports optional agent sharing.
 - A new version reaches a browser as with a server: the service worker fetches it and the app
   asks before it reloads.
 - The build carries an imprint and a privacy policy (`apps/web/imprint.html`, `privacy.html`),
@@ -96,9 +96,9 @@ with `index.html`.
 
 The workflow deploys every commit on `main` that passed its check ("CI" below); by hand it
 is the same command. `mise run cloudflare` builds and then runs `wrangler deploy` in `apps/web`
-(`wrangler.jsonc`): the files become the static assets of a Worker named `drillgram`, with no
-code of its own, at `drillgram.<your subdomain>.workers.dev`. Requests for static assets are
-free and not counted on the free plan, which takes up to 20,000 files of at most 25 MiB each.
+(`wrangler.jsonc`). The Worker named `drillgram` serves the static assets and the optional MCP
+relay at `drillgram.<your subdomain>.workers.dev`. The free plan includes both. Static file
+requests do not count toward the Worker request limit.
 
 - It reads `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` from the environment. The token
   needs the permissions of Cloudflare's template "Edit Cloudflare Workers"; with less, the
@@ -109,6 +109,90 @@ free and not counted on the free plan, which takes up to 20,000 files of at most
   & Routes), not in `wrangler.jsonc`.
 - The name of the Worker is in `wrangler.jsonc`; another name is another Worker with its own
   address, and so with its own, empty storage in every browser.
+
+#### Connect an MCP client
+
+1. Open a workspace in the Cloudflare build. Select **Connect agent**, then **Start sharing**.
+2. Copy the **MCP URL** and the **Bearer token**. Keep the Drillgram tab open.
+3. In **How to connect**, select the tab for your client. The same steps are below.
+
+To test the connection, ask the client to read the open Drillgram diagram. It can use
+`read_diagram` for the active view and `read_workspace` to find IDs across the workspace.
+The tools let it:
+
+- Open a view or drill into a box. Add, copy, rename and delete custom views.
+- Add, edit, duplicate, place, move and delete boxes. Edit table columns and choose icons.
+- Add, label, color and delete relationships. Create, edit and remove group frames.
+- Arrange the diagram or specific boxes. Load the example into an empty workspace.
+- Import Mermaid C4, Mermaid flowcharts and D2. Export Mermaid, D2, SVG and PNG.
+- Read the change history, undo, redo or jump to a history position.
+
+Select **Stop sharing** in Drillgram to end access.
+
+##### Claude web and desktop
+
+Use the deployed HTTPS URL. Claude's custom connector needs access to **Request headers**,
+which Anthropic is rolling out. If the option is missing, use Claude Code below.
+
+1. Open **Customize → Connectors**. Select **Add → Add custom connector**.
+2. Enter **Drillgram** as the name. Paste the **MCP URL**, including `/mcp`, and select **Continue**.
+3. Under **Authentication**, choose **No sign-in**. Open **Request headers** under **Advanced** if needed.
+4. Add an `Authorization` header. Enter `Bearer ` followed by the token, including the space.
+5. Save the connector. In a chat, open **+ → Connectors** and turn on **Drillgram**.
+
+Use a personal connector for a personal workspace. A fixed header on an organization connector
+shares its token with everyone who can use that connector.
+[Claude custom connector setup](https://claude.com/docs/connectors/custom/add-unlisted#authenticate-with-request-headers)
+
+##### Terminal setup for Codex and Claude Code
+
+In Bash or Zsh, run these lines. Paste the **Bearer token** when asked.
+
+```sh
+printf 'Drillgram bearer token: '
+IFS= read -rs DRILLGRAM_MCP_TOKEN
+printf '\n'
+export DRILLGRAM_MCP_TOKEN
+```
+
+##### Codex
+
+Replace the example URL with the **MCP URL**. Add the server once, then start Codex in the
+same terminal so it can read the token. Type `/mcp` in Codex to check the connection.
+
+```sh
+codex mcp add drillgram --url 'https://example.com/mcp' \
+  --bearer-token-env-var DRILLGRAM_MCP_TOKEN
+codex
+```
+
+The Codex IDE extension and desktop app can use the same server configuration on the same
+host. Start the client with `DRILLGRAM_MCP_TOKEN` in its environment and restart any open session.
+[Codex MCP configuration](https://learn.chatgpt.com/docs/extend/mcp?surface=cli#connect-codex-to-an-mcp-server)
+
+##### Claude Code CLI
+
+Replace the example URL with the **MCP URL**. Run the command once from the directory where
+you use Claude Code. Keep the single quotes so Claude Code reads the token at connection time.
+
+```sh
+claude mcp add-json --scope local drillgram \
+  '{"type":"http","url":"https://example.com/mcp","headers":{"Authorization":"Bearer ${DRILLGRAM_MCP_TOKEN}"}}'
+claude mcp get drillgram
+```
+
+Start `claude` in the same terminal. Type `/mcp` to check the connection.
+[Claude Code MCP setup](https://code.claude.com/docs/en/mcp#environment-variable-expansion-in-mcp-json)
+
+##### Reconnect after sharing ends
+
+The token expires after one hour. It also stops working if the tab closes or disconnects.
+Start sharing again to get a new token. In Claude web or desktop, remove the connector and
+add it again with the new token. For either CLI, repeat the terminal setup and restart the client.
+The saved CLI server configuration can stay in place if the URL is the same.
+
+For local testing, run `apps/web/e2e/serve-browser 4174` from the repository root. It builds
+the Cloudflare variant and starts the relay in Wrangler. Use `http://127.0.0.1:4174`.
 
 ## The server
 

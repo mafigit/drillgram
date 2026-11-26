@@ -18,7 +18,7 @@
 | `apps/server` | Go module | The server: users, sign-in, workspaces and the change log of each, in PostgreSQL, under `/api`. Can also give out the built web app. See "Server" below. |
 | `deploy/licences` | `@drillgram/licences` | The licence gate (`pnpm licences`: npm packages and crates against an allow-list) and the REUSE check of every file (`reuse`). See `docs/agents/licences.md`. |
 | `bin/` | | `ci-check` (full check), `with-postgres` (a PostgreSQL for the server's tests), `publish`, `public-check`, `engine`, `docker-build`. |
-| planned: `apps/mcp-server` | | MCP server for agent control. |
+| `apps/web/worker` | Cloudflare Workers | MCP relay for the browser-only app. |
 
 ## Server
 
@@ -69,6 +69,15 @@ The web app needs it: see "The web app and the server" below.
   service worker keeps them like every other file, so they are not answered with the app. Everything above `api.ts` is the same code.
   A change to what the app asks of the server needs its answer in `browserServer.ts` too
   (its tests say of it what `workspaces_test.go` says of the server).
+- **Agent sharing** (`build:cloudflare`, J7): the tab opens a same-origin WebSocket to a
+  Durable Object when the user starts sharing. The MCP client sends its bearer token to `/mcp`.
+  The token is the hash of the tab credential. The Worker hashes the token to find its session.
+  Each session ends after one hour or when the tab disconnects. The Worker routes MCP requests
+  to the session's Durable Object, which handles Streamable HTTP and validates the input with
+  the schemas in `apps/web/src/lib/agentTools.ts`. The tab runs calls in order against the
+  shared editor. Edits and history moves use the editor's change log and confirm success after
+  IndexedDB saves them. Import, layout and export use the same code as the editor. The relay
+  does not persist diagram content. Plain static hosts still use `build:browser`.
 - **Who is signed in:** `useSession` (one answer for the app, from `/api/session`). The router
   (`src/router/index.ts`) lets nobody past `/login` who is not, and brings them to where they
   wanted to go afterwards (`next`). Pages are in `src/pages/`: `SignIn`, `StartPage` (on to the

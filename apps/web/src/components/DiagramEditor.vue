@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, markRaw, provide, ref, shallowRef, watch } from 'vue'
+import { computed, defineAsyncComponent, markRaw, provide, ref, shallowRef, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { useEventListener } from '@vueuse/core'
 import {
@@ -38,7 +38,7 @@ import {
   viewTitle,
   viewsOf,
 } from '@drillgram/model'
-import type { BoxShape, Diagram, ElementKind, Point, Size, WorkspaceEvent } from '@drillgram/model'
+import type { BoxShape, Diagram, ElementKind, ObjectDetails, Point, Size, WorkspaceEvent } from '@drillgram/model'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -87,7 +87,8 @@ import type { ConnectionEdge, ObjectNode } from './canvas/types'
 import { arrangeInBackground, useLayoutEngine } from '../composables/useLayoutEngine'
 import type { Scene, SceneConnector } from '../export/svg'
 import { useWorkspaceStore } from '../composables/useWorkspaceStore'
-import { failureText } from '../lib/api'
+import { browserOnly, failureText } from '../lib/api'
+import type { AgentTool } from '../lib/agentProtocol'
 import { BROUGHT_KEY, localHistory } from '../lib/localWorkspace'
 import { viewPath } from '../router'
 import { TOUR_BOX } from '../tour/steps'
@@ -181,20 +182,46 @@ let selectNext: string[] | undefined
 function addToView(event: WorkspaceEvent) {
   const before = new Set(Object.keys(view.value.positions))
   dispatch(event)
+  showAdded(before)
+}
+
+function showAdded(before: Set<string>): string | undefined {
   const id = Object.keys(view.value.positions).find((key) => !before.has(key))
   if (!id) return
   added.value = { id }
   // A new card is the selected one: what comes next (connect, move, delete) is about it.
   selectNext = [id]
+  return id
 }
 
-/**
- * Copy cards of the diagram, all in one change: each copy beside its first, on the free place
- * nearest to its right, and the copies are the selection afterwards.
- */
-function copyCards(ids: readonly string[]) {
+const AgentConnectionDialog = browserOnly && import.meta.env.VITE_AGENT_RELAY === '1'
+  ? defineAsyncComponent(() => import('./AgentConnectionDialog.vue'))
+  : undefined
+
+async function onAgentTool(tool: AgentTool, signal: AbortSignal) {
+  const { runAgentTool } = await import('../lib/agentEditor')
+  return runAgentTool(tool, {
+    store,
+    workspace: () => workspace.value,
+    view: () => view.value,
+    async navigate(id) {
+      await router.push(viewPath(id, ROOT_VIEW_ID))
+    },
+    addBox: addBoxEvent,
+    editBox: editBoxEvent,
+    showAdded,
+    copies: copyPlacements,
+    arrange,
+    importDiagram: bringDiagram,
+    exportScene,
+    travel: async (position) => (await travel(position, true)) ?? false,
+  }, signal)
+}
+
+/** Place copies beside their originals, with room for the other copies in the same change. */
+function copyPlacements(ids: readonly string[]) {
   const taken: Box[] = []
-  const copies = ids
+  return ids
     .filter((id) => Object.hasOwn(view.value.positions, id))
     .map((object) => {
       const size = cardSize(view.value, object)
@@ -203,6 +230,10 @@ function copyCards(ids: readonly string[]) {
       taken.push({ ...at, ...size })
       return { object, at }
     })
+}
+
+function copyCards(ids: readonly string[]) {
+  const copies = copyPlacements(ids)
   if (copies.length === 0) return
   const before = new Set(Object.keys(view.value.positions))
   dispatch({ type: 'objectsCopied', view: viewId.value, copies })
@@ -310,16 +341,17 @@ function bringKept() {
   kept.value = undefined
 }
 
+function addBoxEvent(kind: ElementKind, name: string, details: ObjectDetails, wanted?: Point): WorkspaceEvent {
+  // The card is as tall as its text needs (Markdown): measured here, kept with the change.
+  const room = cardRoom({ name, kind, ...details, icons: 0 })
+  const size = room === CARD ? undefined : room
+  const at = wanted && size ? freePlaceNear(wanted, size) : wanted
+  return { type: 'objectAdded', view: viewId.value, kind, name, details, at, ...(size && { size }) }
+}
+
 function commitAdding() {
   const kind = addingKind.value
-  if (kind) {
-    const details = { ...newDetails.value }
-    // The card is as tall as its text needs (Markdown): measured here, kept with the change.
-    const room = cardRoom({ name: newName.value, kind, ...details, icons: 0 })
-    const size = room === CARD ? undefined : room
-    const at = addingAt.value && size ? freePlaceNear(addingAt.value, size) : addingAt.value
-    addToView({ type: 'objectAdded', view: viewId.value, kind, name: newName.value, details, at, ...(size && { size }) })
-  }
+  if (kind) addToView(addBoxEvent(kind, newName.value, { ...newDetails.value }, addingAt.value))
   stopAdding()
 }
 
@@ -432,9 +464,13 @@ function commitEditing() {
 }
 
 /** Change what a card says, as one change, and with it the room the card has for its text. */
-function saveEdit(objectId: string, name: string, details: { description: string; technology?: string; external?: boolean; shape?: BoxShape | ''; columns?: ColumnRow[] }) {
-  const now = { id: objectId }
-  const object = workspace.value.model.objects.find((o) => o.id === now.id)
+function saveEdit(objectId: string, name: string, details: ObjectDetails) {
+  dispatch(editBoxEvent(objectId, name, details))
+}
+
+function editBoxEvent(objectId: string, name: string, details: ObjectDetails): WorkspaceEvent {
+  const object = workspace.value.model.objects.find((o) => o.id === objectId)
+  const description = details.description ?? object?.description ?? ''
   // Another text needs another room: the card grows or shrinks with it, on this diagram, and
   // moves to the nearest free place where it would otherwise reach into another card.
   let card: { view: string; size: Size; to?: Point } | undefined
@@ -442,23 +478,23 @@ function saveEdit(objectId: string, name: string, details: { description: string
   // is laid out another way.
   const shape = details.shape ?? object?.shape
   const rowsChanged = shape === 'table' || object?.shape === 'table'
-  if (object && Object.hasOwn(view.value.positions, now.id) && ((object.description ?? '') !== details.description.trim() || rowsChanged)) {
+  if (object && Object.hasOwn(view.value.positions, objectId) && ((object.description ?? '') !== description.trim() || rowsChanged)) {
     const size = cardRoom({
       columns: details.columns ?? object.columns,
       name,
       kind: object.kind,
       technology: details.technology ?? object.technology,
       external: details.external ?? object.external,
-      description: details.description,
+      description,
       icons: object.icons?.length ?? 0,
       shape: details.shape ?? object.shape,
     })
-    const before = cardSize(view.value, now.id)
+    const before = cardSize(view.value, objectId)
     if (size.width !== before.width || size.height !== before.height) {
-      card = { view: viewId.value, size, to: placeForSize(now.id, size) }
+      card = { view: viewId.value, size, to: placeForSize(objectId, size) }
     }
   }
-  dispatch({ type: 'objectEdited', object: now.id, name, details, ...(card && { card }) })
+  return { type: 'objectEdited', object: objectId, name, details, ...(card && { card }) }
 }
 
 /** Where a card stands with another size: where it is if it keeps its gap there, else the nearest free place. */
@@ -1089,15 +1125,20 @@ async function arrangeWithGroups(
   return placed.flatMap((card) => inside.get(card.id)?.map((member) => ({ ...member, x: card.x + member.x, y: card.y + member.y })) ?? [card])
 }
 
-async function arrange() {
-  if (!canArrange.value || arranging.value) return
+async function arrange(signal?: AbortSignal, boxIds?: string[]) {
+  if (boxIds && boxIds.length < 2) throw new Error('Choose at least two boxes to arrange a selection.')
+  if (!canArrange.value || arranging.value) {
+    if (signal) throw new Error('Arrange needs a diagram with cards and an idle layout engine.')
+    return
+  }
   arranging.value = 'thinking'
   clearErrors()
   const asked = { workspace: workspace.value, view: viewId.value }
   const all = Object.entries(view.value.positions).map(([id, p]) => ({ id, ...p, ...cardSize(view.value, id) }))
   // On a diagram with a frame, the cards inside it: its neighbours stay around it.
   const own = framed.value ? all.filter((card) => framed.value!.isInside(card.id)) : all
-  const chosen = new Set(arrangeSome.value ? selected.value : own.map((card) => card.id))
+  const selection = boxIds ?? (!signal && arrangeSome.value ? selected.value : undefined)
+  const chosen = new Set(selection ?? own.map((card) => card.id))
   const staying = all.filter((card) => !chosen.has(card.id))
   try {
     const [arranged] = await Promise.all([
@@ -1115,21 +1156,23 @@ async function arrange() {
     ])
     const answer = { cards: arranged }
     // With a frame, the whole diagram: then the frame, a card of its own, among its neighbours.
-    const whole = framed.value && !arrangeSome.value && staying.length > 0
+    const whole = framed.value && !selection && staying.length > 0
     const around = whole ? await arrangeAroundFrame(answer.cards, staying) : undefined
     const cards = around ?? answer.cards
     const by = placeBlock(cards, around ? [] : staying, CARD_GAP, SNAP_GRID)
     if (!by) {
+      if (signal) throw new Error('Arrange found no free place for the cards.')
       showError('Arrange found no free place for the selected cards.')
       return
     }
     // The answer is for the diagram as it was when asked.
     if (workspace.value !== asked.workspace || viewId.value !== asked.view) {
+      if (signal) throw new Error('The diagram changed while it was arranged. Try again.')
       showError('The diagram changed while it was arranged. Press Arrange again.')
       return
     }
     arranging.value = 'gliding'
-    dispatch({
+    const event: WorkspaceEvent = {
       type: 'viewArranged',
       view: asked.view,
       cards: cards.map((card) => ({
@@ -1137,9 +1180,18 @@ async function arrange() {
         to: { x: card.x + by.x, y: card.y + by.y },
         size: { width: card.width, height: card.height },
       })),
-    })
+    }
+    if (signal) {
+      signal.throwIfAborted()
+      const before = store.workspace.value
+      const saved = store.dispatchSaved(event)
+      if (store.workspace.value !== before && !(await saved)) throw new Error('Drillgram could not save the arrangement.')
+    } else {
+      dispatch(event)
+    }
     await wait(GLIDE)
   } catch (error) {
+    if (signal) throw error
     console.warn('The layout engine could not arrange the diagram:', error)
     showError('Arrange found no layout that keeps the cards apart.')
   } finally {
@@ -1150,7 +1202,7 @@ async function arrange() {
 // Import: a diagram written as text comes onto the open one as one change. The layout engine lays
 // it out on its own first (in the background, as "Arrange"), and the block goes right of the cards
 // that are there, on the first free place.
-async function bringDiagram(diagram: Diagram) {
+async function bringDiagram(diagram: Diagram, signal?: AbortSignal) {
   const asked = { workspace: workspace.value, view: viewId.value }
   // What comes onto this diagram: the elements that stand inside no other of the file (a
   // flowchart's subgraphs hold the rest, each on the diagram inside its box). A connection of
@@ -1206,7 +1258,9 @@ async function bringDiagram(diagram: Diagram) {
   }
   const before = new Set(Object.keys(view.value.positions))
   const was = store.workspace.value
-  dispatch({ type: 'diagramImported', view: viewId.value, diagram, places })
+  signal?.throwIfAborted()
+  const event: WorkspaceEvent = { type: 'diagramImported', view: viewId.value, diagram, places }
+  const saved = signal ? store.dispatchSaved(event) : dispatch(event)
   if (store.workspace.value === was) {
     throw new Error(
       'Nothing of this diagram fits here: its containers or components need a system or container to live in. Open the diagram inside one, or frame them in the file.',
@@ -1214,6 +1268,7 @@ async function bringDiagram(diagram: Diagram) {
   }
   const shown = Object.keys(view.value.positions).filter((id) => !before.has(id))
   if (shown.length > 0) added.value = { id: shown.at(-1)! }
+  if (saved && !(await saved)) throw new Error('Drillgram could not save the imported diagram.')
 }
 
 /**
@@ -1370,12 +1425,12 @@ async function clearWorkspace() {
   if (viewId.value !== ROOT_VIEW_ID || props.viewId !== undefined) router.replace(viewPath(ROOT_VIEW_ID, ROOT_VIEW_ID))
 }
 
-function travel(to: number) {
+function travel(to: number, confirm = false) {
   const from = history.value.cursor
   const before = { view: view.value, id: viewId.value }
-  store.goTo(to)
+  const saved = confirm ? store.goToSaved(to) : store.goTo(to)
   const now = history.value.cursor
-  if (now === from) return
+  if (now === from) return saved
   if (viewId.value === before.id && movesCards(before.view, view.value)) {
     travelling.value = true
     clearTimeout(travelEnd)
@@ -1385,9 +1440,13 @@ function travel(to: number) {
   // Going back: the nearest change that was undone. Going forward: the last one applied.
   const entry = history.value.log[now < from ? now : now - 1]
   const target = entry && eventView(entry.event)
-  if (target === undefined || target === viewId.value) return
+  if (target === undefined || target === viewId.value) return saved
   const exists = openView(store.workspace.value, target).views.some((v) => v.id === target)
-  if (exists) router.replace(viewPath(target, ROOT_VIEW_ID))
+  if (exists) {
+    const navigated = router.replace(viewPath(target, ROOT_VIEW_ID))
+    if (saved) return Promise.all([saved, navigated]).then(([ok]) => ok)
+  }
+  return saved
 }
 const undo = () => travel(history.value.cursor - 1)
 const redo = () => travel(history.value.cursor + 1)
@@ -1525,6 +1584,7 @@ const keyKinds = computed(() =>
         </BreadcrumbList>
       </Breadcrumb>
       <template #actions>
+        <AgentConnectionDialog v-if="AgentConnectionDialog" :run-tool="onAgentTool" />
         <ObjectSearch v-model:open="searching" :objects="searchable" @pick="goTo" />
         <Button
           variant="ghost"
@@ -1534,7 +1594,7 @@ const keyKinds = computed(() =>
           :disabled="!canArrange || arranging !== undefined"
           :class="{ 'disabled:opacity-100': arranging }"
           :aria-busy="arranging !== undefined"
-          @click="arrange"
+          @click="arrange()"
         >
           <LoaderCircleIcon v-if="arranging" class="animate-spin" aria-hidden="true" />
           <LayoutDashboardIcon v-else aria-hidden="true" />

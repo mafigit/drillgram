@@ -3,6 +3,7 @@
 **/node_modules
 **/dist
 **/dist-browser
+**/.wrangler
 **/coverage
 **/target
 test-results

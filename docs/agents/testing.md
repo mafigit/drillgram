@@ -41,7 +41,8 @@ Every change is test-driven. No production code without a failing test that dema
   seen it (the fixtures note that in its storage before the app starts);
   `test.use({ tour: true })` is a browser that has not.
 - A fourth project, `browser-only`, runs against the app built without a server
-  (`e2e/serve-browser`): J62 and the journeys named in `playwright.config.ts`. There the option
+  (`e2e/serve-browser`): J7, J62 and the journeys named in `playwright.config.ts`. Wrangler runs
+  the Cloudflare worker locally. There the option
   `server` is off: `account` makes nobody and signs nobody in, `newAccount` refuses. A journey
   that needs somebody else skips itself there (`test.skip(!server, …)`). A journey about what
   a workspace keeps belongs on that project's list.

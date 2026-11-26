@@ -26,6 +26,7 @@ path = [
   "apps/web/public/**",
   "apps/web/scripts/**",
   "apps/web/src/**",
+  "apps/web/worker/**",
   "apps/web/tech-icons-cloudflare/SOURCE.json",
 ]
 SPDX-FileCopyrightText = "2026 Maximilian Fischer"

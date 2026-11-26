@@ -1,3 +1,6 @@
+import { d2Format, DiagramFormatError, flowchartFormat, isFlowchart, mermaidFormat } from '@drillgram/model'
+import type { Diagram } from '@drillgram/model'
+
 // What a text pasted into the import is, when it is not what the chosen format reads: said in
 // words, instead of the parser's complaint about its first line.
 
@@ -30,4 +33,20 @@ export function notWhatWasChosen(format: string, text: string): string | undefin
     return 'This is a Mermaid C4 diagram, not D2: choose "Mermaid" in the import menu.'
   }
   return undefined
+}
+
+/** Read the same text and Markdown fences from the import dialog and MCP. */
+export function parseDiagramText(format: string, source: string): Diagram {
+  const problem = notWhatWasChosen(format, source)
+  if (problem) throw new Error(problem)
+  const unfenced = /```mermaid\s*\n([\s\S]*?)```/.exec(source)?.[1] ?? source
+  try {
+    if (isFlowchart(source)) return flowchartFormat.parse(unfenced)
+    return format === 'mermaid' ? mermaidFormat.parse(unfenced) : d2Format.parse(source)
+  } catch (error) {
+    if (error instanceof DiagramFormatError && error.line !== undefined) {
+      throw new Error(`Line ${error.line}: ${error.message}`)
+    }
+    throw error
+  }
 }

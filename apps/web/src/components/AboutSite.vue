@@ -19,7 +19,7 @@ import { Popover, PopoverContent, PopoverDescription, PopoverHeader, PopoverTitl
       <PopoverHeader>
         <PopoverTitle>Kept in this browser</PopoverTitle>
         <PopoverDescription class="leading-snug">
-          Your diagrams are in this browser, on this device, and nowhere else. Clearing the browser's data for this site deletes them. Export what you want to keep.
+          This browser stores your diagrams on this device. Clearing the browser's data for this site deletes them. Export what you want to keep.
         </PopoverDescription>
       </PopoverHeader>
       <!-- Pages of their own, not the app's: plain links. -->

@@ -5,9 +5,9 @@ const port = 4173
 const baseURL = `http://localhost:${port}`
 // The app built to run without a server (J62).
 const browserOnlyPort = 4174
-const browserOnlyURL = `http://localhost:${browserOnlyPort}`
-/** J62 is about the app without a server: the other projects have one. */
-const WITHOUT_A_SERVER = /j62-without-a-server\.spec\.ts$/
+const browserOnlyURL = `http://127.0.0.1:${browserOnlyPort}`
+/** Journeys that only run in the browser-only build. */
+const WITHOUT_A_SERVER = /j(7-agent-changes-the-diagram|62-without-a-server)\.spec\.ts$/
 
 // Journey tests: see docs/journeys.md and docs/agents/testing.md.
 // Deterministic defaults (fixed clock, no animations, no network outside localhost) live in
@@ -51,8 +51,8 @@ export default defineConfig<Options>({
       timeout: 180_000,
       gracefulShutdown: { signal: 'SIGTERM', timeout: 10_000 },
     },
-    // The app without a server, built for that and given out as files (J62). Started after the
-    // one above, so the two builds do not run at once.
+    // The Cloudflare build keeps workspaces in the browser and also serves the optional MCP relay.
+    // Start after the server above, so the two builds do not run at once.
     {
       command: `e2e/serve-browser ${browserOnlyPort}`,
       url: browserOnlyURL,

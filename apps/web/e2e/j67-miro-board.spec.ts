@@ -1,5 +1,6 @@
 import type { Page, Request } from '@playwright/test'
 import { test, expect } from './fixtures.ts'
+import { madeUpBoardPdf } from './support/madeUpBoardPdf.ts'
 
 // J67 Import a Miro board: docs/journeys.md#j67-import-a-miro-board
 
@@ -61,6 +62,31 @@ test('J67 Items copied on a Miro board are pasted in: no token', async ({ editor
 
   await expect(editor.element('Checkout')).toBeVisible()
   await editor.drillDown('Checkout')
+  await expect(editor.element('Cart')).toBeVisible()
+  await expect(editor.element('Pay')).toBeVisible()
+  await expect(editor.relationship('Goes to')).toBeVisible()
+  expect(consoleErrors).toEqual([])
+})
+
+test('J66 A board exported as a vector PDF comes in', async ({ editor, page, consoleErrors }) => {
+  await editor.open()
+  await page.getByRole('button', { name: 'Import', exact: true }).click()
+  await page.getByRole('menuitem', { name: 'Miro' }).click()
+  const pdf = page.getByLabel('Vector PDF')
+  await pdf.setInputFiles({ name: 'notes.txt', mimeType: 'application/pdf', buffer: Buffer.from('no PDF at all') })
+  await expect(page.getByRole('dialog').getByRole('alert')).toContainText('no PDF Drillgram can read')
+
+  await pdf.setInputFiles({ name: 'board.pdf', mimeType: 'application/pdf', buffer: Buffer.from(madeUpBoardPdf()) })
+  await expect(page.getByRole('textbox', { name: 'Miro items' })).toHaveValue('6 boxes and 2 connections from board.pdf')
+  await page.getByRole('button', { name: 'Import from Miro' }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+
+  // Miro leaves the frame's title out of the PDF.
+  await expect(editor.element('Frame')).toBeVisible()
+  await expect(editor.element('Orders DB')).toBeVisible()
+  await expect(editor.element('Decide')).toBeVisible()
+  await expect(editor.element('Notes for later')).toBeVisible()
+  await editor.drillDown('Frame')
   await expect(editor.element('Cart')).toBeVisible()
   await expect(editor.element('Pay')).toBeVisible()
   await expect(editor.relationship('Goes to')).toBeVisible()

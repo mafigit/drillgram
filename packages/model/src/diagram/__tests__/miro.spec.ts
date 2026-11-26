@@ -207,6 +207,9 @@ const COPIED = {
           json: { primary: { widgetIndex: 0 }, secondary: { widgetIndex: 8 }, _parent: { index: 7 }, style: '{"lc":3355443}', line: { captions: [{ text: '<p>Goes to</p>' }] } },
         },
       },
+      { id: 10, type: 14, widgetData: { type: 'shape', json: { text: '<p>Orders DB</p>', shape: '4' } } },
+      { id: 11, type: 14, widgetData: { type: 'shape', json: { text: '<p>Paid?</p>', shape: '8' } } },
+      { id: 12, type: 14, widgetData: { type: 'shape', json: { text: '<p>Later</p>', shape: '99' } } },
     ],
     meta: {},
   },
@@ -229,6 +232,10 @@ describe('a copy from Miro', () => {
     expect(named('Cart')).toMatchObject({ kind: 'box', description: 'what is chosen', inside: named('Checkout')!.id })
     expect(named('Pay')).toMatchObject({ inside: named('Checkout')!.id })
     expect(named('Invoice')).toMatchObject({ shape: 'document' })
+    expect(named('Payment')?.shape).toBeUndefined()
+    expect(named('Orders DB')).toMatchObject({ shape: 'circle' })
+    expect(named('Paid?')).toMatchObject({ shape: 'diamond' })
+    expect(named('Later')?.shape).toBeUndefined()
     expect(named('Billing')?.shape).toBeUndefined()
     expect(named('Shape')).toMatchObject({ shape: 'callout' })
     expect(diagram.relationships).toEqual([

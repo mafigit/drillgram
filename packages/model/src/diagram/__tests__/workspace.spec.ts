@@ -28,6 +28,8 @@ import {
   liftedConnections,
   fitsOnView,
   groupCards,
+  GROUP_FRAME,
+  groupFramesStayClear,
   importDiagram,
   groupable,
   moveObject,
@@ -54,7 +56,7 @@ import {
   viewsOf,
   viewToDiagram,
 } from '../workspace'
-import type { Workspace } from '../workspace'
+import type { View, Workspace } from '../workspace'
 
 function j2Workspace(): Workspace {
   let ws = emptyWorkspace()
@@ -1784,6 +1786,83 @@ describe('groups of cards on a view', () => {
         validateWorkspace(ws)
         const members = (groups(ws) ?? []).flatMap((group) => group.members)
         expect(new Set(members).size).toBe(members.length)
+      }),
+    )
+  })
+})
+
+describe('the frame of a group and the cards that are not in it', () => {
+  /** Shop, Stock and Mail in a row, a hundred apart; Shop and Stock in the frame "app". */
+  const row = (): View => ({
+    id: 'v',
+    positions: { Shop: { x: 0, y: 0 }, Stock: { x: 320, y: 0 }, Mail: { x: 640, y: 0 } },
+    connections: [],
+    groups: [{ id: 'g1', name: 'app', members: ['Shop', 'Stock'] }],
+  })
+
+  it('refuses a card of the frame where the frame would run over a card outside it', () => {
+    // Stock under Mail: Stock keeps its gap to Mail, the frame from Shop to Stock does not.
+    expect(groupFramesStayClear(row(), { Stock: { x: 640, y: 200 } })).toBe(false)
+    expect(groupFramesStayClear(row(), { Stock: { x: 320, y: 200 } })).toBe(true)
+  })
+
+  it('refuses a card outside the frame where it would stand in it or too near', () => {
+    // Under Shop, with the frame reaching down to Stock: Mail would stand in it.
+    const deep: View = { ...row(), positions: { ...row().positions, Stock: { x: 320, y: 300 } } }
+    expect(groupFramesStayClear(deep, { Mail: { x: 0, y: 160 } })).toBe(false)
+    // Beside the frame, but nearer than the gap between cards.
+    const right = 320 + CARD.width + GROUP_FRAME.side
+    expect(groupFramesStayClear(row(), { Mail: { x: right + CARD_GAP - 10, y: 0 } })).toBe(false)
+    expect(groupFramesStayClear(row(), { Mail: { x: right + CARD_GAP, y: 0 } })).toBe(true)
+  })
+
+  it('refuses a card of the frame made so large that the frame runs over a card outside it', () => {
+    expect(groupFramesStayClear(row(), { Stock: { x: 320, y: 0, width: 300, height: CARD.height } })).toBe(false)
+    expect(groupFramesStayClear(row(), { Stock: { x: 320, y: 0, width: CARD.width, height: 300 } })).toBe(true)
+  })
+
+  it('takes cards that move together where they all are then: a whole frame moved over a card outside it is refused', () => {
+    expect(groupFramesStayClear(row(), { Shop: { x: 0, y: 200 }, Stock: { x: 320, y: 200 } })).toBe(true)
+    expect(groupFramesStayClear(row(), { Shop: { x: 320, y: 100 }, Stock: { x: 640, y: 100 } })).toBe(false)
+    // The card outside goes along: nothing changes between them.
+    expect(groupFramesStayClear(row(), { Shop: { x: 320, y: 100 }, Stock: { x: 640, y: 100 }, Mail: { x: 960, y: 100 } })).toBe(true)
+  })
+
+  it('lets a card that stood in a frame before stay there: the cards of that frame still move', () => {
+    // A frame around Shop and Mail, with Stock between them.
+    const wide: View = { ...row(), groups: [{ id: 'g1', name: 'app', members: ['Shop', 'Mail'] }] }
+    expect(groupFramesStayClear(wide, {})).toBe(true)
+    expect(groupFramesStayClear(wide, { Shop: { x: 0, y: 40 } })).toBe(true)
+    // But no card comes in that was clear of it.
+    const more: View = { ...wide, positions: { ...wide.positions, Files: { x: 0, y: 400 } } }
+    expect(groupFramesStayClear(more, { Shop: { x: 0, y: 300 } })).toBe(false)
+  })
+
+  it('holds with no groups, and for cards the view does not have', () => {
+    const { groups: _none, ...plain } = row()
+    expect(groupFramesStayClear(plain, { Stock: { x: 640, y: 200 } })).toBe(true)
+    expect(groupFramesStayClear(row(), { Nobody: { x: 640, y: 200 } })).toBe(true)
+  })
+
+  it('never lets a frame that was clear come near a card outside it (property)', () => {
+    const onGrid = fc.integer({ min: -40, max: 60 }).map((n) => n * 20)
+    fc.assert(
+      fc.property(fc.constantFrom('Shop', 'Stock', 'Mail'), fc.record({ x: onGrid, y: onGrid }), (card, to) => {
+        const view = row()
+        if (!groupFramesStayClear(view, { [card]: to })) return
+        const positions: Record<string, { x: number; y: number }> = { ...view.positions, [card]: to }
+        const members = [positions.Shop!, positions.Stock!]
+        const left = Math.min(...members.map((p) => p.x)) - GROUP_FRAME.side
+        const top = Math.min(...members.map((p) => p.y)) - GROUP_FRAME.top
+        const right = Math.max(...members.map((p) => p.x + CARD.width)) + GROUP_FRAME.side
+        const bottom = Math.max(...members.map((p) => p.y + CARD.height)) + GROUP_FRAME.bottom
+        const mail = positions.Mail!
+        expect(
+          mail.x >= right + CARD_GAP ||
+            mail.x + CARD.width + CARD_GAP <= left ||
+            mail.y >= bottom + CARD_GAP ||
+            mail.y + CARD.height + CARD_GAP <= top,
+        ).toBe(true)
       }),
     )
   })

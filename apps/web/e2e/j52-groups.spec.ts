@@ -122,6 +122,50 @@ test('J52 Only the cards inside the opened box are grouped, not what stands outs
   expect(apart(frame!, outside!)).toBe(true)
 })
 
+test('J52 A frame never runs over a card that is not in it, whichever of them is dragged or made larger', async ({ editor, page, consoleErrors }) => {
+  await editor.open()
+  for (const name of ['Shop', 'Stock', 'Mail']) await editor.addElement('Box', name)
+  await editor.groupCards(['Shop', 'Stock'], 'app')
+  const frame = editor.group('app')
+  const card = (name: string) => boxOf(editor.element(name))
+  const clear = async () => apart(await boxOf(frame), await card('Mail'))
+  expect(await clear()).toBe(true)
+
+  // The frame's cards, still selected after grouping, dragged together so that Mail would stand
+  // in it: they stay where they were, and a card says why.
+  const [stock, mail] = [await card('Stock'), await card('Mail')]
+  const scale = stock.width / 220
+  const underMail = { x: mail.x - stock.x, y: mail.y + mail.height + 60 * scale - stock.y }
+  await editor.move('Stock', underMail)
+  await expect(page.getByRole('alert')).toContainText('A frame would run over a card that is not in it')
+  expect(await card('Stock')).toEqual(stock)
+  expect(await clear()).toBe(true)
+
+  // Stock alone dragged under Mail: the card would keep its gap to Mail, the frame around it
+  // and Shop would not. It lands nearby, where the frame is clear of Mail.
+  await editor.canvas.click({ position: { x: 5, y: 300 } })
+  await editor.move('Stock', underMail)
+  await expect.poll(async () => (await card('Stock')).y).toBeGreaterThan(stock.y)
+  expect(await clear()).toBe(true)
+  expect(holds(await boxOf(frame), await card('Stock'))).toBe(true)
+
+  // Mail dragged into the room the frame has under Shop: it lands outside the frame.
+  const shop = await card('Shop')
+  const from = await card('Mail')
+  await editor.move('Mail', { x: shop.x - from.x, y: shop.y + shop.height + 40 * scale - from.y })
+  await expect.poll(async () => (await card('Mail')).x).not.toBe(from.x)
+  expect(await clear()).toBe(true)
+
+  // Stock made larger towards Mail, until the frame would be on it: it keeps its size and says why.
+  const [now, below] = [await card('Stock'), await card('Mail')]
+  if (below.y < now.y + now.height) throw new Error('Mail is expected under Stock here')
+  await editor.resize('Stock', 'bottom-right', { x: 0, y: (below.y - (now.y + now.height)) / scale - 20 }, scale)
+  await expect(page.getByRole('alert')).toContainText('"Stock" would reach into another card')
+  await expect.poll(async () => Math.round((await card('Stock')).height / scale)).toBe(120)
+  expect(await clear()).toBe(true)
+  expect(consoleErrors).toEqual([])
+})
+
 test('J52 Arrange keeps the cards of a frame together and the frames apart from each other and from other cards', async ({ editor, consoleErrors }) => {
   await editor.open()
   for (const name of ['BE', 'DB', 'Events', 'Files', 'Cache', 'Gateway']) await editor.addElement('Software System', name)

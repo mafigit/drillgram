@@ -954,6 +954,8 @@ Test: `apps/web/e2e/j52-groups.spec.ts`
 3. Group two other cards as "prod-data"; move one of them.
 4. Select "Netbank BE", press "Group" and choose "prod-data"; then "Ungroup" it.
 5. Press the name of a frame; double-click it, rename it, reload, delete the group, undo.
+6. Group "Shop" and "Stock", with "Mail" beside them. Drag "Stock" under "Mail"; drag "Mail"
+   into the room the frame has under "Shop"; make "Stock" larger towards "Mail".
 
 Expected: the selected cards stand in a dashed frame with its name and, in brackets, what it
 is ("[Deployment Node: Azure App Service]"). The frame is around its cards only and goes with a
@@ -964,8 +966,12 @@ and the × on the frame deletes it at once. Inside a box only its own cards are 
 from outside its frame is left out, and alone it cannot be grouped (Ctrl or Cmd with G says why).
 The key lists "Group". "Arrange" keeps a frame whole: its cards are laid out among themselves,
 then the frame is one block among the other cards and frames, so that afterwards every frame
-holds its own cards only and no two frames overlap. Not yet: the export knows nothing of
-frames, and a card can still be dragged into a frame it is not in.
+holds its own cards only and no two frames overlap. A frame never comes to run over a card that
+is not in it: a card of the frame dragged out lands where its frame stays clear, a card dragged
+into a frame lands outside it, a card is not made so large that its frame reaches another, and
+cards dragged together that would take a frame over another card stay where they were (an error
+card says why). A card that stood in a frame before may stay there. Not yet: the export knows
+nothing of frames.
 
 ## J53 A box with a shape
 

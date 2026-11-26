@@ -1,4 +1,5 @@
 import {
+  AGENT_CALL_TIMEOUT_MS,
   AGENT_SESSION_MS,
   AGENT_SOCKET_PATH,
   AGENT_SOCKET_PROTOCOL,
@@ -15,7 +16,7 @@ export interface AgentConnection {
 
 /** Open a same-origin socket only after the user has chosen to share. */
 export async function connectAgent(
-  run: (tool: AgentTool) => Promise<Record<string, unknown>>,
+  run: (tool: AgentTool, signal: AbortSignal) => Promise<Record<string, unknown>>,
   onClose: (reason: string) => void,
   signal: AbortSignal,
 ): Promise<AgentConnection> {
@@ -53,15 +54,27 @@ export async function connectAgent(
       if (opened) onClose(event.reason)
       else reject(new Error('Could not start agent sharing. Check your connection and try again.'))
     }
-    socket.onmessage = async ({ data }) => {
-      const { id, tool } = JSON.parse(data) as AgentCall
-      let reply: AgentReply
-      try {
-        reply = { id, value: await run(tool) }
-      } catch (error) {
-        reply = { id, error: error instanceof Error ? error.message : 'Drillgram could not run that tool.' }
-      }
-      if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify(reply))
+    let pending = Promise.resolve()
+    socket.onmessage = ({ data }) => {
+      const callSignal = AbortSignal.any([signal, AbortSignal.timeout(AGENT_CALL_TIMEOUT_MS)])
+      pending = pending.then(async () => {
+        if (callSignal.aborted || socket.readyState !== WebSocket.OPEN) return
+        let call: AgentCall
+        try {
+          call = JSON.parse(data) as AgentCall
+        } catch {
+          socket.close(1008, 'Invalid MCP tool call')
+          return
+        }
+        const { id, tool } = call
+        let reply: AgentReply
+        try {
+          reply = { id, value: await run(tool, callSignal) }
+        } catch (error) {
+          reply = { id, error: error instanceof Error ? error.message : 'Drillgram could not run that tool.' }
+        }
+        if (!callSignal.aborted && socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify(reply))
+      })
     }
   })
 }

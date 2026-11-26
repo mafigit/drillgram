@@ -26,7 +26,7 @@ you sign in, and your diagrams are kept there, in as many workspaces as you like
 
 ## Not built yet
 
-- **MCP sharing**: let an agent read the open diagram and add boxes in the Cloudflare build.
+- **MCP sharing**: let an agent navigate and edit the workspace, arrange diagrams, import and export, and undo changes in the Cloudflare build.
 - **Working together**: several people on one diagram at the same time, sharing a workspace
   in the app (the server can already), comments.
 - **More export formats**, decided in issues. iOS and Android apps may follow the web app.

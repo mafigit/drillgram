@@ -258,9 +258,9 @@ Project started 2026-11-03.
 - Kubernetes: the [Helm chart](../deploy/helm/drillgram/README.md) runs the hosted app with
   bundled PostgreSQL or connects to an external PostgreSQL database.
 - Agent sharing (J7): the Cloudflare build can pair an MCP client with the open workspace.
-  The relay sends tool calls to the tab. The client can read the visible diagram and add a box.
-  The sharing dialog gives setup instructions for Claude, Codex and Claude Code. Changes go into
-  the browser's change log. See [operations](operations.md#on-cloudflare).
+  The client can read the workspace, switch views, edit the diagram, arrange cards, import and
+  export, and move through history. The sharing dialog gives setup instructions for Claude, Codex
+  and Claude Code. Changes go into the browser's change log. See [operations](operations.md#on-cloudflare).
 - Journeys J1 to J5, J7, J9, J11, J15, J18 and J20 to J63 are real tests. J6, J8, J10,
   J12 to J14, J16, J17 and J19 are still `test.fixme`.
 - Event sourcing (owner's call, 2026-11-22; begun 2026-11-26): the events are the truth and the

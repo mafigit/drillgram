@@ -107,22 +107,31 @@ export class WorkspaceLog {
 
   /** Makes a change and reports whether its specific entry reached storage. */
   dispatchSaved(event: WorkspaceEvent, at: string): Promise<boolean> {
-    const id = this.deps.newId()
-    const change = changeEntry(this.history, event, at, id)
-    if (this.stopped || !change.entry) return Promise.resolve(false)
-    return new Promise((resolve) => {
-      this.confirmations.set(id, resolve)
-      this.took(change)
-    })
+    return this.takeConfirmed(changeEntry(this.history, event, at, this.deps.newId()))
   }
 
   /** Goes to the workspace as it was after `position` changes. */
   goTo(position: number): void {
     const { history, entry } = moveEntry(this.history, position, this.deps.newId())
     // A walk along the timeline: only where it ends is worth writing. A place that is on its
-    // way to the server gets there all the same.
-    if (entry && this.pending.at(-1)?.type === 'wentTo') this.pending.pop()
+    // way to the server gets there all the same. A tool waiting for its own acknowledgement
+    // must also get there.
+    const last = this.pending.at(-1)
+    if (entry && last?.type === 'wentTo' && !this.confirmations.has(last.id)) this.pending.pop()
     this.took({ history, entry })
+  }
+
+  goToSaved(position: number): Promise<boolean> {
+    return this.takeConfirmed(moveEntry(this.history, position, this.deps.newId()))
+  }
+
+  private takeConfirmed(change: { history: History; entry?: LogEntry }): Promise<boolean> {
+    const id = change.entry?.id
+    if (this.stopped || id === undefined) return Promise.resolve(false)
+    return new Promise((resolve) => {
+      this.confirmations.set(id, resolve)
+      this.took(change)
+    })
   }
 
   /**

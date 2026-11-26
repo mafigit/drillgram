@@ -106,9 +106,17 @@ Test: `apps/web/e2e/j7-agent-changes-the-diagram.spec.ts`. Project `browser-only
 3. Connect an MCP client with the URL and bearer token. Add a software system "Payment Service".
 4. Read the diagram through MCP. Stop sharing and try to use the same token again.
 5. Reload the app.
+6. Start a new sharing session. Edit boxes and relationships, move and group cards, and arrange
+   a selection. Create a view, rename it, and drill into a box.
+7. Import a Mermaid diagram and export the active view. Undo and redo the import. Read the
+   workspace and history, then reload.
+8. In an empty workspace, load the example and return to history position zero. Attach an
+   icon, copy a box, place an existing box on a new view, and export SVG and PNG. Remove the
+   view, a group, a relationship and a box.
 
-Expected: the box appears without a reload. The client reads it. After you stop sharing, the
-relay refuses the token. The box is still there after a reload.
+Expected: changes appear in the editor as the calls succeed and the current diagram survives
+reload. An overlapping move leaves all cards in place. The PNG is returned as an MCP image.
+After you stop sharing, the relay refuses the token.
 
 ## J8 Tablet
 

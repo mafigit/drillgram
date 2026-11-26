@@ -11,7 +11,7 @@ import { connectAgent } from '../lib/agentConnection'
 import type { AgentConnection } from '../lib/agentConnection'
 import type { AgentTool } from '../lib/agentProtocol'
 
-const props = defineProps<{ runTool: (tool: AgentTool) => Promise<Record<string, unknown>> }>()
+const props = defineProps<{ runTool: (tool: AgentTool, signal: AbortSignal) => Promise<Record<string, unknown>> }>()
 const open = ref(false)
 const connection = shallowRef<AgentConnection>()
 const { busy, run } = useBusy()
@@ -92,8 +92,8 @@ onBeforeUnmount(stop)
       <DialogHeader>
         <DialogTitle>Connect agent</DialogTitle>
         <DialogDescription>
-          Let your MCP client read the open diagram and add boxes through Cloudflare. Sharing
-          lasts up to one hour or until this workspace closes.
+          Let your MCP client read and edit this workspace through Cloudflare. It can delete boxes and
+          move through the undo history. Sharing lasts up to one hour or until this workspace closes.
         </DialogDescription>
       </DialogHeader>
       <template v-if="connection">

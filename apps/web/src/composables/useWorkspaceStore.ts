@@ -18,6 +18,7 @@ export interface WorkspaceStore {
   redo: () => void
   /** Go to the workspace as it was after this many changes. */
   goTo: (position: number) => void
+  goToSaved: (position: number) => Promise<boolean>
   canUndo: ComputedRef<boolean>
   canRedo: ComputedRef<boolean>
   /**
@@ -74,6 +75,7 @@ export async function openWorkspaceStore(workspaceId: string, onProblem: (proble
     undo: () => log.goTo(now.value.cursor - 1),
     redo: () => log.goTo(now.value.cursor + 1),
     goTo: (position) => log.goTo(position),
+    goToSaved: (position) => log.goToSaved(position),
     canUndo: computed(() => now.value.cursor > 0),
     canRedo: computed(() => now.value.cursor < now.value.log.length),
     clear: () => log.clear(),

@@ -2,8 +2,8 @@
 import { ref } from 'vue'
 import { FileCodeIcon, FileTextIcon, FileUpIcon, LoaderCircleIcon, UploadIcon } from '@lucide/vue'
 import { DropdownMenuContent, DropdownMenuItem, DropdownMenuPortal, DropdownMenuRoot, DropdownMenuTrigger } from 'reka-ui'
-import { d2Format, DiagramFormatError, flowchartFormat, isFlowchart, mermaidFormat } from '@drillgram/model'
-import { notWhatWasChosen } from '../lib/pastedKind'
+import { d2Format, mermaidFormat } from '@drillgram/model'
+import { parseDiagramText } from '../lib/pastedKind'
 import type { Diagram, DiagramFormat } from '@drillgram/model'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -50,27 +50,15 @@ async function openFile(event: Event) {
   if (file) text.value = await file.text()
 }
 
-/** A Mermaid diagram may come inside a Markdown file, in a ```mermaid block. */
-function unfenced(source: string): string {
-  const fenced = /```mermaid\s*\n([\s\S]*?)```/.exec(source)
-  return fenced ? fenced[1]! : source
-}
-
 async function bring() {
   const item = chosen.value
   if (!item || working.value) return
   problem.value = undefined
-  // Plainly another kind of diagram: say which, not what the parser makes of its first line.
-  problem.value = notWhatWasChosen(item.format.id, text.value)
-  if (problem.value) return
   let diagram: Diagram
   try {
-    // A flowchart is read as one whatever was chosen: the text says what it is.
-    if (isFlowchart(text.value)) diagram = flowchartFormat.parse(unfenced(text.value))
-    else diagram = item.format.parse(item.format.id === 'mermaid' ? unfenced(text.value) : text.value)
+    diagram = parseDiagramText(item.format.id, text.value)
   } catch (error) {
-    if (!(error instanceof DiagramFormatError)) throw error
-    problem.value = error.line === undefined ? error.message : `Line ${error.line}: ${error.message}`
+    problem.value = error instanceof Error ? error.message : String(error)
     return
   }
   working.value = true

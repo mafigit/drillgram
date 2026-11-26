@@ -21,18 +21,17 @@ export function fileName(title: string, format: ExportFormat): string {
   return `${slug || 'diagram'}.${EXTENSION[format]}`
 }
 
-/** Bytes as a `data:` URL. */
-function dataUrl(bytes: ArrayBuffer, type: string): string {
+export function toBase64(bytes: ArrayBuffer): string {
   const view = new Uint8Array(bytes)
   let binary = ''
   for (let i = 0; i < view.length; i += 0x8000) binary += String.fromCharCode(...view.subarray(i, i + 0x8000))
-  return `data:${type};base64,${btoa(binary)}`
+  return btoa(binary)
 }
 
 async function fetchAsDataUrl(url: string, type: string): Promise<string> {
   const response = await fetch(url)
   if (!response.ok) throw new Error(`${url}: ${response.status}`)
-  return dataUrl(await response.arrayBuffer(), type)
+  return `data:${type};base64,${toBase64(await response.arrayBuffer())}`
 }
 
 /** The icons of the cards as `data:` URLs. One that does not load is left out of the file. */
@@ -83,7 +82,7 @@ export function pngScale(width: number, height: number): number {
 }
 
 /** An SVG document painted into a PNG, at `pngScale` times its size. */
-async function png(svg: string): Promise<Blob> {
+export async function pngOfSvg(svg: string): Promise<Blob> {
   const image = new Image()
   image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
   await image.decode()
@@ -126,5 +125,5 @@ export async function exportDiagram(open: { scene: Scene; diagram: Diagram }, fo
     return
   }
   const svg = await svgOf(open.scene)
-  save(format === 'svg' ? new Blob([svg], { type: 'image/svg+xml' }) : await png(svg), name)
+  save(format === 'svg' ? new Blob([svg], { type: 'image/svg+xml' }) : await pngOfSvg(svg), name)
 }

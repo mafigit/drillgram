@@ -116,8 +116,18 @@ requests do not count toward the Worker request limit.
 2. Copy the **MCP URL** and the **Bearer token**. Keep the Drillgram tab open.
 3. In **How to connect**, select the tab for your client. The same steps are below.
 
-The client can call `read_diagram` and `add_box` on the visible diagram. To test the connection,
-ask it to read the open Drillgram diagram. Select **Stop sharing** in Drillgram to end access.
+To test the connection, ask the client to read the open Drillgram diagram. It can use
+`read_diagram` for the active view and `read_workspace` to find IDs across the workspace.
+The tools let it:
+
+- Open a view or drill into a box. Add, copy, rename and delete custom views.
+- Add, edit, duplicate, place, move and delete boxes. Edit table columns and choose icons.
+- Add, label, color and delete relationships. Create, edit and remove group frames.
+- Arrange the diagram or specific boxes. Load the example into an empty workspace.
+- Import Mermaid C4, Mermaid flowcharts and D2. Export Mermaid, D2, SVG and PNG.
+- Read the change history, undo, redo or jump to a history position.
+
+Select **Stop sharing** in Drillgram to end access.
 
 ##### Claude web and desktop
 

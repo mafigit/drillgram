@@ -72,10 +72,12 @@ The web app needs it: see "The web app and the server" below.
 - **Agent sharing** (`build:cloudflare`, J7): the tab opens a same-origin WebSocket to a
   Durable Object when the user starts sharing. The MCP client sends its bearer token to `/mcp`.
   The token is the hash of the tab credential. The Worker hashes the token to find its session.
-  Each session ends after one hour or when the tab disconnects. The tab runs `read_diagram` and
-  `add_box` on the visible diagram. A write uses the editor's change log and reports success
-  after IndexedDB saves it. The relay does not persist diagram content. Plain static hosts
-  still use `build:browser`.
+  Each session ends after one hour or when the tab disconnects. The Worker routes MCP requests
+  to the session's Durable Object, which handles Streamable HTTP and validates the input with
+  the schemas in `apps/web/src/lib/agentTools.ts`. The tab runs calls in order against the
+  shared editor. Edits and history moves use the editor's change log and confirm success after
+  IndexedDB saves them. Import, layout and export use the same code as the editor. The relay
+  does not persist diagram content. Plain static hosts still use `build:browser`.
 - **Who is signed in:** `useSession` (one answer for the app, from `/api/session`). The router
   (`src/router/index.ts`) lets nobody past `/login` who is not, and brings them to where they
   wanted to go afterwards (`next`). Pages are in `src/pages/`: `SignIn`, `StartPage` (on to the

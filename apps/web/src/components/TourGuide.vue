@@ -22,6 +22,8 @@ const props = defineProps<{
   load: () => void
   /** Opens the diagram a step is about. */
   go: (where: 'overview' | 'inside') => Promise<unknown>
+  /** Opens the history for the step about it; closes it behind that step, with the diagram back at now. */
+  history: (open: boolean) => void
 }>()
 
 const steps = tourSteps(browserOnly)
@@ -41,6 +43,7 @@ async function show(to: number) {
   if (moving || !next) return
   moving = true
   try {
+    if ((next.history ?? false) !== (step.value?.history ?? false)) props.history(next.history ?? false)
     if (next.at && props.scene.at !== next.at) await props.go(next.at)
     // The editor says where it is, and what was just done in it, on its next turn.
     await nextTick()

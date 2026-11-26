@@ -1411,6 +1411,14 @@ const tourScene = computed<TourScene>(() => ({
   historyOpen: showHistory.value,
   typing: labelling.value !== null,
 }))
+/**
+ * The history, for the tour's step about it. Closed behind that step, with the diagram back
+ * at now: the steps that follow are about what is there today.
+ */
+function tourHistory(open: boolean) {
+  showHistory.value = open
+  if (!open && history.value.cursor < history.value.log.length) travel(history.value.log.length)
+}
 /** Opens the diagram a step of the tour is about; stays where it is when that is not there. */
 async function tourGo(where: 'overview' | 'inside') {
   const to = where === 'overview' ? ROOT_VIEW_ID : tourView.value
@@ -1899,7 +1907,7 @@ const keyKinds = computed(() =>
         </div>
       </Teleport>
 
-      <TourGuide ref="tour" :scene="tourScene" :fresh="fresh" :load="loadExample" :go="tourGo" />
+      <TourGuide ref="tour" :scene="tourScene" :fresh="fresh" :load="loadExample" :go="tourGo" :history="tourHistory" />
 
       <div
         role="toolbar"

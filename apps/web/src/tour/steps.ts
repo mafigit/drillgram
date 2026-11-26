@@ -36,6 +36,11 @@ export type TourStep = {
   /** The diagram the step is about: the tour opens it when the step begins. */
   at?: 'overview' | 'inside'
   /**
+   * The step is about the history: the tour opens it when the step begins. When the tour goes
+   * on, it closes it and brings the diagram back to now.
+   */
+  history?: boolean
+  /**
    * For a step that asks for something to be done: whether it was, since the step began
    * (`before`). The tour then goes on by itself.
    */
@@ -71,10 +76,19 @@ export function tourSteps(browserOnly: boolean): TourStep[] {
       done: (now) => now.at === 'inside',
     },
     {
+      id: 'inside',
+      title: 'Inside the box',
+      text: `"${TOUR_BOX}" is now the frame around its parts. What it is connected to stands outside the frame. A red line is a connection of the box that no part of it has yet.`,
+      target: ['[data-testid="boundary"]'],
+      side: 'right',
+      at: 'inside',
+    },
+    {
       id: 'views',
       title: 'Several views of one box',
-      text: `"${TOUR_BOX}" is now the frame around its parts, and its neighbours stand outside. A box can have more views than this one: the plus adds one, for a deployment or a flow, with cards and a layout of its own.`,
+      text: 'A box can have more views than this one. The plus adds one, for a deployment or a flow, with cards and a layout of its own.',
       target: ['[data-tour="views"]'],
+      side: 'right',
       at: 'inside',
     },
     {
@@ -99,7 +113,7 @@ export function tourSteps(browserOnly: boolean): TourStep[] {
       title: 'Connect two cards',
       text: 'Drag from the round handle on the right side of a card onto another card, then type what the connection says. The line finds its own way around the cards.',
       target: [card(TOUR_CARD)],
-      side: 'right',
+      side: 'away',
       at: 'overview',
       done: (now, before) => now.connections > before.connections,
     },
@@ -108,7 +122,7 @@ export function tourSteps(browserOnly: boolean): TourStep[] {
       title: 'Move a card',
       text: 'Drag a card. It moves on a grid, shows where it will land and snaps to a free place. Guide lines show when it lines up with another card.',
       target: [card(TOUR_CARD)],
-      side: 'right',
+      side: 'away',
       at: 'overview',
       done: logged('objectsMoved'),
     },
@@ -121,10 +135,18 @@ export function tourSteps(browserOnly: boolean): TourStep[] {
     },
     {
       id: 'history',
-      title: 'Undo and the timeline',
-      text: 'Every change is logged with its time. Undo and Redo step through the log. Press "History" and drag the timeline to see the diagram as it was.',
+      title: 'Undo and redo',
+      text: 'Every change is logged with its time. Undo and Redo step through the log, one change at a time. Press "History" to see all of it.',
       target: [button('Undo'), button('Redo'), button('History')],
       done: (now, before) => now.historyOpen && !before.historyOpen,
+    },
+    {
+      id: 'timeline',
+      title: 'The history',
+      text: 'Every change with its time, the newest last. Drag the timeline or press a change: the diagram shows itself as it was then, and a card that moved glides back. The tour brings you back to now.',
+      target: ['aside[aria-label="History"]'],
+      side: 'left',
+      history: true,
     },
     {
       id: 'search',
@@ -137,7 +159,7 @@ export function tourSteps(browserOnly: boolean): TourStep[] {
       title: 'Work on a card',
       text: 'A click on a card keeps it and what it connects to clear, and fades the rest. Its corner has buttons to edit it, give it icons and copy it. A double-click writes its text, in Markdown.',
       target: [card(TOUR_BOX)],
-      side: 'right',
+      side: 'away',
       at: 'overview',
     },
     {

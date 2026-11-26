@@ -243,10 +243,12 @@ Project started 2026-11-03.
   Cloudflare (Workers static assets, the free plan; `operations.md`, "Without a server").
 - A tour on the first visit (J63, 2026-11-26): on a workspace nothing was ever done in, in a
   browser the tour was never shown to, a card welcomes and offers a tour. It loads the example
-  and goes through 15 steps, each with a frame of light around the part of the editor it is
+  and goes through 17 steps, each with a frame of light around the part of the editor it is
   about (`TourGuide.vue` in `DiagramEditor.vue`). The page under it stays the app: seven steps
   ask for something (open a box, go back, add a shape, connect, move, arrange, open the
-  history) and the tour goes on when it was done, or with "Next". The steps, what each points
+  history) and the tour goes on when it was done, or with "Next". The step about the history
+  opens it and waits while the timeline is tried; behind it the history closes and the diagram
+  is back at now. Where the canvas is worked on, the card goes to the far corner (`away`). The steps, what each points
   at (CSS selectors, mostly a button's `aria-label`) and how it knows that it was answered are
   `src/tour/steps.ts`; `tour/place.ts` puts the card beside its target. That the tour was
   begun or skipped is kept in the browser (`drillgram.tour`, `tour/seen.ts`). An empty

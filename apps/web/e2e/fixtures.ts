@@ -36,6 +36,12 @@ export type Options = {
    * no user is made, the browser keeps the workspaces itself.
    */
   server: boolean
+  /**
+   * Whether the browser is one the tour was never shown to (J63). Off: the browser has seen
+   * the tour, as if it had been skipped. A first visit starts the tour over the empty
+   * workspace, and every other journey is about what comes after it.
+   */
+  tour: boolean
 }
 
 type Fixtures = Options & {
@@ -58,8 +64,15 @@ type Fixtures = Options & {
   deterministic: void
 }
 
-/** Known start time, no animations, no network outside localhost: for a browser of a test. */
-async function makeDeterministic(context: BrowserContext, page: Page): Promise<void> {
+/** The browser's note that the tour was seen (src/tour/seen.ts). */
+const TOUR_SEEN = ['drillgram.tour', 'seen'] as const
+
+/**
+ * Known start time, no animations, no network outside localhost: for a browser of a test.
+ * `tour`: whether the tour (J63) starts on its first visit.
+ */
+async function makeDeterministic(context: BrowserContext, page: Page, tour = false): Promise<void> {
+  if (!tour) await context.addInitScript(([key, value]) => window.localStorage.setItem(key, value), TOUR_SEEN)
   await context.route('**/*', (route) => {
     const { hostname } = new URL(route.request().url())
     return LOCAL_HOSTS.has(hostname) ? route.fallback() : route.abort('blockedbyclient')
@@ -89,8 +102,8 @@ let made = 0
 
 export const test = base.extend<Fixtures>({
   deterministic: [
-    async ({ context, page }, use) => {
-      await makeDeterministic(context, page)
+    async ({ context, page, tour }, use) => {
+      await makeDeterministic(context, page, tour)
       await use()
     },
     { auto: true },
@@ -98,6 +111,7 @@ export const test = base.extend<Fixtures>({
 
   signedIn: [true, { option: true }],
   server: [true, { option: true }],
+  tour: [false, { option: true }],
 
   newAccount: async ({ playwright, baseURL, server }, use, testInfo) => {
     if (!server) {

@@ -37,6 +37,9 @@ Every change is test-driven. No production code without a failing test that dema
   `test.use({ signedIn: false })` starts signed out; `newAccount()` makes one more user;
   `browserOf(account)` opens one more browser, signed in: another device, or another person.
   Anything a test makes that other tests could see (a user's address) is one of a kind.
+- A first visit starts the tour (J63) over the empty workspace. The browser of a test has
+  seen it (the fixtures note that in its storage before the app starts);
+  `test.use({ tour: true })` is a browser that has not.
 - A fourth project, `browser-only`, runs against the app built without a server
   (`e2e/serve-browser`): J62 and the journeys named in `playwright.config.ts`. There the option
   `server` is off: `account` makes nobody and signs nobody in, `newAccount` refuses. A journey

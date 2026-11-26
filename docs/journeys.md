@@ -10,11 +10,13 @@ touch). Journeys run on all three unless the entry says otherwise.
 
 The journeys run against the server (`apps/server`) with the built app, on a database of its
 own. Every test starts signed in, as a user made for it with an empty workspace; "open the app"
-means that. J57 is about signing in itself.
+means that. J57 is about signing in itself. The browser of a test has seen the tour (J63),
+which else starts over every empty workspace; J63 is about a browser that has not.
 
 A fourth project, `browser-only`, runs against the app built to run without a server (J62), in
 desktop Chromium: J62 itself and, of the journeys above it, those about what a workspace keeps
-(J2, J4, J31, J43, J58). There "open the app" means a browser that never ran it.
+(J2, J4, J31, J43, J58), and the tour (J63). There "open the app" means a browser that never
+ran it.
 
 ## J1 Open the app
 
@@ -1045,14 +1047,15 @@ Test: `apps/web/e2e/j59-users.spec.ts`
 1. Sign in as the admin and open "Users" in the account menu.
 2. Fill "New user" with an address, the name "Grace Hopper" and the password "short"; press
    "Create user". Then give a password of ten characters or more and press it again.
-3. In another browser, sign in as Grace. Open the account menu, then the address `/users`.
+3. In another browser, sign in as Grace and skip the tour (J63). Open the account menu, then
+   the address `/users`.
 4. As the admin, press "Disable" in Grace's row. As Grace, reload and try to sign in.
 5. As the admin, press "Enable". As Grace, sign in.
 6. As the admin, press "Disable" in the admin's own row.
 
 Expected: the page lists the users with their roles. A password that is too short is said at
 the form; then the user is in the list and the form is empty again. Grace gets her own
-"My workspace"; her account menu has no "Users", and the address of the users leads her to her
+"My workspace" and, on this first visit, the welcome of the tour; her account menu has no "Users", and the address of the users leads her to her
 diagrams. Disabled, she is out at her next step and the sign-in page refuses her with the same
 words as a wrong password; enabled, she is in again. The last admin cannot be disabled: a card
 says that the server needs one.
@@ -1122,3 +1125,30 @@ as between two browsers of a server (J60); the next change works as ever. The im
 ("Imprint / Impressum") names who runs the site, the privacy policy says in English and in
 German what happens to data; each leads to the other and back to the app, where the diagram
 still is, and both are there offline.
+
+## J63 A tour on the first visit
+
+Test: `apps/web/e2e/j63-tour.spec.ts`. Also on the project `browser-only`.
+
+1. Open the app in a browser the tour was never shown to, on a workspace nothing was done in.
+2. Press "Start the tour".
+3. Do what the steps ask for: open "Web Shop", go back with the breadcrumb, add a shape,
+   connect two cards, press "Arrange", press "History". Go through the others with "Next".
+4. Press "Done", then reload.
+
+Also: reload at the welcome, then press "Skip the tour", add a card and reload; delete the
+card and press "Take the tour". Also: go through steps with "Next" and "Back" without doing
+what they ask for, then press "End the tour". Also: open a workspace that has a card in a
+browser the tour was never shown to.
+
+Expected: a card in the middle of the screen welcomes and says how long the tour takes; the
+page behind it waits. "Start the tour" loads the example, and each of the 15 steps that follow
+("Step 1 of 15") says what a part of the app is for, with a frame of light around that part
+and the card beside it, never on it. The page under the tour is the app: a step that asks for
+something is done on the real thing and the tour goes on by itself, after the label of a new
+connection was typed; "Next" goes on without, and opens the diagram the next step is about.
+"Back" goes to the step before, on its diagram. The tour ends with "Done", "End the tour" or
+"Skip the tour", and what was done on the way stays. It starts by itself once in a browser,
+and only on a workspace nothing was ever done in: not again after it was begun or skipped (it
+is there again after a reload at the welcome), and not on a workspace that has something. An
+empty workspace offers it with "Take the tour".

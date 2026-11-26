@@ -16,7 +16,7 @@ task touches.
 | Licences | [docs/agents/licences.md](docs/agents/licences.md) | Apache-2.0; every file, npm package and crate is checked against a list. A new folder or a file from elsewhere must be declared |
 | C4 model | [docs/agents/c4.md](docs/agents/c4.md) | C4 is a shape library, not the model's rules: everything is a box. Then: c4model.com is the reference: abstractions, diagram scopes, notation, open gaps |
 | Layout engine | [docs/agents/layout-engine.md](docs/agents/layout-engine.md) | Rust port of TALA in `packages/layout`, MPL-2.0; record TALA's answers before porting |
-| User journeys | [docs/journeys.md](docs/journeys.md) | J1 to J62, each with an e2e test; journey test first |
+| User journeys | [docs/journeys.md](docs/journeys.md) | J1 to J63, each with an e2e test; journey test first |
 | Workflow | [docs/agents/workflow.md](docs/agents/workflow.md) | Issue is the spec, PR lists tests, leave issues still in design alone |
 | Stack | [docs/agents/stack.md](docs/agents/stack.md) | Vue 3 + Vite + TS, pnpm workspace, tools via mise |
 | Server | [docs/agents/server.md](docs/agents/server.md) | Go + Fiber + PostgreSQL in `apps/server`: tests through HTTP on a real database, migrations never changed, the log's entries are not read |

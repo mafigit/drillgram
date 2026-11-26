@@ -39,6 +39,8 @@ test('J59 An admin makes a user, who signs in, and disables them again', async (
   await grace.getByLabel('Password').fill('a password for grace')
   await grace.getByRole('button', { name: 'Sign in' }).click()
   await expect(grace.getByRole('button', { name: /^Workspace: / })).toContainText('My workspace')
+  // Her first visit: the tour welcomes her (J63). She has other things to do.
+  await grace.getByRole('dialog', { name: 'Tour' }).getByRole('button', { name: 'Skip the tour' }).click()
   // She is no admin: no way to the users, and their address shows nothing of them.
   await grace.getByRole('button', { name: 'Account' }).click()
   await expect(grace.getByRole('menuitem', { name: 'Sign out' })).toBeVisible()

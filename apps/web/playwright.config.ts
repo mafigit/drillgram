@@ -32,10 +32,11 @@ export default defineConfig<Options>({
     { name: 'webkit', testIgnore: WITHOUT_A_SERVER, use: { ...devices['Desktop Safari'] } },
     { name: 'tablet', testIgnore: WITHOUT_A_SERVER, use: { ...devices['iPad Pro 11'], hasTouch: true } },
     // The same app without a server: its own journey, and those of the others that are about
-    // what a workspace keeps (the cards, the change log, clearing, several workspaces).
+    // what a workspace keeps (the cards, the change log, clearing, several workspaces), and the
+    // tour (J63): the site without a server is where most first visits are.
     {
       name: 'browser-only',
-      testMatch: [WITHOUT_A_SERVER, /j(2-first-diagram|4-edit-safely|31-timeline|43-clear-the-workspace|58-workspaces)\.spec\.ts$/],
+      testMatch: [WITHOUT_A_SERVER, /j(2-first-diagram|4-edit-safely|31-timeline|43-clear-the-workspace|58-workspaces|63-tour)\.spec\.ts$/],
       use: { ...devices['Desktop Chrome'], baseURL: browserOnlyURL, server: false },
     },
   ],

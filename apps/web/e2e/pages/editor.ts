@@ -36,6 +36,50 @@ export class DiagramEditor {
     await this.page.goto('/')
   }
 
+  /** The card of the tour (J63): what a step says, and its buttons. */
+  get tour(): Locator {
+    return this.page.getByRole('dialog', { name: 'Tour' })
+  }
+
+  /** The name of the tour's step that is shown. */
+  get tourStep(): Locator {
+    return this.tour.getByRole('heading')
+  }
+
+  /** Press a button of the tour's card: "Next", "Back", "Start the tour". */
+  async tourPress(name: string): Promise<void> {
+    await this.tour.getByRole('button', { name, exact: true }).click()
+  }
+
+  /**
+   * Whether the tour's light is on something: its frame is around every one of them, close,
+   * and all of it is on the screen.
+   */
+  async expectTourPointsAt(...targets: Locator[]): Promise<void> {
+    const spotlight = this.page.getByTestId('tour-spotlight')
+    await expect(async () => {
+      const light = await spotlight.boundingBox()
+      const boxes = await Promise.all(targets.map((target) => target.boundingBox()))
+      if (!light || boxes.some((box) => !box)) throw new Error('The light or what it should be on is not there')
+      const found = boxes.filter((box) => box !== null)
+      const left = Math.min(...found.map((box) => box.x))
+      const top = Math.min(...found.map((box) => box.y))
+      const right = Math.max(...found.map((box) => box.x + box.width))
+      const bottom = Math.max(...found.map((box) => box.y + box.height))
+      // The frame leaves a few pixels of air around what it shows.
+      const AIR = 12
+      for (const [edge, of] of [[left - light.x, 'left'], [top - light.y, 'top'], [light.x + light.width - right, 'right'], [light.y + light.height - bottom, 'bottom']] as const) {
+        expect(edge, `the ${of} edge`).toBeGreaterThanOrEqual(0)
+        expect(edge, `the ${of} edge`).toBeLessThanOrEqual(AIR)
+      }
+    }).toPass()
+    // The card that speaks is beside it, not on it.
+    const [card, light] = [await this.tour.boundingBox(), await spotlight.boundingBox()]
+    if (!card || !light) throw new Error('The tour is not there')
+    const apart = card.x + card.width <= light.x || card.x >= light.x + light.width || card.y + card.height <= light.y || card.y >= light.y + light.height
+    expect(apart, 'the card stands beside what it points at').toBe(true)
+  }
+
   /** Resolve once a service worker is active for this page (production build only). */
   async waitForServiceWorker(): Promise<void> {
     await this.page.evaluate(async () => {

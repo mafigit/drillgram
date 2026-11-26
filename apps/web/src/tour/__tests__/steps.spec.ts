@@ -1,0 +1,78 @@
+import { describe, expect, it } from 'vitest'
+import { tourSteps } from '../steps'
+import type { TourScene } from '../steps'
+
+const SCENE: TourScene = { at: 'overview', objects: 22, connections: 23, changes: 1, lastChange: 'exampleLoaded', historyOpen: false, typing: false }
+const steps = tourSteps(false)
+const step = (id: string) => {
+  const found = steps.find((known) => known.id === id)
+  if (!found) throw new Error(`The tour has no step "${id}"`)
+  return found
+}
+const done = (id: string, now: Partial<TourScene>, before: Partial<TourScene> = {}) => step(id).done!({ ...SCENE, ...now }, { ...SCENE, ...before })
+
+describe('tourSteps', () => {
+  it('begins with a welcome and ends with a goodbye, both in the middle of the screen', () => {
+    expect(steps[0]!.id).toBe('welcome')
+    expect(steps.at(-1)!.id).toBe('done')
+    expect(steps[0]!.target).toBeUndefined()
+    expect(steps.at(-1)!.target).toBeUndefined()
+  })
+
+  it('points at something in every step between, and names each step once', () => {
+    for (const between of steps.slice(1, -1)) expect(between.target?.length, between.id).toBeGreaterThan(0)
+    expect(new Set(steps.map((known) => known.id)).size).toBe(steps.length)
+  })
+
+  it('says something in every step', () => {
+    for (const known of steps) {
+      expect(known.title, known.id).not.toBe('')
+      expect(known.text.length, known.id).toBeGreaterThan(20)
+    }
+  })
+
+  it('knows that the box was opened, and that the way back was taken', () => {
+    expect(done('open', { at: 'overview' })).toBe(false)
+    expect(done('open', { at: 'inside' })).toBe(true)
+    expect(done('back', { at: 'inside' }, { at: 'inside' })).toBe(false)
+    expect(done('back', { at: 'overview' }, { at: 'inside' })).toBe(true)
+  })
+
+  it('begins a step where the step before it led', () => {
+    const after = (id: string) => steps[steps.indexOf(step(id)) + 1]!
+    expect(step('open').at).toBe('overview')
+    expect(after('open').at).toBe('inside')
+    expect(step('back').at).toBe('inside')
+    expect(after('back').at).toBe('overview')
+  })
+
+  it('knows that a shape was added and that two cards were connected', () => {
+    expect(done('add', {})).toBe(false)
+    expect(done('add', { objects: 23 })).toBe(true)
+    expect(done('connect', { objects: 23 })).toBe(false)
+    expect(done('connect', { connections: 24 })).toBe(true)
+  })
+
+  it('knows that a card was moved and that the diagram was arranged, by the change that was logged', () => {
+    expect(done('move', { changes: 2, lastChange: 'objectAdded' })).toBe(false)
+    expect(done('move', { changes: 2, lastChange: 'objectsMoved' })).toBe(true)
+    // The change before the step was one too: not this step's.
+    expect(done('move', { lastChange: 'objectsMoved' }, { lastChange: 'objectsMoved' })).toBe(false)
+    expect(done('arrange', { changes: 2, lastChange: 'viewArranged' })).toBe(true)
+    expect(done('arrange', { changes: 2, lastChange: 'objectsMoved' })).toBe(false)
+  })
+
+  it('knows that the history was opened', () => {
+    expect(done('history', {})).toBe(false)
+    expect(done('history', { historyOpen: true })).toBe(true)
+    // Open already: nothing was done.
+    expect(done('history', { historyOpen: true }, { historyOpen: true })).toBe(false)
+  })
+
+  it('says where the diagrams are kept: on the server, or in the browser', () => {
+    const keep = (browserOnly: boolean) => tourSteps(browserOnly).find((known) => known.id === 'keep')!.text
+    expect(keep(false)).toContain('server')
+    expect(keep(true)).toContain('this browser')
+    expect(keep(true)).not.toContain('server')
+  })
+})

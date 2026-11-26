@@ -9,6 +9,7 @@
 | `apps/web/src/export` | | Export of the open diagram. `svg.ts` draws a `Scene` (cards, connectors, frame, title, key; built by `exportScene` in `DiagramEditor.vue`) as a standalone SVG, pure and unit-tested with a fake text measure; `palette.ts` holds the light theme as hex (a test keeps it equal to `assets/main.css`); `download.ts` measures text, puts the font and icons in as `data:` URLs, paints the PNG and saves the file. The menu is `src/components/ExportMenu.vue`; `src/components/ImportMenu.vue` is the import dialog (Mermaid, D2), and `bringDiagram` in `DiagramEditor.vue` lays an imported file out and dispatches `diagramImported`. |
 | `deploy/helm/drillgram` | Helm | The hosted image, a Service and optional Ingress. PostgreSQL runs as a StatefulSet with a volume claim, or the app uses an external connection URL from a Secret. |
 | `apps/web/src/tour` | | The tour of the first visit (J63). `steps.ts`: the steps in their order, what each says and points at (CSS selectors), the diagram it is about and how it knows that it was answered, from a `TourScene` the editor gives (where it is, how many objects, connections and changes, whether the history is open). `place.ts`: where the card stands beside its target. `seen.ts`: the browser's note that the tour was begun or skipped. All pure and unit-tested; `components/TourGuide.vue` draws the card and the light and is mounted by `DiagramEditor.vue`. |
+| `apps/web/src/collab` | | Working together (J19), in the app without a server. `rooms.ts`: a room of the signalling server as a pure function (who is seated as host or guest, who gets which message of a handshake; the host proves itself with the secret the room's name is a hash of). `apps/web/worker/signalRoom.ts` is that server in the Worker (a Durable Object per room, WebSockets that hibernate, STUN and TURN servers handed to who takes a seat), beside the MCP relay; `signal.vite.ts` beside the app's config is the same for the dev server, which has no Worker. `signal.ts` is the browser's WebSocket to a room, `peer.ts` the direct connection (WebRTC data channel; `frames.ts` cuts large messages), `relay.ts` the way through the room for two browsers without a direct one (AES-GCM with the key of the link, pointers said more seldom), `session.ts` what is said over it: the host serves its change log (`LogServer`: read, append) to the guests, tells them when it moved, and passes on who is there and where everybody points. `sharing.ts` puts these together for the editor; `name.ts` keeps the name somebody goes by. See "Working together" below. |
 | `apps/web/e2e` | | Playwright journeys `j<N>-<name>.spec.ts`, PWA tests `pwa-*.spec.ts`, fixtures in `fixtures.ts`, page object `pages/editor.ts`. |
 | `packages/model` | `@drillgram/model` | Domain types shared by all apps, no Vue. |
 | `packages/model/src/diagram` | | `workspace.ts`: the `Workspace` the editor holds, one `Model` (objects with an optional `parent`, connections with ids) and `View`s (optional `scope`, positions of the objects placed on it, ids of the connections shown). Editing functions never mutate their input; `validateWorkspace` guards what is loaded. Everything is a box: an object has a kind (a plain box or one of C4's four shapes) and no kind says what lives in what. Views are the Overview (`ROOT_VIEW_ID`) and one view inside each object that was opened (`scope`); there are no levels. `drillDown` opens the view inside any object and creates it on first use; `syncView` fills the Overview with the objects that stand inside no other and an inner view with its object's neighbours each time they are opened; `addObject` on an inner view sets `parent`; `breadcrumb` gives the way back. `parseWorkspace` upgrades workspaces saved with C4 levels and System Context views. `placeObject` shows an existing object on another view (only kinds that belong on that level). A card is `CARD` in size unless its view stores another size for it (`View.sizes`, read with `cardSize`). Cards never come closer than `CARD_GAP`, each with its own size: `fitsOnView` tells, `moveObject` refuses a bad place, new cards take the first free one. `arrangeView` puts listed cards at new places with new sizes in one go and refuses the whole arrangement if one card does not fit. A `View` with a `name` is one that was added to a box beside its first view (`addView`, `renameView`, `removeView`, `viewsOf`; ids `view-<n>`): `syncView` puts nothing on it, `findViewInside` and the breadcrumb mean the first view. `canShow` holds the rule for what a diagram may show (any object, from any depth, but not the object the diagram is inside nor what that stands inside); `viewTitle` gives its title. a view lists the connections made on it; `liftedConnections` derives, per view, those made inside its cards, between the cards that hold their ends (one per pair of cards and direction, without a label, none where the view has its own between the same two cards); they are never stored. `viewToDiagram` turns a view into the format-neutral C4 `Diagram` that the `DiagramFormat` converters (`mermaid.ts`, `d2.ts`) read and write; `diagramOfView` gives what the canvas shows for export (title, the opened object as `boundary`, the connections drawn on it and those lifted from inside its cards, ids unique also without regard to case). `writableAsMermaid` makes any diagram fit for Mermaid (no double quotes or line breaks, no relationships to the boundary). |
@@ -102,6 +103,48 @@ The web app needs it: see "The web app and the server" below.
   `drillgram.history.v1`). `src/lib/localWorkspace.ts` reads it; the editor offers to bring it
   into an empty workspace (`WorkspaceLog.bring`: the event `workspaceBrought` for where its log
   began, then its changes with their times). The app writes nothing there any more.
+
+## Working together
+
+In the app without a server (J19). The workspace stays where it is: in the browser of who
+shares it, as a change log that is the one truth. A shared session makes that browser the
+server of this one log for the others.
+
+- **The host is the server.** A guest's editor is the same editor on a `WorkspaceLog` whose
+  `LogServer` is not `lib/api.ts` but the connection to the host (`GuestSession.server`): read
+  and append go to the host's browser, which answers from its own log (`HostSession`) with the
+  rules it has anyway (an append after an entry that is not the newest is refused). A guest
+  keeps nothing: no outbox, no database. Only the host can clear.
+- **Live.** After every append the host tells the others that the log moved (`moved`), and
+  each takes what is new (`WorkspaceLog.pull`): the host's own editor too when a guest wrote.
+  A change that is on its way when somebody else's lands is refused as between two browsers of
+  a server: its maker sees the workspace as it is and is told. Undo, redo and the place on the
+  timeline are entries of the log, so they are shared: one history for everybody.
+- **Direct.** Host and guest talk over a WebRTC data channel, one per guest (a star: guests
+  never connect to each other, the host passes on what all must know). The browsers encrypt it;
+  no server of ours sees it. They find each other through a room on the signalling server,
+  named by the link: the guest offers, the host answers, both send the addresses they can be
+  reached at. The guest leaves the room once connected; the host stays for the next guest and
+  takes its seat again when the server lets go of it.
+- **Through the server, when there is no direct way.** A guest whose connection does not open
+  in 8 seconds (or whose browser, or the host's, has no WebRTC: then at once) sends what it
+  has to say through the room instead (`relay` in `rooms.ts`), and stays in the room for it.
+  Both sides seal every piece with AES-GCM under a key that the host made and put into the
+  link after its "#": a browser sends that part to no server, so the room passes on what it
+  cannot read, and who has only the room's name cannot talk to the host this way. To the
+  session it is a connection like the other. Pointers go through at most 5 times a second
+  there: every message counts against the free plan's day. Such a guest's session ends when
+  the host's connection to the room does; a direct one does not.
+- **The link** is `/s/<room>#<key>`. The room's name is a hash of a secret only the host has,
+  and the server seats as host only who shows the secret: nobody else can sit down as the
+  host of a link that is around. Who has the link can join and change the workspace: it is
+  the key. Addresses inside a session keep the "#" part (`viewPath`), so a reload joins again.
+- **People and pointers** are not in the log. The host gives everybody an id and a colour and
+  says who is there; a pointer is a place in a diagram's own measures on one view, sent at
+  most 20 times a second and drawn by `canvas/CanvasPointers.vue` over the cards.
+- **What ends a session:** the host stops sharing or leaves the workspace (reload, another
+  workspace, the tab closed). Guests are told at once where the browser has the time to say
+  so, else when the connection is found dead.
 
 ## Issue providers
 

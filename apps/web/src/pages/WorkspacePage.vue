@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onMounted, ref, shallowRef } from 'vue'
+import { onBeforeUnmount, onMounted, ref, shallowRef } from 'vue'
+import { useEventListener } from '@vueuse/core'
 import { useRoute, useRouter } from 'vue-router'
 import { LoaderCircleIcon } from '@lucide/vue'
 import AppHeader from '../components/AppHeader.vue'
@@ -54,6 +55,12 @@ async function open() {
   }
 }
 onMounted(open)
+
+// A workspace is shared while it is open: leaving the page ends the session (collab/), and
+// the guests are told at once.
+const stopSharing = () => store.value?.sharing?.stop()
+onBeforeUnmount(stopSharing)
+useEventListener(window, 'pagehide', stopSharing)
 </script>
 
 <template>

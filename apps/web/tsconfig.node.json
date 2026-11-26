@@ -4,6 +4,7 @@
   "include": [
     "vite.config.*",
     "tech-icons.vite.ts",
+    "signal.vite.ts",
     "tech-icons.allow.json",
     "vitest.config.*",
     "cypress.config.*",

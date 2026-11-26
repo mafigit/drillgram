@@ -6,6 +6,7 @@ import tailwindcss from '@tailwindcss/vite'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import { VitePWA } from 'vite-plugin-pwa'
 import { techIcons } from './tech-icons.vite.ts'
+import { signalling } from './signal.vite.ts'
 
 /** The build that runs without a server (`build:browser`, `dev:browser`). */
 const browserOnly = process.env.VITE_BROWSER_ONLY === '1'
@@ -20,6 +21,8 @@ export default defineConfig({
     tailwindcss(),
     vueDevTools(),
     techIcons(),
+    // Shared sessions need a meeting point for browsers: the Worker on Cloudflare, this here.
+    ...(browserOnly ? [signalling()] : []),
     VitePWA({
       registerType: 'prompt',
       injectRegister: false, // registered by ReloadPrompt.vue via virtual:pwa-register/vue

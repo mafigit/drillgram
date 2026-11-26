@@ -226,8 +226,8 @@ Project started 2026-11-03.
   writes every change to it, also undo, redo and the place on the timeline. A change shows at
   once and is written after; what is not written yet waits in the browser and survives a
   reload. A change made in a browser that has not seen what another one did is not kept: the
-  workspace is shown as the server has it and a card says so. Not yet: seeing each other's
-  changes as they are made (J19).
+  workspace is shown as the server has it and a card says so. Not yet with a server: seeing
+  each other's changes as they are made (J19 has it without one).
 - What a browser kept before (J61): the one workspace the app used to keep in the browser can
   be brought into an empty workspace of the server, with its change log, once.
 - Without a server (J62; owner's call, 2026-11-26, which takes back "no mode without a
@@ -254,6 +254,22 @@ Project started 2026-11-03.
   begun or skipped is kept in the browser (`drillgram.tour`, `tour/seen.ts`). An empty
   workspace offers it again ("Take the tour"). A new feature gets a step there, or a sentence
   in the step of its part.
+- Working together (J19, 2026-11-26; the app without a server only): "Share" in the top bar
+  shares the open workspace under a link (`/s/<room>`). Whoever opens it says their name and
+  is then in the workspace with the one who shares: each sees the others' changes as they are
+  made, who is there, and where their pointers are. The browser that shares is the server of
+  its change log for the others, over a direct connection between the browsers (WebRTC), so
+  the log stays the one truth and nothing of a diagram passes a server. The browsers find
+  each other through a meeting point of the site: a Cloudflare Worker with a Durable Object
+  per session (`worker/signalRoom.ts`), and `signal.vite.ts` in the dev server. It
+  hands out the servers a connection goes through: Cloudflare's STUN always, TURN when the
+  Worker has a key (`operations.md`, "On Cloudflare"). Two browsers that find no direct way
+  within 8 seconds (a strict firewall, WebRTC switched off) talk through that meeting point
+  instead, which passes on what they encrypted with a key that only the link has, after its
+  "#" (`src/collab/relay.ts`): free, where TURN needs a payment method. How it is built:
+  `architecture.md` ("Working together"). The session lasts while the one who shares has the workspace open.
+  Not yet: two changes at the same moment (the later one is not kept), undo of one's own
+  changes only, the app with a server.
 - Run as a stack (2026-11-26): `docker compose up --build` builds one image with the server and
   the web app and runs it with a PostgreSQL (`Dockerfile`, `compose.yaml`; `operations.md`,
   "The stack").
@@ -263,8 +279,8 @@ Project started 2026-11-03.
   The client can read the workspace, switch views, edit the diagram, arrange cards, import and
   export, and move through history. The sharing dialog gives setup instructions for Claude, Codex
   and Claude Code. Changes go into the browser's change log. See [operations](operations.md#on-cloudflare).
-- Journeys J1 to J5, J7, J9, J11, J15, J18 and J20 to J63 are real tests. J6, J8, J10,
-  J12 to J14, J16, J17 and J19 are still `test.fixme`.
+- Journeys J1 to J5, J7, J9, J11, J15 and J18 to J63 are real tests. J6, J8, J10,
+  J12 to J14, J16 and J17 are still `test.fixme`.
 - Event sourcing (owner's call, 2026-11-22; begun 2026-11-26): the events are the truth and the
   workspace is what they add up to: the server keeps the log, the editor makes the workspace
   from it. Still to come for real multi-user behaviour (several people on one diagram): changes

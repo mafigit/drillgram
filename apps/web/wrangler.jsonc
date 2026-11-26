@@ -1,4 +1,5 @@
-// The browser-only app and its optional MCP relay. See context/operations.md ("On Cloudflare").
+// The browser-only app, its optional MCP relay and the meeting point of shared sessions.
+// See context/operations.md ("On Cloudflare").
 {
   "name": "drillgram",
   "main": "worker/index.ts",
@@ -8,10 +9,24 @@
     "binding": "ASSETS",
     "html_handling": "none",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/mcp", "/api/agent/socket"]
+    // The rooms of shared sessions (`/signal/<room>`) are the Worker's, as the MCP relay is.
+    "run_worker_first": ["/mcp", "/api/agent/socket", "/signal/*"]
+  },
+  "vars": {
+    // The server that tells a browser of a shared session under which address it can be
+    // reached. The journeys run without one (e2e/serve-browser): they ask nothing outside.
+    "STUN_URL": "stun:stun.cloudflare.com:3478"
   },
   "durable_objects": {
-    "bindings": [{ "name": "AGENT_SESSIONS", "class_name": "AgentSession" }]
+    "bindings": [
+      { "name": "AGENT_SESSIONS", "class_name": "AgentSession" },
+      { "name": "ROOMS", "class_name": "SignalRoom" }
+    ]
   },
-  "migrations": [{ "tag": "agent-session-v1", "new_sqlite_classes": ["AgentSession"] }]
+  // A class of Durable Objects is made once, by the deployment that first names it: a new
+  // class is a new entry here, never a change to one that was deployed.
+  "migrations": [
+    { "tag": "agent-session-v1", "new_sqlite_classes": ["AgentSession"] },
+    { "tag": "signal-room-v1", "new_sqlite_classes": ["SignalRoom"] }
+  ]
 }

@@ -7,4 +7,6 @@ port=${1:?give the port}
 
 pnpm run build:cloudflare
 export WRANGLER_SEND_METRICS=false
-exec pnpm exec wrangler dev --local --ip 127.0.0.1 --port "$port"
+# No STUN server for shared sessions (J19): browsers of one machine find each other without,
+# and a journey asks nothing outside the machine.
+exec pnpm exec wrangler dev --local --ip 127.0.0.1 --port "$port" --var STUN_URL:

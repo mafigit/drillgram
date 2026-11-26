@@ -59,12 +59,14 @@ import HistoryPanel from './HistoryPanel.vue'
 import IconPicker from './IconPicker.vue'
 import ObjectSearch from './ObjectSearch.vue'
 import ShapePicker from './ShapePicker.vue'
+import ShareMenu from './ShareMenu.vue'
 import TourGuide from './TourGuide.vue'
 import ViewTabs from './ViewTabs.vue'
 import GroupForm from './GroupForm.vue'
 import type { Found } from './ObjectSearch.vue'
 import CanvasControls from './canvas/CanvasControls.vue'
 import CanvasKey from './canvas/CanvasKey.vue'
+import CanvasPointers from './canvas/CanvasPointers.vue'
 import CanvasQuickMenu from './canvas/CanvasQuickMenu.vue'
 import type { QuickMenuItem } from './canvas/CanvasQuickMenu.vue'
 import ConnectionEdgeView from './canvas/ConnectionEdge.vue'
@@ -107,6 +109,9 @@ const KINDS: ElementKind[] = ['box', 'person', 'softwareSystem', 'container', 'c
 // step through.
 const store = useWorkspaceStore()
 const { dispatch, history } = store
+/** Working on this workspace with others; a guest is in somebody else's (collab/, J19). */
+const sharing = store.sharing
+const guest = sharing?.role === 'guest'
 const router = useRouter()
 
 // What is on screen: the workspace with the view of the address opened, that is created the first
@@ -1455,7 +1460,7 @@ const redo = () => travel(history.value.cursor + 1)
 // workspace, and follows what is done here to know when a step was answered.
 const tour = ref<InstanceType<typeof TourGuide>>()
 /** Nothing was ever done in this workspace: the tour starts by itself there, once in a browser. */
-const fresh = store.workspace.value.model.objects.length === 0 && history.value.log.length === 0
+const fresh = !guest && store.workspace.value.model.objects.length === 0 && history.value.log.length === 0
 /** The view inside the box the tour opens, while the example is there. */
 const tourView = computed(() => {
   const box = workspace.value.model.objects.find((object) => object.name === TOUR_BOX)
@@ -1631,8 +1636,10 @@ const keyKinds = computed(() =>
           <HistoryIcon aria-hidden="true" />
         </Button>
         <ImportMenu :bring="bringDiagram" />
-        <ClearWorkspace :disabled="!canClear" @clear="clearWorkspace" />
+        <!-- To empty a shared workspace is for the one who shares it. -->
+        <ClearWorkspace :disabled="!canClear || guest" @clear="clearWorkspace" />
         <ExportMenu :scene="exportScene" :diagram="() => diagramOfView(workspace, viewId)" :disabled="nodes.length === 0" />
+        <ShareMenu v-if="sharing" :sharing="sharing" />
       </template>
     </AppHeader>
 
@@ -1728,6 +1735,7 @@ const keyKinds = computed(() =>
             :groups="groupFrames.length > 0"
           />
           <CanvasControls :reveal="added" :centre="found" :diagram="viewId" :corner="minimapShown ? MINIMAP_ROOM : undefined" :framed="boundary !== undefined" />
+          <CanvasPointers v-if="sharing" :sharing="sharing" :view="viewId" />
           <CanvasQuickMenu
             :items="quickMenuItems"
             :open-at="quickMenuAt"

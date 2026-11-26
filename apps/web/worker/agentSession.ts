@@ -2,8 +2,9 @@ import { DurableObject } from 'cloudflare:workers'
 import { AGENT_CALL_TIMEOUT_MS, AGENT_SESSION_MS, AGENT_SOCKET_PROTOCOL, MCP_PATH } from '../src/lib/agentProtocol'
 import type { AgentCall, AgentReply, AgentTool } from '../src/lib/agentProtocol'
 import { serveMcp, unpaired } from './mcp'
+import type { SignalEnv } from './signalRoom'
 
-export interface Env {
+export interface Env extends SignalEnv {
   AGENT_SESSIONS: DurableObjectNamespace<AgentSession>
   ASSETS: Fetcher
 }

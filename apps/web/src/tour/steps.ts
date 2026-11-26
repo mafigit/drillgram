@@ -188,6 +188,17 @@ export function tourSteps(browserOnly: boolean): TourStep[] {
       text: 'Light, Dark and two Solarized themes. The one you choose is kept in this browser.',
       target: [button('Theme')],
     },
+    // Only the app without a server shares a workspace so far (collab/).
+    ...(browserOnly
+      ? [
+          {
+            id: 'share',
+            title: 'Work together',
+            text: 'Share this workspace under a link. Whoever opens it changes the diagrams with you, each sees what the others do as they do it, and where their pointers are. The browsers talk to each other directly.',
+            target: [button('Share')],
+          } satisfies TourStep,
+        ]
+      : []),
     {
       id: 'keep',
       title: 'Where your diagrams are',

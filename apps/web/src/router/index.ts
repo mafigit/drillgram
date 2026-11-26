@@ -1,14 +1,20 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useSession } from '../composables/useSession'
+import { browserOnly } from '../lib/api'
 
 /**
  * Address of a view, in the workspace that is open: its Overview is the workspace's own
- * address.
+ * address. In a shared session (`/s/<room>#<key>`) the workspace is the session's, and every
+ * address of it keeps the session's key: a reload joins again with it.
  */
 export function viewPath(viewId: string, rootViewId: string): string {
-  const workspace = String(router.currentRoute.value.params.workspace ?? '')
-  const base = `/w/${encodeURIComponent(workspace)}`
-  return viewId === rootViewId ? base : `${base}/view/${encodeURIComponent(viewId)}`
+  const { params, hash } = router.currentRoute.value
+  if (params.room === undefined) {
+    const base = `/w/${encodeURIComponent(String(params.workspace ?? ''))}`
+    return viewId === rootViewId ? base : `${base}/view/${encodeURIComponent(viewId)}`
+  }
+  const base = `/s/${encodeURIComponent(String(params.room))}`
+  return `${viewId === rootViewId ? base : `${base}/view/${encodeURIComponent(viewId)}`}${hash}`
 }
 
 const router = createRouter({
@@ -20,6 +26,14 @@ const router = createRouter({
     { path: '/w/:workspace', name: 'workspace', component: () => import('../pages/WorkspacePage.vue'), props: true },
     { path: '/w/:workspace/view/:viewId', name: 'view', component: () => import('../pages/WorkspacePage.vue'), props: true },
     { path: '/users', name: 'users', component: () => import('../pages/UsersPage.vue'), meta: { admin: true } },
+    // A workspace somebody else shares, by its link (collab/): only the app without a server
+    // has sessions so far.
+    ...(browserOnly
+      ? [
+          { path: '/s/:room', name: 'shared', component: () => import('../pages/SharedPage.vue'), props: true },
+          { path: '/s/:room/view/:viewId', name: 'shared-view', component: () => import('../pages/SharedPage.vue'), props: true },
+        ]
+      : []),
     { path: '/:unknown(.*)*', redirect: '/' },
   ],
 })

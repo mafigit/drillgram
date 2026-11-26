@@ -70,7 +70,10 @@
 - Never introduce a framework or language that no issue asks for.
 - Style with Tailwind classes and the tokens in `main.css`; no hard-coded colours in components.
 - No requests to other hosts at run time (fonts, icons, scripts): the app asks its own server
-  and nobody else, and the e2e tests block the rest of the network. The shadcn-vue CLI adds a Google Fonts import to `main.css`; remove
+  and nobody else, and the e2e tests block the rest of the network. The one exception is a
+  shared session (J19): its browsers connect to each other, and ask the STUN and TURN servers
+  that the site's own signalling server names (Cloudflare's; none on a developer's machine and
+  in the journeys). The shadcn-vue CLI adds a Google Fonts import to `main.css`; remove
   it if it comes back.
 - A shadcn-vue `CommandItem` must sit inside a `CommandGroup`, or the list stays empty.
 - Buttons and fields inside a canvas card or edge label need the classes `nodrag nopan`.
@@ -82,5 +85,9 @@
   `canvas/fit.ts`. Since Vue Flow 2 a number as `padding` of `fitView` is pixels, not a share
   of the diagram: `padding: 0.15` is no padding at all, and the diagram ran to the very edge
   of the canvas until 2026-11-26.
+- What the signalling server of shared sessions decides is `src/collab/rooms.ts`, a pure
+  function that the Worker (`worker/signalRoom.ts`) and the dev server (`signal.vite.ts`) both
+  call: change the rules there, with tests. A new class of Durable Objects is a new entry in
+  the `migrations` of `wrangler.jsonc`, never a change to one that was deployed.
 - Keep the small "Vue Flow" attribution: the project asks for it unless one subscribes.
 - When an issue sets or changes the stack, the commands or the repo layout, record it here.

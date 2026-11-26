@@ -66,6 +66,9 @@ export class WorkspaceLog {
   private stopped = false
   private waiting: (() => void)[] = []
   private confirmations = new Map<string, (saved: boolean) => void>()
+  /** Looking what somebody else wrote; told to look again meanwhile. */
+  private pulling = false
+  private pullAgain = false
 
   private constructor(
     private deps: LogDeps,
@@ -169,6 +172,36 @@ export class WorkspaceLog {
     this.keep()
     this.history = startHistory(emptyWorkspace())
     this.onHistory(this.history)
+  }
+
+  /**
+   * Somebody else wrote to the log, and the server said so (a shared session, collab/): takes
+   * what is new, at once and without a word. With a change of this browser on its way nothing
+   * is taken: the answer to that change says what happened, as ever between two writers.
+   */
+  async pull(): Promise<void> {
+    if (this.pulling) {
+      this.pullAgain = true
+      return
+    }
+    this.pulling = true
+    try {
+      do {
+        this.pullAgain = false
+        if (this.busy || this.stopped || this.pending.length > 0) break
+        const { head, entries } = await this.deps.server.read(this.head)
+        // A change was made while the server was asked: it is on its way after the old entry.
+        if (this.busy || this.pending.length > 0 || head <= this.head) continue
+        this.head = head
+        this.keep()
+        this.history = replay(entries.map((kept) => kept.entry), this.history)
+        this.onHistory(this.history)
+      } while (this.pullAgain)
+    } catch {
+      // Not answered: the next word of the server brings it, or the next change of this browser.
+    } finally {
+      this.pulling = false
+    }
   }
 
   /** Resolves when nothing waits to be written, or writing has stopped. */

@@ -19,6 +19,9 @@ you sign in, and your diagrams are kept there, in as many workspaces as you like
 - **Undo, redo and a timeline**: every change is logged with its time. Step back and forth, or
   drag the timeline to see the diagram as it was. The log survives a reload.
 - **Import and export**: SVG, PNG, Mermaid and D2 out; Mermaid (C4 and flowcharts) and D2 in.
+- **Working together**: without a server, share a workspace under a link. Whoever opens it
+  changes the diagrams with you, live, and you see each other's pointers. The browsers talk to
+  each other directly (WebRTC).
 - **A tour**: the first visit offers a tour of three minutes through all of this, on an
   example.
 - **Sign-in your way**: a password, single sign-on (OpenID Connect), or the proxy in front of
@@ -27,8 +30,8 @@ you sign in, and your diagrams are kept there, in as many workspaces as you like
 ## Not built yet
 
 - **MCP sharing**: let an agent navigate and edit the workspace, arrange diagrams, import and export, and undo changes in the Cloudflare build.
-- **Working together**: several people on one diagram at the same time, sharing a workspace
-  in the app (the server can already), comments.
+- **Working together with a server**: sharing a workspace in the app that has one (the
+  server can already), and comments. Without a server it is there.
 - **More export formats**, decided in issues. iOS and Android apps may follow the web app.
 
 ## Run it

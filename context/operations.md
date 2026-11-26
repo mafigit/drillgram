@@ -81,7 +81,9 @@ with `index.html`.
   address of the app: another browser, another device or another address starts empty, and
   clearing the site's data deletes them. The app asks the browser once to keep its storage
   when the disk runs full (`navigator.storage.persist`); a browser may say no.
-- A static host sees requests for files. The Cloudflare build also supports optional agent sharing.
+- A static host sees requests for files. The Cloudflare build also supports optional agent
+  sharing, and shared sessions (J19): the browsers of a session meet at `/signal/<room>` of the
+  site and talk to each other directly from there on.
 - A new version reaches a browser as with a server: the service worker fetches it and the app
   asks before it reloads.
 - The build carries an imprint and a privacy policy (`apps/web/imprint.html`, `privacy.html`),
@@ -96,8 +98,9 @@ with `index.html`.
 
 The workflow deploys every commit on `main` that passed its check ("CI" below); by hand it
 is the same command. `mise run cloudflare` builds and then runs `wrangler deploy` in `apps/web`
-(`wrangler.jsonc`). The Worker named `drillgram` serves the static assets and the optional MCP
-relay at `drillgram.<your subdomain>.workers.dev`. The free plan includes both. Static file
+(`wrangler.jsonc`). The Worker named `drillgram` serves the static assets, the optional MCP
+relay and the meeting point of shared sessions ("Shared sessions" below) at
+`drillgram.<your subdomain>.workers.dev`. The free plan includes all of it. Static file
 requests do not count toward the Worker request limit.
 
 - It reads `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` from the environment. The token
@@ -193,6 +196,48 @@ The saved CLI server configuration can stay in place if the URL is the same.
 
 For local testing, run `apps/web/e2e/serve-browser 4174` from the repository root. It builds
 the Cloudflare variant and starts the relay in Wrangler. Use `http://127.0.0.1:4174`.
+
+#### Shared sessions
+
+Working together (J19) needs one thing that is no file: a place where the browsers of a
+session find each other. That is a part of the Worker (`apps/web/worker/signalRoom.ts`), beside
+the MCP relay: under `/signal/<room>` it takes WebSockets into a Durable Object per session
+(`SignalRoom`, bound as `ROOMS`; its entry in the `migrations` of `wrangler.jsonc` makes the
+class with the first deployment that has it). Only the handshake of two browsers passes it;
+what they say to each other afterwards goes directly between them.
+
+- All of it is in the free plan: Durable Objects with SQLite storage (the only kind the free
+  plan has; the room stores nothing), 100,000 requests a day for the Worker. A request here is
+  a browser that connects to a room, and messages of a handshake count 20 to 1. A room sleeps
+  between two messages. When the day's requests are used up, sharing stops until midnight UTC;
+  the site itself (files) goes on.
+- STUN is Cloudflare's (`stun.cloudflare.com`, the variable `STUN_URL` in `wrangler.jsonc`),
+  free and without a key: it tells a browser under which address it can be reached.
+- Two browsers that find no direct way to each other (strict firewalls, some mobile
+  networks) talk through the room itself: the Worker passes on what they encrypted
+  (`src/collab/relay.ts`). That is in the free plan too, and counts: 20 messages passed on
+  are a request, so a pair that works for an hour this way uses a few hundred to a few
+  thousand of the day's 100,000.
+- TURN does the same job outside the Worker, and is off: Cloudflare gives a TURN key only to
+  an account with a payment method (seen in the dashboard, 2026-11-26), and bills what goes
+  beyond the free amount, without a cap. With a key as two secrets of the Worker, browsers
+  would use it before they fall back to the room. To turn it on, once:
+  1. In Cloudflare's dashboard: Realtime, TURN Server, "Create". It shows a Turn Token ID and
+     an API token.
+  2. In `apps/web`, with the account the site is on (`wrangler whoami`):
+     `pnpm exec wrangler secret put TURN_KEY_ID` and
+     `pnpm exec wrangler secret put TURN_KEY_API_TOKEN`; each asks for its value.
+  The first 1,000 GB a month are free, then $0.05 per GB. Changes of a diagram are small; the
+  Worker gives TURN credentials only to who takes a seat in a session, good for a day.
+- The Worker takes WebSockets only from pages of its own address (`Origin`).
+- Not tried against Cloudflare itself yet (2026-11-26): the first deployment with this
+  Durable Object, and the answer of the TURN API. Both were written from Cloudflare's
+  documentation; the journeys run the Worker itself in wrangler's local runtime
+  (`e2e/serve-browser`), with no STUN server (`--var STUN_URL:`), so they ask nothing outside
+  the machine.
+- The dev server (`mise run browser`) has no Worker: there the meeting point is
+  `apps/web/signal.vite.ts`, with the same rooms (`src/collab/rooms.ts`). It names no STUN
+  and no TURN server: browsers of one machine or one network find each other without.
 
 ## The server
 

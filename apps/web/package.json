@@ -46,6 +46,7 @@
     "@types/jsdom": "^30.0.0",
     "@types/markdown-it": "^14.2.0",
     "@types/node": "^24.13.4",
+    "@types/ws": "^8.18.2",
     "@vite-pwa/assets-generator": "^2.0.0",
     "@vitejs/plugin-vue": "^6.0.8",
     "@vue/test-utils": "^2.5.0",
@@ -62,6 +63,7 @@
     "vue-tsc": "^3.3.11",
     "workbox-window": "^7.4.1",
     "wrangler": "4.168.0",
+    "ws": "^8.23.0",
     "zod": "4.6.7"
   },
   "engines": {

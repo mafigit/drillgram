@@ -25,7 +25,7 @@
           <p>
             This site has no accounts, sets no cookies, does no tracking and carries no advertising. The
             browser stores your diagrams on your device. You choose whether to share a diagram with
-            an MCP client.
+            an MCP client, or a workspace with other people (see "Agent sharing" and "Working together").
           </p>
 
           <h3>I. Who is responsible for your data</h3>
@@ -76,6 +76,42 @@
             relay messages. Your MCP client provider handles the data it receives under its own privacy
             policy. You can end the connection with Stop sharing.
           </p>
+          <h4>Working together</h4>
+          <p>
+            You can share a workspace with others under a link, and you can open such a link. Nothing of
+            what follows happens unless you do one of the two.
+          </p>
+          <ul>
+            <li>
+              So that the browsers find each other, each connects to a meeting point of this site, which
+              Cloudflare runs for us as a processor. It processes your IP address, the random name of the
+              session and what browsers exchange to connect to each other, their network addresses among
+              it. It keeps nothing once you have left it.
+            </li>
+            <li>
+              To learn under which address your browser can be reached, the browsers ask a server of
+              Cloudflare (STUN), which sees your IP address.
+            </li>
+            <li>
+              The diagrams of the shared workspace, every change to them, the name you enter and the
+              place of your pointer go from browser to browser, encrypted. The people in the session
+              receive them. Where the browsers connect to each other directly, those people can see your
+              IP address. The workspace stays in the browser of the person who shares it; the browser of
+              somebody who joined keeps nothing of it.
+            </li>
+            <li>
+              Where two browsers find no direct way to each other, what they say to each other is passed
+              on by the meeting point, or by a relay server of Cloudflare (TURN) where one is set up. The
+              browsers encrypt it with a key that is part of the link and is never sent to a server:
+              Cloudflare passes on what it cannot read.
+            </li>
+            <li>Your browser stores the name you entered, for the next time.</li>
+          </ul>
+          <p>
+            The legal basis is Art. 6 (1) (f) GDPR: our legitimate interest in offering this function to
+            those who ask for it. Storing your name is needed for the function you ask for (§ 25 (2) no. 2
+            TDDDG).
+          </p>
         </section>
 
         <section lang="de">
@@ -83,7 +119,9 @@
           <p>
             Diese Seite hat keine Benutzerkonten, setzt keine Cookies, betreibt kein Tracking und zeigt
             keine Werbung. Die Diagramme, die Sie zeichnen, werden in Ihrem Browser auf Ihrem Gerät
-            gespeichert. Sie entscheiden, ob Sie ein Diagramm mit einem MCP-Client teilen.
+            gespeichert. Sie entscheiden, ob Sie ein Diagramm mit einem MCP-Client oder einen
+            Arbeitsbereich mit anderen Personen teilen (siehe „Freigabe für Agenten“ und „Gemeinsam
+            arbeiten“).
           </p>
 
           <h3>I. Verantwortlicher</h3>
@@ -136,6 +174,42 @@
             Antworten zwischen Ihrem Tab und dem von Ihnen eingerichteten MCP-Client weiter.
             Drillgram speichert diese Nachrichten nicht. Für die Daten, die Ihr MCP-Anbieter erhält,
             gilt dessen Datenschutzerklärung. Mit Stop sharing können Sie die Verbindung beenden.
+          </p>
+          <h4>Gemeinsam arbeiten</h4>
+          <p>
+            Sie können einen Arbeitsbereich über einen Link mit anderen teilen, und Sie können einen
+            solchen Link öffnen. Nichts von dem Folgenden geschieht, solange Sie keines von beidem tun.
+          </p>
+          <ul>
+            <li>
+              Damit die Browser einander finden, verbindet sich jeder mit einem Treffpunkt dieser Seite,
+              den Cloudflare für uns als Auftragsverarbeiter betreibt. Er verarbeitet Ihre IP-Adresse,
+              den zufälligen Namen der Sitzung und das, was Browser zum Verbindungsaufbau austauschen,
+              darunter ihre Netzwerkadressen. Er speichert nichts, sobald Sie ihn verlassen haben.
+            </li>
+            <li>
+              Um zu erfahren, unter welcher Adresse Ihr Browser erreichbar ist, fragen die Browser einen
+              Server von Cloudflare (STUN), der Ihre IP-Adresse sieht.
+            </li>
+            <li>
+              Die Diagramme des geteilten Arbeitsbereichs, jede Änderung daran, der von Ihnen eingegebene
+              Name und die Position Ihres Mauszeigers gehen verschlüsselt von Browser zu Browser. Die
+              Personen in der Sitzung erhalten sie. Wo sich die Browser direkt miteinander verbinden,
+              können diese Personen Ihre IP-Adresse sehen. Der Arbeitsbereich bleibt im Browser der
+              Person, die ihn teilt; der Browser einer beigetretenen Person speichert nichts davon.
+            </li>
+            <li>
+              Finden zwei Browser keinen direkten Weg zueinander, leitet der Treffpunkt weiter, was sie
+              einander senden, oder ein Relay-Server von Cloudflare (TURN), sofern einer eingerichtet
+              ist. Die Browser verschlüsseln es mit einem Schlüssel, der Teil des Links ist und nie an
+              einen Server gesendet wird: Cloudflare leitet weiter, was es nicht lesen kann.
+            </li>
+            <li>Ihr Browser speichert den eingegebenen Namen für das nächste Mal.</li>
+          </ul>
+          <p>
+            Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO: unser berechtigtes Interesse, diese Funktion
+            denen anzubieten, die sie nutzen möchten. Die Speicherung Ihres Namens ist für die von Ihnen
+            gewünschte Funktion erforderlich (§ 25 Abs. 2 Nr. 2 TDDDG).
           </p>
         </section>
       </main>

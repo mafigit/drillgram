@@ -78,6 +78,16 @@ const SHAPES = new Map<string, BoxShape>([
   ['callouts_callout', 'callout'],
 ])
 
+/**
+ * The basic shapes a copy names by a number (`shape: '4'`), in the API's words: those whose
+ * number was matched with the same board's vector PDF (2026-11-26). Any other is a plain box.
+ */
+const SHAPE_CODES = new Map([
+  ['3', 'rectangle'],
+  ['4', 'circle'],
+  ['8', 'rhombus'],
+])
+
 const ENTITIES = new Map([
   ['amp', '&'],
   ['lt', '<'],
@@ -285,8 +295,7 @@ export function miroClipboardBoard(data: unknown): { items: MiroItem[]; connecto
     } else if (type === 'sticker') {
       items.push({ id, type: 'sticky_note', data: { content: json.text }, ...within })
     } else if (type === 'shape') {
-      // A copy names a basic shape by a number (`shape: '4'`) whose meaning is not known yet: a plain box.
-      items.push({ id, type: 'shape', data: { content: json.text }, ...within })
+      items.push({ id, type: 'shape', data: { content: json.text, shape: SHAPE_CODES.get(String(json.shape)) }, ...within })
     } else if (type === 'stencil') {
       // `flowchart-document` is the API's `flow_chart_document`; a container holds what is put in it.
       const element = String(asRecord(json['ns:diagrammingNotation']).element ?? asRecord(json.schema).id ?? '')

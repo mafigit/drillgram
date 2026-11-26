@@ -210,10 +210,14 @@ Project started 2026-11-03.
   fits, the dialog says why. A line the app cannot read is named with its number.
 - Miro boards (J67, 2026-11-26): "Import", then "Miro". Miro has no open file export
   (pictures, a CSV of text, a backup only Miro reads); Confluence reads the vector PDF and
-  loses connectors and frames. Two ways in, both read by `miroDiagram` in `@drillgram/model`:
-  items copied on a board and pasted (`miroPastedDiagram`: the `text/html` of the copy holds
+  loses connectors and frames. Three ways in:
+  items copied on a board and pasted (`miroPastedDiagram`, read by `miroDiagram`: the `text/html` of the copy holds
   `(miro-data-v1)…`, base64 of JSON with every byte moved up by 59; undocumented, found in
-  copies of real boards, so it can break when Miro changes it), or a whole board through
+  copies of real boards, so it can break when Miro changes it); the board's vector PDF
+  export (`lib/pdfDrawing.ts` reads the page's paths and texts with pdf.js, Apache-2.0, loaded
+  only for it; `miroPdfDiagram` finds the boxes: a closed outline is a box, inside the
+  smallest around it, an open line between two boxes a connection towards its arrowhead, a
+  text beside it the caption; frames lose their titles, which the PDF leaves out); or a whole board through
   Miro's REST API with a link and an access token (`readMiroBoard`, from the browser: Miro
   answers any origin; no server, Worker or stored token; making the token needs a Miro app,
   which not every team allows). Frames are boxes with their items inside; sticky notes,

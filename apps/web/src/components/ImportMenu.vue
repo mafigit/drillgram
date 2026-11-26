@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import { ExternalLinkIcon, FileCodeIcon, FileTextIcon, FileUpIcon, LoaderCircleIcon, StickyNoteIcon, UploadIcon } from '@lucide/vue'
 import { DropdownMenuContent, DropdownMenuItem, DropdownMenuPortal, DropdownMenuRoot, DropdownMenuTrigger } from 'reka-ui'
-import { d2Format, mermaidFormat, miroPastedDiagram, readMiroBoard } from '@drillgram/model'
+import { d2Format, mermaidFormat, miroPastedDiagram, miroPdfPagesDiagram, readMiroBoard } from '@drillgram/model'
 import { parseDiagramText } from '../lib/pastedKind'
 import type { Diagram, DiagramFormat } from '@drillgram/model'
 import { Button } from '@/components/ui/button'
@@ -52,14 +52,16 @@ async function openFile(event: Event) {
   if (file) text.value = await file.text()
 }
 
-// Miro (J67): items copied on a board and pasted here, or a whole board read by the browser through
-// Miro's REST API with the user's token. The token is used for this import only: it is kept
-// nowhere, not even in this dialog once it closes.
+// Miro (J67): items copied on a board and pasted here, a board exported as a vector PDF, or a whole
+// board read by the browser through Miro's REST API with the user's token. The token is used for
+// this import only: it is kept nowhere, not even in this dialog once it closes.
 const miro = ref(false)
 const pasted = ref<{ diagram: Diagram; summary: string }>()
 const board = ref('')
 const token = ref('')
 const byLink = ref(false)
+/** While a PDF is read: pdf.js does the parsing in a worker of its own. */
+const reading = ref(false)
 
 function startMiro() {
   miro.value = true
@@ -71,6 +73,8 @@ function startMiro() {
 }
 
 const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
+const summary = (diagram: Diagram, from: string) =>
+  `${count(diagram.elements.length, 'box', 'boxes')} and ${count(diagram.relationships.length, 'connection', 'connections')} from ${from}`
 
 /** A paste brings what Miro put on the clipboard as HTML; the field itself stays empty. */
 function pasteFromMiro(event: ClipboardEvent) {
@@ -79,10 +83,31 @@ function pasteFromMiro(event: ClipboardEvent) {
   pasted.value = undefined
   try {
     const diagram = miroPastedDiagram(event.clipboardData?.getData('text/html') ?? '')
-    const boxes = count(diagram.elements.length, 'box', 'boxes')
-    pasted.value = { diagram, summary: `${boxes} and ${count(diagram.relationships.length, 'connection', 'connections')} from Miro` }
+    pasted.value = { diagram, summary: summary(diagram, 'Miro') }
   } catch (error) {
     problem.value = error instanceof Error ? error.message : String(error)
+  }
+}
+
+/** A board exported from Miro as a vector PDF (Board, Export, "Export as image", "Vector PDF"). */
+async function openPdf(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file || reading.value) return
+  problem.value = undefined
+  pasted.value = undefined
+  reading.value = true
+  try {
+    const { readPdfDrawings } = await import('../lib/pdfDrawing')
+    const diagram = miroPdfPagesDiagram(await readPdfDrawings(await file.arrayBuffer()))
+    if (diagram.elements.length === 0) throw new Error('Drillgram found no boxes in this PDF. Export the board from Miro as a vector PDF.')
+    pasted.value = { diagram, summary: summary(diagram, file.name) }
+  } catch (error) {
+    problem.value =
+      error instanceof Error && error.name !== 'InvalidPDFException' ? error.message : 'This file is no PDF Drillgram can read. Export the board from Miro as a vector PDF.'
+  } finally {
+    reading.value = false
   }
 }
 
@@ -220,8 +245,16 @@ async function bring() {
           placeholder="Select items on a Miro board, copy them (Cmd or Ctrl and C) and paste them here."
           class="resize-none"
           :aria-invalid="problem !== undefined && !byLink"
+          :aria-busy="reading"
           @paste="pasteFromMiro"
         />
+        <label class="text-muted-foreground hover:text-foreground flex cursor-pointer items-center gap-2 text-sm">
+          <LoaderCircleIcon v-if="reading" class="size-4 animate-spin" aria-hidden="true" />
+          <FileUpIcon v-else class="size-4" aria-hidden="true" />
+          Or open a board exported as a vector PDF
+          <input type="file" class="sr-only" accept=".pdf,application/pdf" aria-label="Vector PDF" :disabled="reading" @change="openPdf" />
+        </label>
+        <p class="text-muted-foreground -mt-2 ml-6 text-xs">In Miro: Board, Export, Export as image, Vector PDF. Frame titles are not in it.</p>
         <details class="text-sm" :open="byLink" @toggle="byLink = ($event.target as HTMLDetailsElement).open">
           <summary class="text-muted-foreground hover:text-foreground cursor-pointer">Or read a whole board, with an access token</summary>
           <div class="mt-3 grid gap-3">
@@ -278,7 +311,7 @@ async function bring() {
         <DialogFooter>
           <Button
             type="submit"
-            :disabled="!canBringBoard || working"
+            :disabled="!canBringBoard || working || reading"
             :class="{ 'disabled:opacity-100': working }"
             :aria-busy="working"
           >

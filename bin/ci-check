@@ -3,15 +3,62 @@
 # tests, typecheck, the licence gate and the e2e journeys in the pinned Playwright image
 # (apps/web/e2e/Dockerfile), without network, then the licence of every file
 # (deploy/licences/reuse). Needs Docker; run from anywhere.
+#
+#   bin/ci-check           all of it, one part after the other: what to run before a push
+#   bin/ci-check <part>    one part, as CI runs them side by side (.github/workflows/ci.yml):
+#                            image         builds the check's image, and no more
+#                            unit          the private-address scan, unit tests, typecheck,
+#                                          the licence gate, the licence of every file
+#                            chromium, webkit, tablet, browser-only
+#                                          the journeys of that Playwright project
+#
+# The image is built for the run and removed after it. With DRILLGRAM_CI_IMAGE set, the image
+# of that name is used and kept instead: `image` builds it, the other parts expect it there.
+# So several parts share one build (CI: a step builds, the next one checks).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+part=${1:-all}
+case "$part" in
+  all | image | unit | chromium | webkit | tablet | browser-only) ;;
+  *)
+    echo "ci-check: there is no part \"$part\". The parts: image, unit, chromium, webkit, tablet, browser-only; none of them for the whole check." >&2
+    exit 2
+    ;;
+esac
+
+build() { bin/docker-build --network host -f apps/web/e2e/Dockerfile -t "$img" .; }
+# Inside the image, without a network: what a test asks outside the machine fails.
+inside() { docker run --rm --init --ipc=host --network none "$img" sh -ec "$1"; }
+
+kept=${DRILLGRAM_CI_IMAGE:-}
+img=$kept
+if [ -z "$img" ]; then
+  img="drillgram-ci-$$-$RANDOM"
+  trap 'docker rmi -f "$img" >/dev/null 2>&1 || true' EXIT
+fi
+
 # First, and at once: nothing in the files that the public repository must not say.
-bin/public-check
+case "$part" in all | unit) bin/public-check ;; esac
 
-img="drillgram-ci-$$-$RANDOM"
-trap 'docker rmi -f "$img" >/dev/null 2>&1 || true' EXIT
+if [ -z "$kept" ] || [ "$part" = image ]; then
+  build
+elif ! docker image inspect "$img" >/dev/null 2>&1; then
+  echo "ci-check: the image \"$img\" (DRILLGRAM_CI_IMAGE) is not there. Build it first: bin/ci-check image" >&2
+  exit 1
+fi
 
-bin/docker-build --network host -f apps/web/e2e/Dockerfile -t "$img" .
-docker run --rm --init --ipc=host --network none "$img" sh -ec 'pnpm test && pnpm typecheck && pnpm licences && pnpm test:e2e'
-deploy/licences/reuse
+case "$part" in
+  image) ;;
+  all)
+    inside 'pnpm test && pnpm typecheck && pnpm licences && pnpm test:e2e'
+    deploy/licences/reuse
+    ;;
+  unit)
+    inside 'pnpm test && pnpm typecheck && pnpm licences'
+    deploy/licences/reuse
+    ;;
+  *)
+    inside "pnpm test:e2e --project=$part"
+    ;;
+esac

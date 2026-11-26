@@ -1,9 +1,10 @@
 name: CI
 
 # All logic lives in bin/ci-check (no private address in a file, unit tests, typecheck, the licence
-# gate, the e2e journeys in the pinned Playwright image, the licence of every file), so the job
-# only checks out and calls it. It needs Docker. A commit on main whose check is green then goes
-# to Cloudflare, as the app without a server (the job `deploy`).
+# gate, the e2e journeys in the pinned Playwright image, the licence of every file), so a job
+# only checks out and calls it. The parts of the check run side by side, a job each: one after
+# the other they took 17 to 20 minutes (2026-11-26). It needs Docker. A commit on main whose
+# every part is green then goes to Cloudflare, as the app without a server (the job `deploy`).
 on:
   push:
     branches: [main]
@@ -21,22 +22,36 @@ permissions:
 
 jobs:
   ci-check:
+    name: ${{ matrix.part }}
     runs-on: ubuntu-latest
-    # The check takes 17 to 20 minutes on a runner (2026-11-26): a limit of 20 cut it off
-    # before it had a result, and nothing was deployed.
     timeout-minutes: 30
+    strategy:
+      # Every part says how it went: one that fails does not stop the others.
+      fail-fast: false
+      matrix:
+        # The parts of bin/ci-check: what is no journey, and the journeys of each browser.
+        part: [unit, chromium, webkit, tablet, browser-only]
+    env:
+      # The image a job builds in one step and checks with in the next: one of its own, also
+      # where the jobs of a run share a machine.
+      DRILLGRAM_CI_IMAGE: drillgram-ci-${{ github.run_id }}-${{ matrix.part }}
     steps:
       - uses: actions/checkout@v6
         with:
           submodules: true # packages/layout is the engine's own repository
-      - run: bin/ci-check
+      # Two steps, so that a run says how long each took and which of them failed.
+      - name: Build the check's image
+        run: bin/ci-check image
+      - name: Check
+        run: bin/ci-check ${{ matrix.part }}
       # A runner that is not thrown away after the job keeps its Docker build cache, and nothing
       # else takes it away: every build adds layers until the disk is full and no job can start.
-      # So what no build used for 6 hours goes after every check, and the log says what uses the
-      # disk. GitHub's own runners start fresh each time.
-      - name: Free the build cache nothing used for 6 hours
+      # So the job's image goes, and what no build used for 6 hours, after every check, and the
+      # log says what uses the disk. GitHub's own runners start fresh each time.
+      - name: Free the image and the build cache nothing used for 6 hours
         if: always() && github.server_url != 'https://github.com'
         run: |
+          docker rmi -f "$DRILLGRAM_CI_IMAGE" || true
           docker builder prune --all --force --filter until=6h | tail -n 1
           docker system df
 

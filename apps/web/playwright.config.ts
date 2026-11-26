@@ -9,6 +9,14 @@ const browserOnlyURL = `http://127.0.0.1:${browserOnlyPort}`
 /** Journeys that only run in the browser-only build. */
 const WITHOUT_A_SERVER = /j(7-agent-changes-the-diagram|62-without-a-server)\.spec\.ts$/
 
+/**
+ * The projects asked for on the command line (`--project=webkit`); none means all of them.
+ * A run of one project starts only the server that project is tested against: CI runs the
+ * projects side by side (bin/ci-check), and each would else build and start both.
+ */
+const asked = process.argv.flatMap((arg, at, all) => (arg.startsWith('--project=') ? [arg.slice('--project='.length)] : arg === '--project' ? [all[at + 1] ?? ''] : []))
+const runs = (withoutServer: boolean) => asked.length === 0 || asked.some((name) => (name === 'browser-only') === withoutServer)
+
 // Journey tests: see docs/journeys.md and docs/agents/testing.md.
 // Deterministic defaults (fixed clock, no animations, no network outside localhost) live in
 // e2e/fixtures.ts. Every test gets a fresh browser context, so storage never leaks between tests.
@@ -56,21 +64,29 @@ export default defineConfig<Options>({
   // of its own, so the tests see what users get. Asked to stop, not killed: its database goes
   // with it.
   webServer: [
-    {
-      command: `e2e/serve ${port}`,
-      url: `${baseURL}/api/health`,
-      reuseExistingServer: !process.env.CI,
-      timeout: 180_000,
-      gracefulShutdown: { signal: 'SIGTERM', timeout: 10_000 },
-    },
+    ...(runs(false)
+      ? [
+          {
+            command: `e2e/serve ${port}`,
+            url: `${baseURL}/api/health`,
+            reuseExistingServer: !process.env.CI,
+            timeout: 180_000,
+            gracefulShutdown: { signal: 'SIGTERM' as const, timeout: 10_000 },
+          },
+        ]
+      : []),
     // The Cloudflare build keeps workspaces in the browser and also serves the optional MCP relay.
     // Start after the server above, so the two builds do not run at once.
-    {
-      command: `e2e/serve-browser ${browserOnlyPort}`,
-      url: browserOnlyURL,
-      reuseExistingServer: !process.env.CI,
-      timeout: 180_000,
-      gracefulShutdown: { signal: 'SIGTERM', timeout: 10_000 },
-    },
+    ...(runs(true)
+      ? [
+          {
+            command: `e2e/serve-browser ${browserOnlyPort}`,
+            url: browserOnlyURL,
+            reuseExistingServer: !process.env.CI,
+            timeout: 180_000,
+            gracefulShutdown: { signal: 'SIGTERM' as const, timeout: 10_000 },
+          },
+        ]
+      : []),
   ],
 })

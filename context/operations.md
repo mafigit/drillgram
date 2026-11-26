@@ -25,7 +25,7 @@ pnpm --filter @drillgram/web exec playwright install   # browsers, once
 | `pnpm build` | Build every package. |
 | `pnpm --filter @drillgram/web generate-pwa-assets` | Regenerate icons after changing `apps/web/public/logo.svg`; commit the PNGs. |
 | `bin/with-postgres go test ./...` (in `apps/server`) | The server's tests, on a PostgreSQL that goes with the command (a container; needs Docker). |
-| `bin/ci-check` | The full check: the server's format, `go vet` and tests, unit tests, typecheck, the licence gate (`pnpm licences`) and journeys in the pinned Playwright image without network, then the licence of every file (`deploy/licences/reuse`). Needs Docker. Run before pushing. |
+| `bin/ci-check` | The full check: the server's format, `go vet` and tests, unit tests, typecheck, the licence gate (`pnpm licences`) and journeys in the pinned Playwright image without network, then the licence of every file (`deploy/licences/reuse`). Needs Docker. Run before pushing. `bin/ci-check <part>` runs one part alone (`image`, `unit`, `chromium`, `webkit`, `tablet`, `browser-only`), as CI runs them side by side; with `DRILLGRAM_CI_IMAGE` set the parts share the image that `image` built. |
 | `bin/public-check` | Fails when a file names an address of a private network, a local host or a Docker daemon's open port. First step of `bin/ci-check`. |
 | `bin/pre-push` | The check before a push to GitHub, as git's pre-push hook: only the public history, only the address of the repository, nothing `bin/public-check` refuses. Link it once in a clone; see `docs/agents/publishing.md`. |
 | `bin/docker-build` | `docker build` that says nothing unless it fails; then the whole build log, and a hint when the Docker host's disk is full. The checks build with it. |
@@ -291,8 +291,13 @@ the proxy must take away such a header when a request brings one from outside.
 
 `.github/workflows/ci.yml` only checks out and calls `bin/ci-check`, on every push to `main` and
 every pull request. It runs on GitHub Actions and on any server that runs the same workflows.
-The check is cut off after 30 minutes; it takes 17 to 20 on a runner of GitHub (2026-11-26). A
-run that is cut off shows as cancelled, has no result and deploys nothing.
+The parts of the check run side by side, a job each (`unit`, `chromium`, `webkit`, `tablet`,
+`browser-only`): one after the other they took 17 to 20 minutes on a runner of GitHub
+(2026-11-26). Each job builds the check's image in one step (`bin/ci-check image`) and runs
+its part in the next (`bin/ci-check <part>`), so a run says how long each took and which
+failed. A journeys' job starts only the server its browser project is tested against. A job
+is cut off after 30 minutes; one that is cut off shows as cancelled, has no result, and
+nothing is deployed.
 
 After a green check of a commit on `main`, its job `deploy` puts the app without a server on
 Cloudflare: `mise run cloudflare`, with the tools of `mise.toml` (see "On Cloudflare" above).

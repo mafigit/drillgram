@@ -35,6 +35,7 @@ import {
   drillDown,
   eventView,
   fitsOnView,
+  groupFramesStayClear,
   openView,
   liftedConnections,
   placeableObjects,
@@ -956,14 +957,20 @@ function frameStaysClear(objectId: string, place: Point, size?: Size): boolean {
 }
 
 /**
- * Where a dragged card lands: `nearTo` what the engine finds best, unless the frame would then
- * run over a card outside it. Then the nearest place where neither the card nor the frame is in
- * the way of another card; with none near, the card stays where it is.
+ * Where a dragged card lands: `nearTo` what the engine finds best, unless a frame would then run
+ * over a card outside it: the frame of the opened box, or of a group (a card of the group moved
+ * out, or a card outside moved in). Then the nearest place where neither the card nor a frame is
+ * in the way of another card; with none near, the card stays where it is. `alone`: the card is
+ * dragged by itself; cards dragged together are checked against the groups' frames together
+ * (`onNodeDragStop`), where they all land.
  */
-function landingPlace(objectId: string, wanted: Point): Point {
+function landingPlace(objectId: string, wanted: Point, alone = true): Point {
   const place = bestPlace(objectId, wanted)
-  if (!framed.value?.isInside(objectId) || frameStaysClear(objectId, place)) return place
-  const fits = (at: Point) => fitsOnView(workspace.value, viewId.value, objectId, at) && frameStaysClear(objectId, at)
+  const inside = framed.value?.isInside(objectId) ?? false
+  const clear = (at: Point) =>
+    (!inside || frameStaysClear(objectId, at)) && (!alone || groupFramesStayClear(view.value, { [objectId]: at }))
+  if (clear(place)) return place
+  const fits = (at: Point) => fitsOnView(workspace.value, viewId.value, objectId, at) && clear(at)
   return nearestPlace(wanted, SNAP_GRID, fits) ?? { ...view.value.positions[objectId]! }
 }
 
@@ -1047,8 +1054,14 @@ function onNodeDragStop({ nodes: moved }: NodeDragEvent) {
   drag.value = undefined
   groupDrag.value = undefined
   // One drag is one change, however many cards went along.
-  const moves = moved.map((node) => ({ object: node.id, to: landingPlace(node.id, node.position) }))
-  dispatch({ type: 'objectsMoved', view: viewId.value, moves })
+  const moves = moved.map((node) => ({ object: node.id, to: landingPlace(node.id, node.position, moved.length === 1) }))
+  // Several cards: where they all land, a group's frame must not run over a card outside it.
+  // Then none of them moves, and a card says why.
+  if (moves.length > 1 && !groupFramesStayClear(view.value, Object.fromEntries(moves.map((move) => [move.object, move.to])))) {
+    showError('A frame would run over a card that is not in it there, so the cards stay where they were.')
+  } else {
+    dispatch({ type: 'objectsMoved', view: viewId.value, moves })
+  }
   // Also when nothing moved in the model (a refused place): the card goes back to where it is.
   rebuildNodes()
 }
@@ -1070,7 +1083,7 @@ function resizeCardTo(objectId: string, box: Point & Size) {
   const to = { x: left, y: top }
   const same = to.x === was.x && to.y === was.y && size.width === was.width && size.height === was.height
   if (!same) {
-    if (frameStaysClear(objectId, to, size)) {
+    if (frameStaysClear(objectId, to, size) && groupFramesStayClear(view.value, { [objectId]: { ...to, ...size } })) {
       dispatch({ type: 'cardResized', view: viewId.value, object: objectId, size, ...((to.x !== was.x || to.y !== was.y) && { to }) })
     }
     const now = { ...view.value.positions[objectId]!, ...cardSize(view.value, objectId) }

@@ -82,8 +82,10 @@ Project started 2026-11-03.
   what it is ("Group", Ctrl or Cmd with G), as the nodes of a deployment diagram. Kept per view
   (`View.groups`), drawn around the cards where they are. Inside a box only its own cards are
   grouped. "Arrange" lays out the cards of each frame first and then the frames as blocks
-  (`arrangeWithGroups`). Open: the SVG, Mermaid and D2 export leave the frames out, and a drag
-  can still put a card into a frame it is not in.
+  (`arrangeWithGroups`). No drag or resize takes a frame over a card that is not in it, nor a
+  card into a frame it is not in (`groupFramesStayClear` in `@drillgram/model`, used by
+  `landingPlace`, `onNodeDragStop` and `resizeCardTo`); a card that stood in a frame before may
+  stay. Open: the SVG, Mermaid and D2 export leave the frames out.
 - Error cards (J50): what went wrong (a refused connection, "Arrange" without a layout, an
   export without a file) is a card in the top right corner, which goes by itself after 8 seconds,
   on "Close" or with the next change (`composables/useErrors.ts`, `ErrorCards.vue` in `App.vue`).

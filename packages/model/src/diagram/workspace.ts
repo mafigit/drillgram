@@ -475,6 +475,46 @@ export function removeObjects(ws: Workspace, objectIds: readonly string[]): Work
 /** Room the frame of a group takes around its cards: at the sides, above them for its name, under them. */
 export const GROUP_FRAME = { side: 14, top: 40, bottom: 14 }
 
+/**
+ * Whether no card comes into the frame of a group it is not in, nor closer to it than
+ * `CARD_GAP`, when some cards of a view go to other places or sizes (`changed`: a drag, several
+ * cards dragged together, a resize). A frame is drawn around its cards (`GROUP_FRAME`), so it
+ * can run over a card outside it while every card keeps its gap to every other. Either way it
+ * can come to: a card of the frame moves out, or a card outside moves in. A card that stood in a
+ * frame before may stay there (frames can be made around cards that do not stand side by side),
+ * so the cards of that frame still move.
+ */
+export function groupFramesStayClear(view: View, changed: Readonly<Record<string, Point & Partial<Size>>>): boolean {
+  const before = framesInTheWay(view, {})
+  return [...framesInTheWay(view, changed)].every((pair) => before.has(pair))
+}
+
+/** Each card in the way of a frame of a group it is not in, as `<group id> <card id>`. */
+function framesInTheWay(view: View, changed: Readonly<Record<string, Point & Partial<Size>>>): Set<string> {
+  const box = (id: string) => {
+    const size = cardSize(view, id)
+    const to = Object.hasOwn(changed, id) ? changed[id]! : undefined
+    const at = to ?? view.positions[id]!
+    return { x: at.x, y: at.y, width: to?.width ?? size.width, height: to?.height ?? size.height }
+  }
+  const cards = Object.keys(view.positions).map((id) => ({ id, ...box(id) }))
+  const found = new Set<string>()
+  for (const group of view.groups ?? []) {
+    const own = cards.filter((card) => group.members.includes(card.id))
+    if (own.length === 0) continue
+    const x = Math.min(...own.map((card) => card.x)) - GROUP_FRAME.side
+    const y = Math.min(...own.map((card) => card.y)) - GROUP_FRAME.top
+    const right = Math.max(...own.map((card) => card.x + card.width)) + GROUP_FRAME.side
+    const bottom = Math.max(...own.map((card) => card.y + card.height)) + GROUP_FRAME.bottom
+    const frame = { x, y }
+    const frameSize = { width: right - x, height: bottom - y }
+    for (const card of cards) {
+      if (!group.members.includes(card.id) && !apart(card, card, frame, frameSize)) found.add(`${group.id} ${card.id}`)
+    }
+  }
+  return found
+}
+
 /** A view with these groups; without the key when there are none. */
 function withGroups(view: View, groups: ViewGroup[]): View {
   const { groups: _old, ...rest } = view

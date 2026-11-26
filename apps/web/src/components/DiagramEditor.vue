@@ -88,7 +88,8 @@ import { languageIcon } from './canvas/codeLanguages'
 import { clearErrors, showError } from '../composables/useErrors'
 import { useLock } from '../composables/useLock'
 import { useTouch } from '../composables/useTouch'
-import { KIND_ICON, KIND_LABEL } from './canvas/kinds'
+import { KIND_ICON, KIND_LABEL, SHAPE_LIBRARIES } from './canvas/kinds'
+import { recentShapes, rememberShape } from './canvas/recentShapes'
 import { labelSize } from './canvas/labelSize'
 import { CANVAS_ACTIONS, CANVAS_DRAG, CANVAS_FADED } from './canvas/types'
 import type { ConnectionEdge, ObjectNode } from './canvas/types'
@@ -292,15 +293,18 @@ function goTo(objectId: string) {
   else router.push(viewPath(on, ROOT_VIEW_ID))
 }
 
-// The quick menu: a right-click on the empty canvas offers what the toolbar adds, around the
-// pointer, and the new card lands there, its middle on the point.
+// The quick menu: a right-click on the empty canvas offers the shapes picked last (the plain box
+// before any), around the pointer, and the new card lands there, its middle on the point.
 const quickMenuAt = ref<Point>()
+const quickMenuShapes = computed(() => (recentShapes.value.length > 0 ? recentShapes.value : [{ ...SHAPE_LIBRARIES[0]!.shapes[0]!, library: SHAPE_LIBRARIES[0]!.name }]))
 const quickMenuItems = computed<QuickMenuItem[]>(() => [
-  ...kinds.value.map((kind) => ({
-    key: kind,
-    label: `Add ${KIND_LABEL[kind]}`,
-    icon: KIND_ICON[kind],
-    tint: `var(--kind-${kind})`,
+  ...quickMenuShapes.value.map((shape, i) => ({
+    key: String(i),
+    label: `Add ${shape.label}`,
+    icon: KIND_ICON[shape.kind],
+    image: shape.icon,
+    shape: shape.shape,
+    tint: `var(--kind-${shape.kind})`,
   })),
   { key: 'existing', label: 'Add existing object', icon: CopyPlusIcon, disabled: existing.value.length === 0 },
 ])
@@ -334,11 +338,13 @@ function onQuickMenuPick(key: string, at: Point) {
   floatAt.value = quickMenuAt.value
   quickMenuAt.value = undefined
   const corner = freePlaceNear({ x: at.x - CARD.width / 2, y: at.y - CARD.height / 2 })
+  const shape = quickMenuShapes.value[Number(key)]
   if (key === 'existing') {
     addingAt.value = corner
     pickingExisting.value = true
-  } else {
-    startAdding(key as ElementKind, corner)
+  } else if (shape) {
+    rememberShape(shape)
+    startAdding(shape.kind, corner, shape.technology, shape.shape)
   }
 }
 

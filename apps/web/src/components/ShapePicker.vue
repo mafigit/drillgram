@@ -8,7 +8,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { iconUrl } from '../composables/useTechIcons'
 import { Input } from '@/components/ui/input'
 import { KIND_ICON, SHAPE_LIBRARIES, searchShapes } from './canvas/kinds'
-import type { Shape } from './canvas/kinds'
+import type { FoundShape } from './canvas/kinds'
+import { rememberShape } from './canvas/recentShapes'
 import ShapeGlyph from './canvas/ShapeGlyph.vue'
 import { useTouch } from '../composables/useTouch'
 
@@ -55,9 +56,10 @@ const query = ref('')
 const found = computed(() => searchShapes(libraries.value, query.value))
 const searching = computed(() => query.value.trim() !== '')
 
-function pick(shape: Shape) {
+function pick(shape: FoundShape) {
   open.value = false
   query.value = ''
+  rememberShape(shape)
   emit('pick', shape.kind, shape.technology, shape.shape)
 }
 
@@ -121,7 +123,7 @@ function pickFirst() {
             type="button"
             :aria-label="`Add ${shape.label}`"
             class="hover:bg-accent focus-visible:bg-accent flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-left outline-none"
-            @click="pick(shape)"
+            @click="pick({ ...shape, library: library.name })"
           >
             <span class="kind-chip grid size-7 shrink-0 place-items-center rounded-md" :style="{ '--kind': `var(--kind-${shape.kind})` }">
               <!-- A shape with an icon of the library (a language's): shown as it is, on white. -->

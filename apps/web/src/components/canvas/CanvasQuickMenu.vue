@@ -2,7 +2,9 @@
 import { computed, nextTick, ref, watch } from 'vue'
 import type { Component } from 'vue'
 import { useVueFlow } from '@xyflow/vue'
-import type { Point } from '@drillgram/model'
+import type { BoxShape, Point } from '@drillgram/model'
+import { iconUrl } from '../../composables/useTechIcons'
+import ShapeGlyph from './ShapeGlyph.vue'
 
 // The quick menu: a right-click on the empty canvas opens a ring of round buttons around the
 // pointer. What is picked happens at that point of the diagram.
@@ -10,6 +12,10 @@ export interface QuickMenuItem {
   key: string
   label: string
   icon: Component
+  /** An icon of the icon library to show instead (a language's). */
+  image?: string
+  /** An outline to show instead: a cylinder, a diamond. */
+  shape?: BoxShape
   /** A colour for the button, as a CSS value; the plain one without. */
   tint?: string
   disabled?: boolean
@@ -106,7 +112,11 @@ function pick(key: string) {
           :style="{ '--x': `${item.x}px`, '--y': `${item.y}px`, '--i': i, '--tint': item.tint ?? 'var(--foreground)' }"
           @click="pick(item.key)"
         >
-          <span class="quick-menu-icon"><component :is="item.icon" class="size-5" aria-hidden="true" /></span>
+          <span class="quick-menu-icon">
+            <img v-if="item.image" :src="iconUrl(item.image)" alt="" class="size-6 rounded-sm bg-white object-contain p-px" />
+            <ShapeGlyph v-else-if="item.shape" :shape="item.shape" />
+            <component :is="item.icon" v-else class="size-5" aria-hidden="true" />
+          </span>
           <span class="quick-menu-label">{{ item.label }}</span>
         </button>
       </div>

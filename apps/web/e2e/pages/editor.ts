@@ -385,6 +385,11 @@ export class DiagramEditor {
     await form.getByRole('button', { name: 'Add view' }).click()
   }
 
+  /** The button that locks the workspace in this browser (J66): pressed while it is locked. */
+  get lockButton(): Locator {
+    return this.page.getByRole('button', { name: 'Lock', exact: true })
+  }
+
   /** The error cards in the top right corner, the oldest first. */
   get errors(): Locator {
     return this.page.getByRole('list', { name: 'Errors' }).getByRole('alert')

@@ -1272,3 +1272,23 @@ person (sharing, users) keeps "Name", where a contact is what fits.
 toolbar with "Group" and "Delete" keeps to the screen. The tour brings "Web Shop" near enough
 to press its magnifier, its light is never beyond the screen, and it speaks of taps and fingers,
 not of clicks, keys or scrolling; at the history the diagram stays in sight beside the tour.
+
+## J66 Lock a workspace to look at it
+
+Test: `apps/web/e2e/j66-lock.spec.ts`. Also in the project `browser-only`.
+
+1. Add "Online Shop" and "Billing", connect them with "Pays", and press "Lock".
+2. Try to change the diagram: drag "Billing", double-click its name, its text and the label
+   "Pays", select it and press Delete, Ctrl or Cmd with Z and with D, right-click the canvas.
+3. Open "Online Shop", go back with the breadcrumb, and open the export menu.
+4. Reload. Press "Unlock" and add a person "Customer".
+
+Expected: "Lock" stays pressed and the toolbar of the canvas says the workspace is locked, with
+a button to unlock it instead of the shapes. Undo, Redo, Arrange, History, Import and "Clear
+workspace" are disabled; a card has no buttons to edit, add icons or copy, and no handle to
+connect; there is no button for a new view. Nothing of step 2 changes the diagram, opens a field
+or a menu, or says that something went wrong. Opening a box, the breadcrumb, panning, zooming,
+the search and the export work as ever. The lock is kept in the browser for this workspace, so
+it is still on after the reload. Once unlocked the editor works as before, and the change log
+has the three changes of step 1 and nothing from the time it was locked. The lock is this
+browser's: an agent (J7) and the others in a shared session (J19) still change the workspace.

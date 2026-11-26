@@ -98,6 +98,33 @@ describe('WorkspaceLog', () => {
     expect(server.entries).toEqual([{ seq: 1, entry: { id: 'local-1', type: 'change', at: AT, event: add('Shop') } }])
   })
 
+  it('confirms a requested change only after its entry reaches storage', async () => {
+    const { log, server, names } = await open()
+    let release = () => {}
+    server.gate = new Promise((resolve) => (release = resolve))
+
+    const saved = log.dispatchSaved(add('Shop'), AT)
+    expect(names()).toEqual(['Shop'])
+    expect(server.entries).toEqual([])
+
+    release()
+    await expect(saved).resolves.toBe(true)
+    expect(server.entries).toHaveLength(1)
+  })
+
+  it('reports an unsaved change if another writer moved the log first', async () => {
+    const { log, server, names } = await open()
+    let release = () => {}
+    server.gate = new Promise((resolve) => (release = resolve))
+
+    const saved = log.dispatchSaved(add('Shop'), AT)
+    server.write([{ id: 'other', type: 'change', at: AT, event: add('Bank') }])
+    release()
+
+    await expect(saved).resolves.toBe(false)
+    expect(names()).toEqual(['Bank'])
+  })
+
   it('writes nothing for a change that changes nothing', async () => {
     const { log, server } = await open()
     log.dispatch(add(' '), AT)

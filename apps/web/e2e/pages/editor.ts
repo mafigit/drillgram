@@ -80,6 +80,40 @@ export class DiagramEditor {
     expect(apart, 'the card stands beside what it points at').toBe(true)
   }
 
+  async connectAgent(): Promise<{ url: string; token: string }> {
+    await this.page.getByRole('button', { name: 'Connect agent' }).click()
+    const dialog = this.page.getByRole('dialog', { name: 'Connect agent' })
+    await dialog.getByRole('button', { name: 'Start sharing' }).click()
+    const url = dialog.getByLabel('MCP URL')
+    await expect(url).toHaveValue(/\/mcp$/)
+    const connection = { url: await url.inputValue(), token: await dialog.getByLabel('Bearer token').inputValue() }
+    await this.page.keyboard.press('Escape')
+    return connection
+  }
+
+  async checkAgentSetup(url: string, token: string): Promise<void> {
+    await this.page.getByRole('button', { name: 'Agent sharing active' }).click()
+    const dialog = this.page.getByRole('dialog', { name: 'Connect agent' })
+    await expect(dialog.getByRole('tabpanel', { name: 'Claude' })).toContainText('Request headers')
+    await expect(dialog.getByRole('tabpanel', { name: 'Claude' })).toContainText('Authorization')
+
+    for (const [client, command] of [['Codex', 'codex mcp add'], ['Claude Code', 'claude mcp add-json']] as const) {
+      await dialog.getByRole('tab', { name: client, exact: true }).click()
+      const setup = dialog.getByRole('tabpanel', { name: client, exact: true })
+      await expect(setup).toContainText(command)
+      await expect(setup).toContainText(url)
+      await expect(setup).toContainText('DRILLGRAM_MCP_TOKEN')
+      await expect(setup).not.toContainText(token)
+    }
+    await this.page.keyboard.press('Escape')
+  }
+
+  async disconnectAgent(): Promise<void> {
+    await this.page.getByRole('button', { name: 'Agent sharing active' }).click()
+    await this.page.getByRole('button', { name: 'Stop sharing' }).click()
+    await expect(this.page.getByLabel('Bearer token')).toBeHidden()
+  }
+
   /** Resolve once a service worker is active for this page (production build only). */
   async waitForServiceWorker(): Promise<void> {
     await this.page.evaluate(async () => {

@@ -37,7 +37,7 @@ export default defineConfig<Options>({
     // together (J19), which only this build has so far.
     {
       name: 'browser-only',
-      testMatch: [WITHOUT_A_SERVER, /j(2-first-diagram|4-edit-safely|31-timeline|43-clear-the-workspace|58-workspaces|63-tour|19-work-together)\.spec\.ts$/],
+      testMatch: [WITHOUT_A_SERVER, /j(2-first-diagram|4-edit-safely|31-timeline|43-clear-the-workspace|58-workspaces|63-tour|19-work-together|64-workspace-file)\.spec\.ts$/],
       use: {
         ...devices['Desktop Chrome'],
         baseURL: browserOnlyURL,

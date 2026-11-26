@@ -15,7 +15,8 @@ which else starts over every empty workspace; J63 is about a browser that has no
 
 A fourth project, `browser-only`, runs against the app built to run without a server (J62), in
 desktop Chromium: J62 itself and, of the journeys above it, those about what a workspace keeps
-(J2, J4, J31, J43, J58), the tour (J63) and working together (J19). There "open the app" means a browser that never
+(J2, J4, J31, J43, J58), the tour (J63), working together (J19) and a workspace as a file
+(J64). There "open the app" means a browser that never
 ran it.
 
 ## J1 Open the app
@@ -1203,3 +1204,24 @@ connection was typed; "Next" goes on without, and opens the diagram the next ste
 and only on a workspace nothing was ever done in: not again after it was begun or skipped (it
 is there again after a reload at the welcome), and not on a workspace that has something. An
 empty workspace offers it with "Take the tour".
+
+## J64 A workspace as a file
+
+Test: `apps/web/e2e/j64-workspace-file.spec.ts`. Also on the project `browser-only`.
+
+1. Add "Customer" and "Online Shop", connect them, open "Online Shop", add "Web App" and undo.
+2. Open the workspace menu and press "Export workspace".
+3. In another browser, open the workspace menu, press "Import workspace" and choose the file.
+4. Open "Online Shop", redo, open the history. Reload.
+
+Also: choose a file that is no workspace, twice; choose a workspace file of a later version.
+
+Expected: the browser saves a file named after the workspace (`my-workspace.drillgram.json`):
+JSON that says it is a workspace of Drillgram, with the name and the change log, an entry a
+line. In the other browser the file becomes a workspace of its own, beside those that are
+there, and opens at once as the first one was left: the cards, the connection, the inside of
+the box, and the undone change still there to redo, with the whole history. It has the name
+of the workspace it came from, or that name with "(imported)" where a workspace has it
+already. It stays over a reload. A file that is no workspace is refused on a card ("This
+file is not a workspace of Drillgram"), the same file again too, and one of a later version
+with the advice to reload the app; nothing is made of them.

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, inject, ref } from 'vue'
-import { Handle, Position, storeToRefs, useConnection, useVueFlowStore } from '@xyflow/vue'
-import type { NodeProps } from '@xyflow/vue'
+import { Handle, NodeResizeControl, Position, ResizeControlVariant, storeToRefs, useConnection, useVueFlowStore } from '@xyflow/vue'
+import type { NodeProps, OnResizeEnd } from '@xyflow/vue'
 import { CopyIcon, ImagePlusIcon, PencilIcon, UserIcon, ZoomInIcon } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { CARD } from '@drillgram/model'
@@ -118,6 +118,14 @@ function onDoubleClick(event: MouseEvent) {
   else if (isTable.value) edit(event)
   else newText.value = props.data.description ?? ''
 }
+
+// Resizing (J68): the selected card has a handle on each corner and can be pulled at each side.
+// Vue Flow shows the new size while the pointer moves; the editor then puts it on the grid.
+const CORNERS = ['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const
+const SIDES = ['top', 'right', 'bottom', 'left'] as const
+/** The least a card is made by hand: room for a short name and its kind. */
+const SMALLEST = { width: 100, height: 60 }
+const resized = ({ params }: OnResizeEnd) => actions?.resize(props.id, params)
 
 function commitText() {
   const text = newText.value
@@ -253,6 +261,30 @@ function commitText() {
       </Button>
     </div>
 
+    <template v-if="selected && !locked">
+      <NodeResizeControl
+        v-for="side in SIDES"
+        :key="side"
+        :position="side"
+        :variant="ResizeControlVariant.Line"
+        :min-width="SMALLEST.width"
+        :min-height="SMALLEST.height"
+        class="card-resize-side"
+        @resize-end="resized"
+      />
+      <NodeResizeControl
+        v-for="corner in CORNERS"
+        :key="corner"
+        :position="corner"
+        :min-width="SMALLEST.width"
+        :min-height="SMALLEST.height"
+        :data-testid="`resize-${corner}`"
+        title="Drag to resize"
+        class="card-resize-corner"
+        @resize-end="resized"
+      />
+    </template>
+
     <Handle
       type="target"
       :position="Position.Left"
@@ -273,6 +305,8 @@ function commitText() {
 
 <style scoped>
 .connect-handle {
+  /* Over the resize line on the card's right side (J68). */
+  z-index: 21;
   width: 16px;
   height: 16px;
   border: 2px solid var(--background);
@@ -304,6 +338,22 @@ function commitText() {
     inset: calc(-1 * min(12px / var(--zoom, 1), 40px));
     border-radius: 9999px;
   }
+}
+
+/* The handles to resize a card: as large on the screen however far the diagram is zoomed out
+   (Vue Flow scales them), over the connect handle. */
+.card-resize-corner {
+  z-index: 20;
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid var(--primary);
+  border-radius: 2px;
+  background: var(--background);
+}
+
+.card-resize-side {
+  z-index: 19;
+  border-color: transparent;
 }
 
 /* An invisible target the size of the card, so a connection can be dropped anywhere on it. */

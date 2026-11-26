@@ -48,6 +48,8 @@ export interface CanvasActions {
   describe: (objectId: string, text: string) => void
   /** Open the form of an object, to change its name and details, at a point of the screen. */
   edit: (objectId: string, at: { x: number; y: number }) => void
+  /** Give an object's card another size, and with it its top-left corner: where a corner or side was pulled to. */
+  resize: (objectId: string, box: { x: number; y: number; width: number; height: number }) => void
   /** Make a copy of an object, beside it. */
   copy: (objectId: string) => void
   /** Delete the connection whose label is being typed. */

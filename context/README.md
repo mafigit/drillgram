@@ -54,6 +54,11 @@ Project started 2026-11-03.
   brackets or by name (`a@{ shape: cyl }`, every name and alias of Mermaid 12.3); the Mermaid C4
   export does not write them yet. Connectors still end at the card's rectangle, so on a slanted
   or round outline a line can stop a few pixels short.
+- Resize a card (J68): a selected card has a handle on each corner and can be pulled at each
+  side (Vue Flow's `NodeResizeControl` in `ObjectNode.vue`). The sides that moved land on the
+  grid; one change, `cardResized`, kept per view in `View.sizes`. A size that reaches into
+  another card, or takes the frame over one outside, is refused and said on a card. Editing the
+  text still sets the size the text needs.
 - Tables (J56): a box with the shape `table` has `columns` (name, type, key: primary, foreign,
   unique), in their order. The card is a card of its own make (`.object-card.is-table`), not an
   outline: the name over a line, a row per column; `cardRoom` measures it with the same classes.

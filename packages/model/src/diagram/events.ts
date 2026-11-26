@@ -60,6 +60,8 @@ export type WorkspaceEvent =
   | { type: 'objectPlaced'; view: string; object: string; at?: Point }
   /** One drag: every card that was dragged along. */
   | { type: 'objectsMoved'; view: string; moves: { object: string; to: Point }[] }
+  /** A card was made larger or smaller at a corner or side; `to`: its new top-left corner. */
+  | { type: 'cardResized'; view: string; object: string; size: Size; to?: Point }
   | { type: 'objectRenamed'; object: string; name: string }
   /** An object's name and details, changed together in its form. */
   | {
@@ -123,6 +125,8 @@ export function applyEvent(ws: Workspace, event: WorkspaceEvent): Workspace {
       return onView(ws, event.view, (w) =>
         event.moves.reduce((moved, { object, to }) => moveObject(moved, event.view, object, to), w),
       )
+    case 'cardResized':
+      return onView(ws, event.view, (w) => resizeCard(w, event.view, event.object, event.size, event.to))
     case 'objectEdited': {
       const edited = editObject(ws, event.object, event.name, event.details)
       const card = event.card
@@ -226,6 +230,8 @@ export function describeEvent(before: Workspace, event: WorkspaceEvent): string 
       return `Added existing object ${name(event.object)}`
     case 'objectsMoved':
       return `Moved ${some(event.moves.map((move) => move.object))}`
+    case 'cardResized':
+      return `Resized ${name(event.object)}`
     case 'objectEdited':
       return `Edited ${name(event.object)}`
     case 'connectionsRemoved': {

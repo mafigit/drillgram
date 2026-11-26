@@ -571,6 +571,7 @@ provide(CANVAS_ACTIONS, {
   pickIcons: (objectId, at) => locked.value || (iconsOf.value = { id: objectId, at }),
   edit: startEditing,
   copy: (objectId) => copyCards([objectId]),
+  resize: (objectId, box) => resizeCardTo(objectId, box),
   describe: (objectId, text) => {
     const object = workspace.value.model.objects.find((o) => o.id === objectId)
     if (object) saveEdit(objectId, object.name, { description: text })
@@ -929,13 +930,13 @@ const GUIDE_OVERSHOOT = 24
  * the frame reaches further than its cards (`FRAME`), so a card inside can be clear of a card
  * outside while the frame around it is not.
  */
-function frameStaysClear(objectId: string, place: Point): boolean {
+function frameStaysClear(objectId: string, place: Point, size?: Size): boolean {
   if (!framed.value) return true
   const { isInside } = framed.value
   const all = Object.entries(view.value.positions).map(([id, p]) => ({
     id,
     ...(id === objectId ? place : p),
-    ...cardSize(view.value, id),
+    ...(id === objectId && size ? size : cardSize(view.value, id)),
   }))
   const own = all.filter((card) => isInside(card.id))
   if (own.length === 0) return true
@@ -1050,6 +1051,37 @@ function onNodeDragStop({ nodes: moved }: NodeDragEvent) {
   dispatch({ type: 'objectsMoved', view: viewId.value, moves })
   // Also when nothing moved in the model (a refused place): the card goes back to where it is.
   rebuildNodes()
+}
+
+// Resizing (J68): a corner or side of the selected card was pulled. The sides that moved land on
+// the grid, the others stay; a card that would then reach into another one, or take its frame
+// over one outside, keeps its size and says so.
+function resizeCardTo(objectId: string, box: Point & Size) {
+  const at = view.value.positions[objectId]
+  if (!at) return
+  const was = { ...at, ...cardSize(view.value, objectId) }
+  const onGrid = (value: number) => Math.round(value / SNAP_GRID) * SNAP_GRID
+  const moved = (a: number, b: number) => Math.abs(a - b) > 0.5
+  const left = moved(box.x, was.x) ? onGrid(box.x) : was.x
+  const top = moved(box.y, was.y) ? onGrid(box.y) : was.y
+  const right = moved(box.x + box.width, was.x + was.width) ? onGrid(box.x + box.width) : was.x + was.width
+  const bottom = moved(box.y + box.height, was.y + was.height) ? onGrid(box.y + box.height) : was.y + was.height
+  const size = { width: right - left, height: bottom - top }
+  const to = { x: left, y: top }
+  const same = to.x === was.x && to.y === was.y && size.width === was.width && size.height === was.height
+  if (!same) {
+    if (frameStaysClear(objectId, to, size)) {
+      dispatch({ type: 'cardResized', view: viewId.value, object: objectId, size, ...((to.x !== was.x || to.y !== was.y) && { to }) })
+    }
+    const now = { ...view.value.positions[objectId]!, ...cardSize(view.value, objectId) }
+    if (!locked.value && (now.width !== size.width || now.height !== size.height)) {
+      const name = workspace.value.model.objects.find((o) => o.id === objectId)?.name ?? objectId
+      showError(`"${name}" would reach into another card at that size, so it keeps its size.`)
+    }
+  }
+  // Also when nothing changed in the model: the card goes back to its size. After Vue Flow's own
+  // last change of the resize, which comes after this one.
+  void nextTick(rebuildNodes)
 }
 
 // Arrange: the layout engine lays the whole view out as TALA does (the best of its three seeds)

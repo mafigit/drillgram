@@ -149,16 +149,34 @@ const SHAPES = new Map<string, BoxShape>([
 ])
 
 /**
- * The basic shapes a copy names by a number (`shape: '4'`), in the API's words: those whose
- * number was matched with the same board's vector PDF (2026-11-26). Any other is a plain box.
+ * The basic shapes a copy names by a number (`shape: '4'`, and `st` in its style), in the API's
+ * words: matched by widget id with the names the board gives, on a board holding each of them
+ * (2026-11-26). Any other number is a plain box.
  */
 const SHAPE_CODES = new Map([
   ['3', 'rectangle'],
   ['4', 'circle'],
-  ['8', 'rhombus'],
-  // Known from atman-33/workhub (MIT), which wrote them from copies of its own.
+  ['5', 'triangle'],
+  ['6', 'wedge_round_rectangle_callout'],
   ['7', 'round_rectangle'],
+  ['8', 'rhombus'],
+  ['10', 'parallelogram'],
+  ['11', 'star'],
+  ['12', 'right_arrow'],
+  ['13', 'left_arrow'],
+  ['16', 'pentagon'],
+  ['17', 'hexagon'],
+  ['18', 'octagon'],
+  ['19', 'trapezoid'],
+  ['20', 'flow_chart_predefined_process'],
+  ['21', 'left_right_arrow'],
+  ['22', 'cloud'],
+  ['23', 'left_brace'],
+  ['24', 'right_brace'],
+  ['25', 'cross'],
   ['26', 'can'],
+  ['32', 'chevron'],
+  ['33', 'pentagon_arrow'],
 ])
 
 const ENTITIES = new Map([

@@ -45,7 +45,7 @@ Project started 2026-11-03.
 - Shapes (J53): a box can have one of 63 outlines instead of the rectangle (or be a table, J56) (`BOX_SHAPES`):
   `shape` on an object of the model, for every kind but person and code. The list covers what a
   Mermaid flowchart and D2 can draw, as far as a name fits inside, and every shape of Miro's
-  Basic, Flowchart and Callouts libraries (J66; a junction is `look: 'solid'`, filled). The geometry is our own
+  Basic, Flowchart and Callouts libraries (J67; a junction is `look: 'solid'`, filled). The geometry is our own
   (`canvas/shapes.ts`: paths for a box of any size, used by the canvas and the SVG export);
   nothing is taken from a shape library. Chosen in the
   Basic or Flowchart library of "Add shape" or in a box's form. D2 writes and reads the ones D2
@@ -230,7 +230,7 @@ Project started 2026-11-03.
   its outline: corners after simplifying the outline, matched against corner lists of each
   shape (`OUTLINES` in `miroPdf.ts`), and what is drawn on it (bars, rims, rings, dots);
   checked on an export of every shape, all but the Callouts bracket, which the PDF leaves out.
-  Basic shapes in a paste come by number, of which 3, 4, 7, 8 and 26 are known. Laid out as
+  Basic shapes in a paste come by number (`SHAPE_CODES`, all 23 of the panel). Laid out as
   any import, not at Miro's places. Not over MCP.
 - Server (`apps/server`, 2026-11-26): Go with Fiber and PostgreSQL. Users (made by an admin, the
   first start makes the admin), sign-in four ways (password, single sign-on through OpenID

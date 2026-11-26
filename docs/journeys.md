@@ -976,7 +976,7 @@ Test: `apps/web/e2e/j53-box-shapes.spec.ts`
 Expected: the Basic library offers the plain box and the shapes that say what a box is:
 Database (a cylinder), Queue (a lying cylinder), Document, Hexagon, Decision (a diamond), Circle,
 Pill, Input or output (a slanted box), Cloud, Subroutine, D2's Page, Folder, Step, Callout,
-Stored data and Text, the Table (J56), and the basic shapes of Miro's panel (J66): Star,
+Stored data and Text, the Table (J56), and the basic shapes of Miro's panel (J67): Star,
 Pentagon, Octagon, Cross, three block arrows and Tag. The Flowchart library has the thirty-nine
 others a Mermaid flowchart and Miro's Flowchart and Callouts libraries know (trapezoids, piles of
 documents and boxes, a disk, a display, comments beside a brace or a bracket, a browser window, a

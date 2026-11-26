@@ -68,7 +68,7 @@ test('J67 Items copied on a Miro board are pasted in: no token', async ({ editor
   expect(consoleErrors).toEqual([])
 })
 
-test('J66 A board exported as a vector PDF comes in', async ({ editor, page, consoleErrors }) => {
+test('J67 A board exported as a vector PDF comes in', async ({ editor, page, consoleErrors }) => {
   await editor.open()
   await page.getByRole('button', { name: 'Import', exact: true }).click()
   await page.getByRole('menuitem', { name: 'Miro' }).click()

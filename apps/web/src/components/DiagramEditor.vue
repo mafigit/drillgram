@@ -78,6 +78,7 @@ import type { Guide } from './canvas/alignment'
 import { CARD, elbow } from './canvas/geometry'
 import type { Box } from './canvas/geometry'
 import { joins, routePath } from './canvas/routePath'
+import { routeWithClearLabels } from './canvas/routeLabels'
 import { nearestPlace, placeBlock } from './canvas/blockPlace'
 import { cardRoom } from './canvas/cardRoom'
 import { languageIcon } from './canvas/codeLanguages'
@@ -787,7 +788,7 @@ const frameRoutes = computed(() => {
   const routed = frameLinks.value.filter((link) => standing.has(link.other))
   if (routed.length === 0) return found
   try {
-    const answer = engine.value.route({
+    const answer = routeWithClearLabels(engine.value, {
       cards: [...cards, { id: FRAME_CARD, x: frame.x, y: frame.y, width: frame.width, height: frame.height }],
       connections: routed.map((link) => ({
         from: link.inwards ? link.other : FRAME_CARD,
@@ -1305,12 +1306,11 @@ const routes = computed(() => {
   const places = { ...view.value.positions }
   if (drag.value && Object.hasOwn(places, drag.value.id)) places[drag.value.id] = drag.value.place
   try {
-    const answer = engine.value.route({
+    const answer = routeWithClearLabels(engine.value, {
       cards: Object.entries(places).map(([id, p]) => ({ id, ...p, ...cardSize(view.value, id) })),
       connections: links.value.map((link) => ({
         from: link.from,
         to: link.to,
-        // A label gets a place on the route where it covers the least.
         label: link.label ? labelSize(link.label) : undefined,
       })),
     })

@@ -144,6 +144,8 @@ Project started 2026-11-03.
   level, never slanted (J30). While a
   card is dragged, the connectors are already laid for the place it will land on (7 ms for the
   bookshop landscape).
+- Labels (J28): if the engine puts a label on a card, the editor looks farther away from the
+  connector for space. The canvas and image export use the same label position.
 - Grid and guides (J26, J27): a dragged card moves in steps of the 20 px grid; a guide line
   shows when it is in the same column or row as another card, and gaps of the same width beside
   it are marked.

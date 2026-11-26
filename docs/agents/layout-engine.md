@@ -258,9 +258,9 @@ Not ported yet, with the size of TALA's Go source as a measure:
   (journey J24).
 - Connectors: `DiagramEditor.vue` asks `route` for all connectors whenever the workspace changes
   and hands each connector its points; `canvas/ConnectionEdge.vue` draws them with rounded bends
-  (`canvas/routePath.ts`, journey J25). The label goes where the engine puts it
-  (journey J28): beside the connector where there is room. The editor passes the size of every
-  label's box (`canvas/labelSize.ts`). While one card is
+  (`canvas/routePath.ts`, journey J25). If a card covers a label, the editor searches farther
+  from each segment for a clear spot (`canvas/routeLabels.ts`, journey J28). This also applies
+  to connections to the frame. While one card is
   dragged, the routes are laid for the place it would land on, at every change of that place,
   and drawn that way: all connectors, the dragged card's own too, show how they will run after
   the drop (they end at the outlined landing place when the card under the pointer is somewhere
@@ -275,8 +275,6 @@ Not ported yet, with the size of TALA's Go source as a measure:
   (`guidesFor`), and the gaps beside the card that are as wide as the next gap along its row or
   column (`gapsFor`); the editor draws both while the card is dragged. Nothing pulls a card into
   line or to an equal distance beyond the grid: every free grid place can be taken.
-- Known flaws: the engine only places the dragged card, so a label added to two cards that
-  already sit close still overlaps them. A card dropped on a taken place looks only 40 px beyond
-  the nearest free one: further out of line than that it stays out of line. Where no place is
-  free a label still covers something: the engine
-  takes the place that covers the least. Several cards dragged together get no preview, and routes only after the drop.
+- A card dropped on a taken place looks only 40 px beyond the nearest free one. A label can
+  still cross a line or another label in a dense diagram. During a drag of several cards, the
+  connectors update after the drop.

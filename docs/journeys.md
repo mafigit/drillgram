@@ -471,6 +471,9 @@ Expected: both labels can be read in full. Neither lies on a card, on a connecto
 included: the label sits beside the line, which stays visible from end to end) or on the other
 label.
 
+In a fresh diagram, add "Online Shop" and "Billing" and connect them with the label
+"Sends every paid order with its invoice lines to". The label is fully visible at the existing
+card positions, even though it is wider than the gap.
 
 ## J29 A dropped card lands in line with its connection
 

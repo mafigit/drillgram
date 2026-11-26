@@ -71,8 +71,9 @@ function onPaste(event: ClipboardEvent, at: number) {
         <input
           ref="names"
           v-model="column.name"
-          aria-label="Column name"
-          placeholder="name"
+          aria-label="Column"
+          placeholder="column"
+          autocomplete="off"
           class="border-input bg-background h-8 min-w-0 flex-1 rounded-md border px-2 font-mono text-xs outline-none focus-visible:ring-2"
           @keydown.enter.prevent="onEnter($event, at)"
           @keydown.backspace="onBackspace($event, at)"

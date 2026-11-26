@@ -43,7 +43,7 @@ function submit() {
       <option v-for="group in existing" :key="group.id" :value="group.name">{{ group.name }}</option>
     </select>
     <template v-if="!joining">
-      <Input v-model="name" aria-label="Name" placeholder="Name, e.g. prod-appsvc-shop" class="h-9" autofocus />
+      <Input v-model="name" aria-label="Title" placeholder="Title, e.g. prod-appsvc-shop" autocomplete="off" class="h-9" autofocus />
       <Input v-model="what" aria-label="What it is" placeholder="What it is, e.g. Deployment Node: Azure App Service" class="h-9" />
     </template>
     <div class="flex items-center gap-2">

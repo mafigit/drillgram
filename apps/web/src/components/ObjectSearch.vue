@@ -73,7 +73,7 @@ const vFocus = { mounted: (el: HTMLElement) => el.focus() }
           aria-controls="object-search-results"
           aria-autocomplete="list"
           :aria-activedescendant="results[active] ? `object-search-${active}` : undefined"
-          placeholder="Find an object by its name"
+          placeholder="Find an object by its title"
           class="placeholder:text-muted-foreground h-10 w-full bg-transparent text-sm outline-none"
           @keydown.down.prevent="step(1)"
           @keydown.up.prevent="step(-1)"

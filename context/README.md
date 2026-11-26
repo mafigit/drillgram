@@ -280,6 +280,15 @@ Project started 2026-11-03.
   `useWorkspaces.ts`: a new workspace, the entries appended in pieces the server takes, with
   ids of their own; nothing stays when the server does not take all). With and without a
   server alike, through the same API, so a workspace also goes from the one to the other.
+- On a phone (J65, 2026-11-26; project `phone` in Playwright): the top bar takes two rows,
+  the zoom buttons and the key stand above the canvas toolbar and the key folds away; the view
+  fits itself when it opens with no card in sight and centres a new card that a fit cannot
+  show; the label form of a connection keeps its size and stays on the screen at any zoom;
+  "Select several" (touch screens only) holds the multi-select key down. The tour speaks of
+  taps on touch screens (`touch` of a step), brings the cards a step asks to work on near on a
+  phone (`near`), and a reload in the middle of it goes on at the same step (the tab's
+  `sessionStorage`). Touch drags of cards need `@xyflow/vue` 2.0.3 or later: 2.0.2 bound a new
+  drag to the card at the first move, which lost the finger (mouse drags were not hit).
 - Run as a stack (2026-11-26): `docker compose up --build` builds one image with the server and
   the web app and runs it with a PostgreSQL (`Dockerfile`, `compose.yaml`; `operations.md`,
   "The stack").
@@ -293,7 +302,7 @@ Project started 2026-11-03.
   (`AgentPresence.vue` in `App.vue`), and the router asks before the workspace is left, which
   ends the connection (`lib/agentSharing.ts`: a guard for every way out but a deleted
   workspace).
-- Journeys J1 to J5, J7, J9, J11, J15 and J18 to J64 are real tests. J6, J8, J10,
+- Journeys J1 to J5, J7, J9, J11, J15 and J18 to J65 are real tests. J6, J8, J10,
   J12 to J14, J16 and J17 are still `test.fixme`.
 - Event sourcing (owner's call, 2026-11-22; begun 2026-11-26): the events are the truth and the
   workspace is what they add up to: the server keeps the log, the editor makes the workspace

@@ -76,7 +76,9 @@ const vFocus = { mounted: (el: HTMLInputElement) => (el.focus(), el.select()) }
       </span>
       {{ title }}
     </p>
-    <Input v-model="name" v-focus aria-label="Name" placeholder="Name" class="h-9" />
+    <!-- "Title", not "Name": iOS Safari offers a contact for any field called "Name", whatever its
+         autocomplete says, and the name of a box is no person's. -->
+    <Input v-model="name" v-focus aria-label="Title" placeholder="Title" autocomplete="off" class="h-9" />
     <div v-if="isCode" class="flex gap-2">
       <select v-model="code.language" aria-label="Language" class="form-select w-28 shrink-0">
         <option v-for="language in CODE_LANGUAGES" :key="language.name">{{ language.name }}</option>

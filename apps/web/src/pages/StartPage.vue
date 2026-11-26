@@ -61,8 +61,8 @@ const make = () =>
         <h2 class="text-lg font-semibold tracking-tight">No workspace yet</h2>
         <p class="text-muted-foreground text-sm leading-snug">A workspace holds your diagrams. Give the first one a name.</p>
         <label class="flex flex-col gap-1.5 text-sm font-medium">
-          Name
-          <Input v-model="name" required maxlength="200" autofocus class="h-9" />
+          Title
+          <Input v-model="name" required maxlength="200" autocomplete="off" autofocus class="h-9" />
         </label>
         <Button type="submit" :disabled="busy || name.trim() === ''" :aria-busy="busy">
           <LoaderCircleIcon v-if="busy" class="animate-spin" aria-hidden="true" />

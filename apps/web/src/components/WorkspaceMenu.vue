@@ -195,7 +195,7 @@ function importFile() {
           <DialogTitle>{{ asking === 'rename' ? 'Rename the workspace' : 'New workspace' }}</DialogTitle>
           <DialogDescription>{{ asking === 'rename' ? 'Its diagrams stay as they are.' : 'It starts empty, with diagrams of its own.' }}</DialogDescription>
         </DialogHeader>
-        <Input v-model="name" aria-label="Name" placeholder="Name" required maxlength="200" autofocus class="h-9" />
+        <Input v-model="name" aria-label="Title" placeholder="Title" autocomplete="off" required maxlength="200" autofocus class="h-9" />
         <DialogFooter>
           <Button type="button" variant="ghost" @click="asking = undefined">Cancel</Button>
           <Button type="submit" :disabled="busy || name.trim() === ''" :aria-busy="busy">

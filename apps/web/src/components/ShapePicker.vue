@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { KIND_ICON, SHAPE_LIBRARIES, searchShapes } from './canvas/kinds'
 import type { Shape } from './canvas/kinds'
 import ShapeGlyph from './canvas/ShapeGlyph.vue'
+import { useTouch } from '../composables/useTouch'
 
 // "Add shape": the shapes of every library, one tab per library, and a search over all of them.
 // Every shape goes on every diagram.
@@ -20,6 +21,8 @@ const props = defineProps<{
 const emit = defineEmits<{ pick: [kind: ElementKind, technology?: string, shape?: BoxShape] }>()
 
 const open = ref(false)
+// With a finger the search waits for a tap: a keyboard that came by itself would cover the shapes.
+const touch = useTouch()
 const libraries = computed(() =>
   SHAPE_LIBRARIES.map((library) => ({ ...library, shapes: library.shapes.filter((shape) => props.kinds.includes(shape.kind)) })).filter(
     (library) => library.shapes.length > 0,
@@ -72,7 +75,7 @@ function pickFirst() {
         Add shape
       </Button>
     </PopoverTrigger>
-    <PopoverContent side="top" class="w-80 p-0" aria-label="Shapes">
+    <PopoverContent side="top" class="w-80 p-0" aria-label="Shapes" @open-auto-focus="(event: Event) => touch && event.preventDefault()">
       <div class="border-b p-1.5">
         <Input v-model="query" type="search" aria-label="Search shapes" placeholder="Search shapes" class="h-8" @keydown.enter.prevent="pickFirst" />
       </div>

@@ -10,6 +10,14 @@ import type { Box } from './geometry'
 const TITLE_ROOM = 56
 /** The floating toolbar at the bottom of the canvas. */
 export const TOOLBAR_HEIGHT = 80
+/** Narrower than this (a phone), the zoom buttons and the key stand in a row above the toolbar. */
+const NARROW = 640
+const ABOVE_THE_TOOLBAR = 50
+
+/** The room the toolbar takes at the bottom of a canvas this wide, and on a phone what stands above it. */
+export function toolbarRoom(canvasWidth: number): number {
+  return TOOLBAR_HEIGHT + (canvasWidth < NARROW ? ABOVE_THE_TOOLBAR : 0)
+}
 /** Between the outermost card and the edge of the canvas. */
 const AIR = 24
 
@@ -30,7 +38,7 @@ export function fitPadding(
   const side = AIR + (room.framed ? FRAME.side : 0)
   const padding = {
     top: TITLE_ROOM + (room.framed ? FRAME.top : 0),
-    bottom: TOOLBAR_HEIGHT + (room.framed ? FRAME.bottom : 0),
+    bottom: toolbarRoom(canvas.width) + (room.framed ? FRAME.bottom : 0),
     left: side,
     right: side,
   }

@@ -72,7 +72,8 @@ function commitRenaming() {
           v-if="renaming === view.id"
           ref="field"
           v-model="renamed"
-          aria-label="View name"
+          aria-label="View title"
+          autocomplete="off"
           class="bg-background text-foreground h-7 w-32 rounded-md border px-2 text-sm outline-none"
           @keydown.enter="commitRenaming"
           @keydown.esc="renaming = undefined"
@@ -111,7 +112,7 @@ function commitRenaming() {
       </PopoverTrigger>
       <PopoverContent align="start" class="w-64">
         <form aria-label="New view" class="flex flex-col gap-2.5" @submit.prevent="add">
-          <Input v-model="newName" aria-label="Name" placeholder="Deployment, Data flow, …" class="h-9" autofocus />
+          <Input v-model="newName" aria-label="Title" placeholder="Deployment, Data flow, …" autocomplete="off" class="h-9" autofocus />
           <label class="text-muted-foreground flex items-center gap-2 text-xs">
             <input v-model="copy" type="checkbox" class="size-3.5" />
             Start with the cards of this view

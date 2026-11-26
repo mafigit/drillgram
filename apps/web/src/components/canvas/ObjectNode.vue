@@ -182,7 +182,8 @@ function commitText() {
           v-if="newName !== undefined"
           v-model="newName"
           v-focus
-          aria-label="Name"
+          aria-label="Title"
+          autocomplete="off"
           class="nodrag nopan bg-background w-full rounded-sm border px-1 text-center text-[15px] font-semibold outline-none"
           @keydown.enter="commitName"
           @keydown.esc="newName = undefined"
@@ -229,7 +230,7 @@ function commitText() {
       v-if="data.opens"
       variant="ghost"
       size="icon-xs"
-      class="nodrag nopan text-muted-foreground absolute top-1 left-1"
+      class="card-open nodrag nopan text-muted-foreground absolute top-1 left-1"
       aria-label="Open"
       :title="`Open ${data.name}`"
       @click="actions?.open(id)"
@@ -285,6 +286,20 @@ function commitText() {
 @media (hover: none) {
   .connect-handle {
     opacity: 1;
+  }
+}
+
+/* A finger is wider than the handle and the magnifier: on a touch screen a press around them
+   counts too, 12 px of the screen however small the diagram is shown (--zoom, set by
+   CanvasControls.vue), but never more than 40 px of the diagram: the rest of the card stays
+   the card's. */
+@media (pointer: coarse) {
+  .connect-handle::after,
+  .card-open::after {
+    content: '';
+    position: absolute;
+    inset: calc(-1 * min(12px / var(--zoom, 1), 40px));
+    border-radius: 9999px;
   }
 }
 

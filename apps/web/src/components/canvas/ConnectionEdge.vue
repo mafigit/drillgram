@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, inject } from 'vue'
-import { BaseEdge, EdgeLabelRenderer, useInternalNode } from '@xyflow/vue'
+import { computed, inject, ref } from 'vue'
+import { useElementSize } from '@vueuse/core'
+import { BaseEdge, EdgeLabelRenderer, storeToRefs, useInternalNode, useVueFlowStore } from '@xyflow/vue'
 import type { EdgeProps, InternalNode } from '@xyflow/vue'
 import { Trash2Icon } from '@lucide/vue'
 import { LINE_COLOURS } from '@drillgram/model'
@@ -58,6 +59,28 @@ const line = computed(() => {
 })
 
 const vFocus = { mounted: (el: HTMLInputElement) => (el.focus(), el.select()) }
+
+// The form for the label is drawn on the canvas, by the line. Where the diagram is shown small
+// (a big one on a phone) it keeps its own size, and it stays on the screen: what is typed is as
+// big as on any form, and the form is never half outside.
+const { transform, dimensions } = storeToRefs(useVueFlowStore())
+const form = ref<HTMLElement>()
+const formSize = useElementSize(form, undefined, { box: 'border-box' })
+/** Between the form and the edge of the canvas, in px of the screen. */
+const EDGE = 8
+const formStyle = computed(() => {
+  if (!line.value) return undefined
+  const [x, y, zoom] = transform.value
+  const scale = Math.max(1, 1 / zoom)
+  const [width, height] = [formSize.width.value * scale * zoom, formSize.height.value * scale * zoom]
+  const within = (at: number, half: number, size: number) => (size < 2 * (half + EDGE) ? size / 2 : Math.min(Math.max(at, half + EDGE), size - half - EDGE))
+  const centreX = within(line.value.labelX * zoom + x, width / 2, dimensions.value.width)
+  const centreY = within(line.value.labelY * zoom + y, height / 2, dimensions.value.height)
+  return {
+    transform: `translate(${(centreX - x) / zoom}px, ${(centreY - y) / zoom}px) scale(${scale}) translate(-50%, -50%)`,
+    transformOrigin: '0 0',
+  }
+})
 </script>
 
 <template>
@@ -76,24 +99,26 @@ const vFocus = { mounted: (el: HTMLInputElement) => (el.focus(), el.select()) }
     />
     <EdgeLabelRenderer v-if="data?.labelling && actions">
       <form
-        class="nodrag nopan bg-popover pointer-events-auto absolute flex flex-col gap-1.5 rounded-lg border p-1 shadow-md"
-        :style="{ transform: `translate(-50%, -50%) translate(${line.labelX}px, ${line.labelY}px)` }"
+        ref="form"
+        class="nodrag nopan bg-popover pointer-events-auto absolute flex flex-col max-sm:max-w-[22rem] gap-1.5 rounded-lg border p-1 shadow-md"
+        :style="formStyle"
         @submit.prevent="actions.commitLabel()"
         @keydown.esc="actions.cancelLabel()"
       >
-        <div class="flex gap-1">
+        <!-- On a narrow screen the technology goes to a line of its own. -->
+        <div class="flex flex-wrap gap-1">
         <Input
           v-model="actions.newLabel.value"
           v-focus
           aria-label="Relationship label"
           placeholder="What for? e.g. Sends orders to"
-          class="h-8 w-56"
+          class="h-8 w-56 grow"
         />
         <Input
           v-model="actions.newTechnology.value"
           aria-label="Relationship technology"
           placeholder="How? e.g. HTTPS"
-          class="h-8 w-32"
+          class="h-8 w-32 grow"
         />
         <Button
           type="button"

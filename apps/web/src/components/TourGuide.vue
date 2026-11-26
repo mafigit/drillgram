@@ -4,10 +4,11 @@ import { useRafFn, useWindowSize } from '@vueuse/core'
 import { XIcon } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { browserOnly } from '../lib/api'
-import { placeCard } from '../tour/place'
+import { placeCard, roomBelow } from '../tour/place'
 import type { Box } from '../tour/place'
 import { markTourSeen, tourSeen } from '../tour/seen'
 import { tourSteps } from '../tour/steps'
+import { useNarrow, useTouch } from '../composables/useTouch'
 import type { TourScene } from '../tour/steps'
 
 // The tour (J63): a card that goes from one part of the editor to the next and says what it
@@ -24,7 +25,13 @@ const props = defineProps<{
   go: (where: 'overview' | 'inside') => Promise<unknown>
   /** Opens the history for the step about it; closes it behind that step, with the diagram back at now. */
   history: (open: boolean) => void
+  /** Brings cards of the example near, by their names, clear of the bottom of the screen the card of the tour takes. */
+  near?: (names: string[], room: number) => unknown
 }>()
+
+const touch = useTouch()
+/** A phone: the whole diagram is shown small, too small to work on a card of it. */
+const narrow = useNarrow()
 
 const steps = tourSteps(browserOnly)
 /** The steps between the welcome and the goodbye: those are counted. */
@@ -45,6 +52,9 @@ async function show(to: number) {
   try {
     if ((next.history ?? false) !== (step.value?.history ?? false)) props.history(next.history ?? false)
     if (next.at && props.scene.at !== next.at) await props.go(next.at)
+    // The card of the tour stands out of the way under the cards brought near. Its height is
+    // that of the step before, at least that of a long step.
+    if (narrow.value && next.near) await props.near?.(next.near, roomBelow(Math.max(cardSize.value.height, 260)))
     // The editor says where it is, and what was just done in it, on its next turn.
     await nextTick()
   } finally {
@@ -89,8 +99,42 @@ watch(
   },
 )
 
+// A reload in the middle of the tour: it goes on at the step it was at. That belongs to the tab.
+const STEP_KEY = 'drillgram.tour.step'
+watch(index, (now) => {
+  try {
+    if (now === undefined || now === 0) window.sessionStorage.removeItem(STEP_KEY)
+    else window.sessionStorage.setItem(STEP_KEY, String(now))
+  } catch {
+    // Storage refused (a private window): a reload ends the tour.
+  }
+})
+function keptStep(): number | undefined {
+  try {
+    const kept = Number(window.sessionStorage.getItem(STEP_KEY))
+    return Number.isInteger(kept) && kept > 0 && kept < steps.length ? kept : undefined
+  } catch {
+    return undefined
+  }
+}
+
 onMounted(() => {
-  if (props.fresh && !tourSeen()) start()
+  const kept = keptStep()
+  if (kept === undefined) {
+    if (props.fresh && !tourSeen()) start()
+    return
+  }
+  // The example comes back with the workspace: the step waits for it.
+  let resumed = false
+  watch(
+    () => props.scene.objects > 0,
+    (loaded) => {
+      if (!loaded || resumed) return
+      resumed = true
+      void show(kept)
+    },
+    { immediate: true },
+  )
 })
 
 // Where the light and the card are. What a step points at moves (the canvas is panned, a menu
@@ -98,6 +142,7 @@ onMounted(() => {
 const card = ref<HTMLElement>()
 const spot = shallowRef<Box>()
 const cardSize = shallowRef({ width: 0, height: 0 })
+const text = computed(() => (step.value && touch.value ? (step.value.touch ?? step.value.text) : step.value?.text))
 const screen = useWindowSize()
 
 /** The box around everything the selectors find on the page; nothing when nothing is shown. */
@@ -185,7 +230,7 @@ watch(step, async (now) => {
           </Button>
         </div>
         <div aria-live="polite" class="flex flex-col gap-1.5">
-          <p class="leading-snug">{{ step.text }}</p>
+          <p class="leading-snug">{{ text }}</p>
           <p v-if="step.done" class="text-muted-foreground text-xs leading-snug">Try it, or press "Next".</p>
         </div>
         <!-- How far the tour is: a line that fills. -->

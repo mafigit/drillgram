@@ -26,6 +26,8 @@ export type TourStep = {
   id: string
   title: string
   text: string
+  /** What it says where the screen is worked with a finger: no mouse, no keys. */
+  touch?: string
   /**
    * What the step points at: CSS selectors, taken together when several are on the page. None:
    * the card stands in the middle of the screen, over a page that waits.
@@ -33,6 +35,11 @@ export type TourStep = {
   target?: string[]
   /** The side of the target the card goes to when it has room there. */
   side?: Side
+  /**
+   * Cards of the example the step asks to work on. On a phone, where the whole diagram is shown
+   * small, the tour brings them near enough to do it.
+   */
+  near?: string[]
   /** The diagram the step is about: the tour opens it when the step begins. */
   at?: 'overview' | 'inside'
   /**
@@ -72,6 +79,7 @@ export function tourSteps(browserOnly: boolean): TourStep[] {
       text: `Every box holds a diagram of its own. Press the magnifier in the corner of "${TOUR_BOX}" to look inside.`,
       target: [card(TOUR_BOX)],
       side: 'right',
+      near: [TOUR_BOX],
       at: 'overview',
       done: (now) => now.at === 'inside',
     },
@@ -114,6 +122,7 @@ export function tourSteps(browserOnly: boolean): TourStep[] {
       text: 'Drag from the round handle on the right side of a card onto another card, then type what the connection says. The line finds its own way around the cards.',
       target: [card(TOUR_CARD)],
       side: 'away',
+      near: [TOUR_CARD, TOUR_BOX],
       at: 'overview',
       done: (now, before) => now.connections > before.connections,
     },
@@ -123,6 +132,7 @@ export function tourSteps(browserOnly: boolean): TourStep[] {
       text: 'Drag a card. It moves on a grid, shows where it will land and snaps to a free place. Guide lines show when it lines up with another card.',
       target: [card(TOUR_CARD)],
       side: 'away',
+      near: [TOUR_CARD],
       at: 'overview',
       done: logged('objectsMoved'),
     },
@@ -151,21 +161,25 @@ export function tourSteps(browserOnly: boolean): TourStep[] {
     {
       id: 'search',
       title: 'Find anything',
-      text: 'The search finds a box by its name on any diagram, however deep, and takes you to it. Ctrl or Cmd with K opens it.',
+      text: 'The search finds a box by its title on any diagram, however deep, and takes you to it. Ctrl or Cmd with K opens it.',
+      touch: 'The search finds a box by its title on any diagram, however deep, and takes you to it.',
       target: [button('Search')],
     },
     {
       id: 'card',
       title: 'Work on a card',
       text: 'A click on a card keeps it and what it connects to clear, and fades the rest. Its corner has buttons to edit it, give it icons and copy it. A double-click writes its text, in Markdown.',
+      touch: 'A tap on a card keeps it and what it connects to clear, and fades the rest. Its corner has buttons to edit it, give it icons and copy it. A double tap writes its text, in Markdown.',
       target: [card(TOUR_BOX)],
       side: 'away',
+      near: [TOUR_BOX],
       at: 'overview',
     },
     {
       id: 'select',
       title: 'Select several cards',
       text: 'Ctrl or Cmd with a click adds a card to the selection, and Shift with a drag draws a frame around several. The bar then offers to put them in a group with a name, or to delete them.',
+      touch: '"Select several" in the bar holds the selection open: each tap adds a card or takes it out. The bar then offers to put them in a group with a name, or to delete them.',
       target: [TOOLBAR],
       side: 'top',
     },
@@ -173,6 +187,7 @@ export function tourSteps(browserOnly: boolean): TourStep[] {
       id: 'canvas',
       title: 'The canvas',
       text: 'Scroll to move, pinch or scroll with Ctrl to zoom. A right-click on the canvas opens a quick menu. These buttons zoom, fit the diagram to the screen and list the keyboard shortcuts.',
+      touch: 'Drag the empty canvas to move it, pinch to zoom. These buttons zoom, fit the diagram to the screen and list the keyboard shortcuts.',
       target: [button('Zoom out'), button('Zoom in'), button('Fit to screen'), button('Keyboard shortcuts')],
       side: 'top',
     },

@@ -18,6 +18,8 @@ const props = withDefaults(
   {
     align: 'center',
     sideOffset: 4,
+    // Never flush with the edge of the screen (a phone is hardly wider than a popover).
+    collisionPadding: 8,
   },
 )
 const emits = defineEmits<PopoverContentEmits>()

@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, markRaw, provide, ref, shallowRef, watch } from 'vue'
+import { computed, defineAsyncComponent, markRaw, nextTick, provide, ref, shallowRef, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { useEventListener } from '@vueuse/core'
 import {
   CopyPlusIcon,
   HistoryIcon,
   LayoutDashboardIcon,
+  ListChecksIcon,
   LoaderCircleIcon,
   Redo2Icon,
   Trash2Icon,
@@ -83,6 +84,7 @@ import { nearestPlace, placeBlock } from './canvas/blockPlace'
 import { cardRoom } from './canvas/cardRoom'
 import { languageIcon } from './canvas/codeLanguages'
 import { clearErrors, showError } from '../composables/useErrors'
+import { useTouch } from '../composables/useTouch'
 import { KIND_ICON, KIND_LABEL } from './canvas/kinds'
 import { labelSize } from './canvas/labelSize'
 import { CANVAS_ACTIONS, CANVAS_DRAG, CANVAS_FADED } from './canvas/types'
@@ -180,7 +182,7 @@ function startAdding(kind: ElementKind, at?: Point, technology = '', shape: BoxS
 }
 
 /** The card that was just put on the diagram, so the canvas can bring it into view. */
-const added = ref<{ id: string }>()
+const added = ref<{ id: string; whole?: boolean }>()
 /** The cards to select when the cards are next rebuilt: the ones just added. */
 let selectNext: string[] | undefined
 
@@ -334,7 +336,7 @@ function loadExample() {
   dispatch({ type: 'exampleLoaded' })
   // Far too big for the screen at full size: asking for its last card makes the canvas fit it all.
   const last = Object.keys(view.value.positions).at(-1)
-  if (last) added.value = { id: last }
+  if (last) added.value = { id: last, whole: true }
 }
 
 // What this browser kept from before the app had a server (lib/localWorkspace.ts): offered on a
@@ -577,6 +579,10 @@ const nodes = ref<ObjectNode[]>([])
 // Selecting several: a click with Ctrl or Cmd adds a card (either key, on any system), and a
 // frame drawn on the canvas with Shift held takes the cards inside it (Vue Flow's default).
 const ALSO_SELECT = ['Meta', 'Control']
+// A finger has no Ctrl and no Shift: "Select several" in the toolbar holds the key down for it,
+// and a tap adds a card to the selection or takes it out.
+const touch = useTouch()
+const selectSeveral = ref(false)
 
 function rebuildNodes() {
   const selected = new Set(selectNext ?? nodes.value.filter((n) => n.selected).map((n) => n.id))
@@ -1273,7 +1279,7 @@ async function bringDiagram(diagram: Diagram, signal?: AbortSignal) {
     )
   }
   const shown = Object.keys(view.value.positions).filter((id) => !before.has(id))
-  if (shown.length > 0) added.value = { id: shown.at(-1)! }
+  if (shown.length > 0) added.value = { id: shown.at(-1)!, whole: true }
   if (saved && !(await saved)) throw new Error('Drillgram could not save the imported diagram.')
 }
 
@@ -1483,6 +1489,17 @@ function tourHistory(open: boolean) {
   showHistory.value = open
   if (!open && history.value.cursor < history.value.log.length) travel(history.value.log.length)
 }
+/** The cards a step of the tour asks to work on, brought near on a phone (CanvasControls). */
+const tourNear = shallowRef<{ ids: string[]; room: number }>()
+async function tourBringNear(names: string[], room: number) {
+  // The example the tour just loaded is drawn on the next turn.
+  await nextTick()
+  const ids = names.flatMap((name) => workspace.value.model.objects.filter((object) => object.name === name && nodes.value.some((node) => node.id === object.id)).map((object) => object.id))
+  if (ids.length === 0) return
+  tourNear.value = { ids, room }
+  await nextTick()
+}
+
 /** Opens the diagram a step of the tour is about; stays where it is when that is not there. */
 async function tourGo(where: 'overview' | 'inside') {
   const to = where === 'overview' ? ROOT_VIEW_ID : tourView.value
@@ -1574,10 +1591,12 @@ const keyKinds = computed(() =>
   <div class="flex h-full flex-col">
     <AppHeader>
       <Breadcrumb aria-label="Breadcrumb">
-        <BreadcrumbList class="flex items-center gap-1.5 text-sm">
+        <!-- One line: a narrow screen shortens the names, the open one first; a way back keeps
+             room to be pressed. -->
+        <BreadcrumbList class="flex flex-nowrap items-center gap-1.5 text-sm">
           <template v-for="(entry, i) in trail" :key="entry.viewId">
             <BreadcrumbSeparator v-if="i > 0" class="text-muted-foreground" />
-            <BreadcrumbItem class="min-w-0">
+            <BreadcrumbItem :class="entry.viewId === viewId ? 'min-w-0' : 'min-w-12 shrink-[0.2]'">
               <BreadcrumbPage v-if="entry.viewId === viewId" class="truncate font-medium">
                 {{ entry.label }}
               </BreadcrumbPage>
@@ -1667,7 +1686,7 @@ const keyKinds = computed(() =>
           :zoom-on-scroll="false"
           :zoom-on-double-click="false"
           :delete-key-code="null"
-          :multi-selection-key-code="ALSO_SELECT"
+          :multi-selection-key-code="selectSeveral || ALSO_SELECT"
           :edges-focusable="false"
           snap-to-grid
           :snap-grid="[SNAP_GRID, SNAP_GRID]"
@@ -1734,7 +1753,7 @@ const keyKinds = computed(() =>
             :to-frame="boundaryLinks.length > 0"
             :groups="groupFrames.length > 0"
           />
-          <CanvasControls :reveal="added" :centre="found" :diagram="viewId" :corner="minimapShown ? MINIMAP_ROOM : undefined" :framed="boundary !== undefined" />
+          <CanvasControls :reveal="added" :centre="found" :diagram="viewId" :corner="minimapShown ? MINIMAP_ROOM : undefined" :framed="boundary !== undefined" :near="tourNear" />
           <CanvasPointers v-if="sharing" :sharing="sharing" :view="viewId" />
           <CanvasQuickMenu
             :items="quickMenuItems"
@@ -1885,7 +1904,7 @@ const keyKinds = computed(() =>
 
       <HistoryPanel
         v-if="showHistory"
-        class="absolute top-3 right-3 z-20 max-h-[calc(100%-7.5rem)]"
+        class="absolute top-3 right-3 z-20 max-h-[calc(100%-7.5rem)] max-sm:max-h-[30vh]"
         :entries="changes"
         :cursor="history.cursor"
         @go="travel"
@@ -1975,7 +1994,7 @@ const keyKinds = computed(() =>
         </div>
       </Teleport>
 
-      <TourGuide ref="tour" :scene="tourScene" :fresh="fresh" :load="loadExample" :go="tourGo" :history="tourHistory" />
+      <TourGuide ref="tour" :scene="tourScene" :fresh="fresh" :load="loadExample" :go="tourGo" :history="tourHistory" :near="tourBringNear" />
 
       <div
         role="toolbar"
@@ -1998,15 +2017,29 @@ const keyKinds = computed(() =>
 
           <Popover :open="pickingExisting && !floatAt" @update:open="(open: boolean) => (open ? (pickingExisting = true) : stopAdding())">
             <PopoverTrigger as-child>
-              <Button variant="ghost" size="lg" :disabled="existing.length === 0">
+              <!-- On a phone the toolbar keeps to the screen: the buttons after "Add shape" show their signs only. -->
+              <Button variant="ghost" size="lg" :disabled="existing.length === 0" aria-label="Add existing object" title="Add existing object">
                 <CopyPlusIcon aria-hidden="true" />
-                Add existing object
+                <span class="max-sm:sr-only">Add existing object</span>
               </Button>
             </PopoverTrigger>
             <PopoverContent side="top" class="w-72 p-0">
               <ExistingObjectPicker :objects="existing" @pick="placeExisting" />
             </PopoverContent>
           </Popover>
+
+          <Button
+            v-if="touch"
+            variant="ghost"
+            size="icon-lg"
+            aria-label="Select several"
+            title="Select several: a tap adds a card or takes it out"
+            :aria-pressed="selectSeveral"
+            :class="{ 'bg-accent': selectSeveral }"
+            @click="selectSeveral = !selectSeveral"
+          >
+            <ListChecksIcon aria-hidden="true" />
+          </Button>
 
           <Popover v-if="selectedGroupable.length > 0" v-model:open="grouping">
             <PopoverTrigger as-child>
@@ -2024,9 +2057,9 @@ const keyKinds = computed(() =>
             <UngroupIcon aria-hidden="true" />
             <span class="max-lg:sr-only">Ungroup</span>
           </Button>
-          <Button v-if="selected.length > 0" variant="ghost" size="lg" @click="removeSelected">
+          <Button v-if="selected.length > 0" variant="ghost" size="lg" aria-label="Delete" title="Delete the selected cards" @click="removeSelected">
             <Trash2Icon aria-hidden="true" />
-            Delete
+            <span class="max-sm:sr-only">Delete</span>
           </Button>
         </template>
       </div>

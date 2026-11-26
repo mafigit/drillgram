@@ -34,7 +34,8 @@ const route = useRoute()
 </script>
 
 <template>
-  <header class="bg-background flex h-12 shrink-0 items-center gap-3 border-b px-3">
+  <!-- On a phone the buttons of the page take a second row: in one they would run off the screen. -->
+  <header class="bg-background flex h-12 shrink-0 items-center gap-3 border-b px-3 max-sm:h-auto max-sm:flex-wrap max-sm:gap-y-1 max-sm:py-1.5">
     <img src="/logo.svg" alt="" class="size-6 rounded-md" />
     <!-- On a phone the name gives its room to the breadcrumb and the buttons. -->
     <h1 class="text-sm font-semibold tracking-tight whitespace-nowrap max-sm:sr-only">
@@ -49,7 +50,9 @@ const route = useRoute()
     <div class="min-w-0 flex-1">
       <slot />
     </div>
-    <slot name="actions" />
+    <div v-if="$slots.actions" class="contents max-sm:order-last max-sm:flex max-sm:w-full max-sm:items-center max-sm:justify-between">
+      <slot name="actions" />
+    </div>
     <!-- The theme: chosen from a menu, in use at once. Each theme shows its ground and an accent. -->
     <DropdownMenuRoot v-if="!plain" :modal="false">
       <DropdownMenuTrigger as-child>

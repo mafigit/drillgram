@@ -16,6 +16,11 @@ const AWAY = { top: 60, bottom: 96 }
 
 const SIDES: Exclude<Side, 'away'>[] = ['bottom', 'top', 'right', 'left']
 
+/** What a card of this height takes of the bottom of the screen when it stands out of the way, below. */
+export function roomBelow(cardHeight: number): number {
+  return AWAY.bottom + cardHeight + GAP
+}
+
 /**
  * The top left corner of the card. Without a target: the middle of the screen. Else the side
  * asked for, then the others, the first one the whole card has room on; when none has, the

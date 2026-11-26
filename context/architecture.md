@@ -141,7 +141,8 @@ server of this one log for the others.
   the key. Addresses inside a session keep the "#" part (`viewPath`), so a reload joins again.
 - **People and pointers** are not in the log. The host gives everybody an id and a colour and
   says who is there; a pointer is a place in a diagram's own measures on one view, sent at
-  most 20 times a second and drawn by `canvas/CanvasPointers.vue` over the cards.
+  most 20 times a second (`canvas/pointerReporter.ts`: a move still held when the pointer
+  leaves the canvas is dropped) and drawn by `canvas/CanvasPointers.vue` over the cards.
 - **What ends a session:** the host stops sharing or leaves the workspace (reload, another
   workspace, the tab closed). Guests are told at once where the browser has the time to say
   so, else when the connection is found dead.

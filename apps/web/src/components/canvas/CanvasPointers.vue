@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useEventListener, useThrottleFn } from '@vueuse/core'
+import { useEventListener } from '@vueuse/core'
 import { storeToRefs, useVueFlowStore } from '@xyflow/vue'
 import type { Sharing } from '../../collab/sharing'
+import type { Pointer } from '../../collab/session'
+import { pointerReporter } from './pointerReporter'
 
 // The pointers of the others in a shared session (J19): each where its owner's mouse is on
 // this diagram, with their name, in their colour. And this browser's own pointer, said to
@@ -17,18 +19,14 @@ const props = defineProps<{
 const { transform, vueFlowRef } = storeToRefs(useVueFlowStore())
 
 /** Often enough to follow a hand, seldom enough to be no burden: 20 times a second. */
-const say = useThrottleFn(
-  (event: PointerEvent) => {
-    const canvas = vueFlowRef.value?.getBoundingClientRect()
-    if (!canvas || props.sharing.state.value !== 'on') return
-    const [x, y, zoom] = transform.value
-    props.sharing.point({ view: props.view, x: (event.clientX - canvas.left - x) / zoom, y: (event.clientY - canvas.top - y) / zoom })
-  },
-  50,
-  true,
-)
-useEventListener(vueFlowRef, 'pointermove', say)
-useEventListener(vueFlowRef, 'pointerleave', () => props.sharing.state.value === 'on' && props.sharing.point(undefined))
+const report = pointerReporter<Pointer>((at) => props.sharing.state.value === 'on' && props.sharing.point(at), 50)
+useEventListener(vueFlowRef, 'pointermove', (event: PointerEvent) => {
+  const canvas = vueFlowRef.value?.getBoundingClientRect()
+  if (!canvas || props.sharing.state.value !== 'on') return
+  const [x, y, zoom] = transform.value
+  report.move({ view: props.view, x: (event.clientX - canvas.left - x) / zoom, y: (event.clientY - canvas.top - y) / zoom })
+})
+useEventListener(vueFlowRef, 'pointerleave', () => report.leave())
 
 const shown = computed(() => {
   const [x, y, zoom] = transform.value

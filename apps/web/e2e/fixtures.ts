@@ -29,7 +29,16 @@ const NO_MOTION_CSS = `*, *::before, *::after {
   caret-color: transparent !important;
 }`
 
-type Fixtures = {
+/** What a project of playwright.config.ts says about itself. */
+export type Options = {
+  /**
+   * Whether the app has a server. Off in the project `browser-only`: there nobody signs in and
+   * no user is made, the browser keeps the workspaces itself.
+   */
+  server: boolean
+}
+
+type Fixtures = Options & {
   /**
    * Whether the test starts signed in, as `account`. On unless a test says
    * `test.use({ signedIn: false })`: the app is of no use to somebody who is not.
@@ -88,8 +97,13 @@ export const test = base.extend<Fixtures>({
   ],
 
   signedIn: [true, { option: true }],
+  server: [true, { option: true }],
 
-  newAccount: async ({ playwright, baseURL }, use, testInfo) => {
+  newAccount: async ({ playwright, baseURL, server }, use, testInfo) => {
+    if (!server) {
+      await use(() => Promise.reject(new Error('This project has no server: there is nobody to make.')))
+      return
+    }
     // The admin, with cookies of its own: not the test's browser.
     const admin = await playwright.request.newContext({ baseURL })
     await signIn(admin, ADMIN)
@@ -105,7 +119,9 @@ export const test = base.extend<Fixtures>({
   },
 
   account: [
-    async ({ newAccount, context, signedIn }, use) => {
+    async ({ newAccount, context, signedIn, server }, use) => {
+      // Without a server the browser is the user: nobody to make, nothing to sign in to.
+      if (!server) return use({ email: '', name: 'This browser', password: '' })
       const account = await newAccount()
       if (signedIn) await signIn(context.request, account)
       await use(account)

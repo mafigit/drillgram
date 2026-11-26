@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# What the journeys of the project `browser-only` run against: the app built to run without a
+# server, given out by a server of files alone. Playwright starts it (playwright.config.ts):
+#
+#   e2e/serve-browser <port>
+set -euo pipefail
+cd "$(dirname "$0")/.."
+port=${1:?give the port}
+
+pnpm run build:browser
+exec pnpm exec vite preview --outDir dist-browser --port "$port" --strictPort

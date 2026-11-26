@@ -12,6 +12,10 @@ The journeys run against the server (`apps/server`) with the built app, on a dat
 own. Every test starts signed in, as a user made for it with an empty workspace; "open the app"
 means that. J57 is about signing in itself.
 
+A fourth project, `browser-only`, runs against the app built to run without a server (J62), in
+desktop Chromium: J62 itself and, of the journeys above it, those about what a workspace keeps
+(J2, J4, J31, J43, J58). There "open the app" means a browser that never ran it.
+
 ## J1 Open the app
 
 Test: `apps/web/e2e/j1-open-the-app.spec.ts`
@@ -1089,3 +1093,26 @@ Expected: a browser that kept nothing is not offered anything. After step 2 the 
 with the change that made it in the change log, which undoes and redoes. The second browser
 has the card: it is on the server. The offer is made once: after step 5 the empty workspace
 offers the example only. What the browser kept stays in it, under the app's name of today.
+
+## J62 The app without a server
+
+Test: `apps/web/e2e/j62-without-a-server.spec.ts`. Project `browser-only` only.
+
+The app can be built to run without a server (`pnpm --filter @drillgram/web build:browser`): the
+browser keeps the workspaces and their change logs itself, and the app is files alone.
+
+1. Open the app in a browser that never ran it.
+2. Press "Kept in this browser" in the top bar.
+3. Add "Customer" and "Online Shop", connect them, and undo the connection. Reload, then redo.
+4. Open the addresses `/login` and `/users`.
+
+Also: go offline, reload, add "Billing" and reload again. And with the workspace open in two
+tabs, add "Billing" in the second, then "Mail" in the first, then "Mail" in the first again.
+
+Expected: the editor opens on "My workspace" and nobody signs in; there is no account menu.
+Where it was, a note says that the diagrams are kept in this browser alone and to export what
+is worth keeping. The cards, the change log and the place in it survive the reload. Both
+addresses lead to the diagrams. The app asks nothing of `/api`. Offline everything is there
+and can be changed. A change made in a tab that has not seen what another one did is not kept,
+as between two browsers of a server (J60); the next change works as ever.
+

@@ -87,7 +87,8 @@ test('J58 Deleting a workspace asks first and leads to another one', async ({ pa
   expect(consoleErrors).toEqual([])
 })
 
-test('J58 The address of a workspace that is not yours leads to your own', async ({ page, editor, newAccount, browserOf }) => {
+test('J58 The address of a workspace that is not yours leads to your own', async ({ page, editor, newAccount, browserOf, server }) => {
+  test.skip(!server, 'Without a server there is nobody else')
   const other = await browserOf(await newAccount('Somebody Else'))
   await other.editor.open()
   await other.editor.addElement('Software System', 'Theirs')

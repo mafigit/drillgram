@@ -764,6 +764,9 @@ it; the first part then lands in the frame. A card outside that connects to a ca
 (fourth test) is put at the side of the frame nearest to that card, level with it, so its
 connector is short; cards that want the same place stand beside each other in the order of
 their cards. A card that connects to the frame only keeps the side the engine gave it.
+The frame is drawn around the lines and labels between its cards too (fifth test: four parts in
+a column with long labels, as a CI pipeline): Arrange keeps the cards outside clear of the frame
+as drawn, not only of its cards.
 
 ## J43 Clear the workspace
 

@@ -192,3 +192,32 @@ test('J42 Arrange puts a card outside the frame beside the card it connects to',
   expect(consoleErrors).toEqual([])
 })
 
+
+test('J42 Arrange keeps a card outside the frame clear of the labels inside it', async ({ editor, consoleErrors }) => {
+  await editor.open()
+  await editor.addElement('Software System', 'GitHub')
+  await editor.addElement('Person', 'Developer')
+  await editor.addElement('Software System', 'Cloudflare')
+  await editor.drillDown('GitHub')
+  const parts = ['Repository', 'ci-check job', 'deploy job', 'Actions secrets']
+  for (const part of parts) await editor.addElement('Container', part)
+  // Long labels: the frame is drawn around them too, and they reach past the cards.
+  await editor.connect('Repository', 'ci-check job', 'Triggers on push and PR')
+  await editor.connect('ci-check job', 'deploy job', 'Starts after a green check on main [needs]')
+  await editor.connect('deploy job', 'Actions secrets', 'Reads API token and account ID from')
+  await editor.addExisting('Developer')
+  await editor.addExisting('Cloudflare')
+  await editor.connect('Developer', 'Repository', 'Pushes commits to main [git]')
+  await editor.connect('deploy job', 'Cloudflare', 'Uploads the build')
+
+  const busy = await editor.recordAttribute(editor.canvas, 'aria-busy')
+  await editor.arrange()
+  await expect.poll(busy).toEqual(['true', 'false'])
+  await expect.poll(async () => {
+    const frame = await boxOf(editor.boundary)
+    const onIt: string[] = []
+    for (const name of ['Developer', 'Cloudflare']) if (overlap(await boxOf(editor.element(name)), frame)) onIt.push(name)
+    return onIt
+  }).toEqual([])
+  expect(consoleErrors).toEqual([])
+})

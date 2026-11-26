@@ -87,6 +87,7 @@ runs `runIssueProviderContract` against recorded JSON fixtures; an unrecorded re
 
 Vue 3, Vite, TypeScript, Tailwind CSS 4 with shadcn-vue on Reka UI, Vue Flow, Vitest (with `@vue/test-utils` and jsdom), Playwright (projects `chromium`,
 `webkit`, `tablet`), pnpm workspace, vite-plugin-pwa with Workbox. Node and pnpm pinned in `mise.toml`.
+The app keeps the Tailwind rules its shadcn-vue components use in `apps/web/src/assets/shadcn-vue.css`.
 Capacitor is planned for later mobile apps. Rules: [stack](../docs/agents/stack.md).
 
 ## Where it runs

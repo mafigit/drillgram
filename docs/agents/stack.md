@@ -7,7 +7,9 @@
 - **UI:** Tailwind CSS 4 (`@tailwindcss/vite`) with shadcn-vue components on Reka UI, icons from
   `@lucide/vue`, the Geist font from `@fontsource-variable/geist`. Components are copied into
   `apps/web/src/components/ui/` by the CLI (`components.json`): add one with
-  `pnpm --filter @drillgram/web dlx shadcn-vue@latest add <name>`. Design tokens (colours, radius, light
+  `pnpm --filter @drillgram/web dlx shadcn-vue@latest add <name>`. The app uses rules from
+  `apps/web/src/assets/shadcn-vue.css`. If the CLI adds a package import for its stylesheet,
+  use the local stylesheet and copy any additional rules the component uses. Design tokens (colours, radius, light
   and dark, the canvas and the colour of each C4 kind) are CSS variables in
   `apps/web/src/assets/main.css`; `src/composables/useTheme.ts` switches the `dark` class.
 - **Canvas:** Vue Flow (`@xyflow/vue` 2, MIT) draws the diagram: pan, zoom, selection, dragging

@@ -2,3 +2,11 @@ packages:
   - 'apps/*'
   - 'packages/*'
   - 'deploy/*'
+
+overrides:
+  # The app uses Tailwind and CSS. Vite can omit its optional Stylus peer.
+  'vite>stylus': '-'
+  # These callers still require affected major versions. Remove each override when its range includes a fix.
+  'workbox-build@7>glob': ^14.0.2
+  'js-beautify@2>glob': ^14.0.2
+  'editorconfig@3>minimatch': ^11.0.1

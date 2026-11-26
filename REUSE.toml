@@ -37,6 +37,12 @@ path = "apps/web/src/components/ui/**"
 SPDX-FileCopyrightText = ["2023 unovue (shadcn-vue, https://www.shadcn-vue.com)", "2026 Maximilian Fischer"]
 SPDX-License-Identifier = "MIT"
 
+# Tailwind rules copied from the shadcn-vue 2.9.0 stylesheet.
+[[annotations]]
+path = "apps/web/src/assets/shadcn-vue.css"
+SPDX-FileCopyrightText = "2023 unovue (shadcn-vue, https://www.shadcn-vue.com)"
+SPDX-License-Identifier = "MIT"
+
 # Cloudflare's product icons, unchanged (docs/icon-licences.md). SOURCE.json beside them is ours.
 [[annotations]]
 path = "apps/web/tech-icons-cloudflare/*.svg"

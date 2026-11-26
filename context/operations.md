@@ -73,6 +73,13 @@ with `index.html`.
 - Nothing is sent anywhere: the host sees requests for files only.
 - A new version reaches a browser as with a server: the service worker fetches it and the app
   asks before it reloads.
+- The build carries an imprint and a privacy policy (`apps/web/imprint.html`, `privacy.html`),
+  linked under "About this site". They are of who runs the site, not of the app: they name the
+  owner and Cloudflare as the host. Who gives the app to others under another address, or
+  from another host, writes their own into these two files first. A site for everybody must
+  name who runs it (in Germany § 5 DDG, § 18 MStV, Art. 13 GDPR). The owner's postal address
+  and e-mail address are not in yet: the pages say "to be filled in" where they belong. The build with a server has
+  neither page.
 
 ### On Cloudflare
 

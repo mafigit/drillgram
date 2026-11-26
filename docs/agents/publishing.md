@@ -32,5 +32,9 @@ network, a host of a local domain and the open port of a Docker daemon. Beyond w
   What a future reader needs of that goes into `context/private/` (in `.gitignore`, so it exists
   only where the owner keeps it), and the public text says no more than that it is there.
 - No secrets, as ever: say where one lives, never its value.
+- The one exception, on the owner's word (2026-11-26): `apps/web/imprint.html` and
+  `apps/web/privacy.html` name the owner, with a postal address and an e-mail address. The law
+  asks for them on the site, and the site is public. Nothing else of the owner's goes there,
+  and nothing of the owner's work, ever.
 
 The message of a public commit is public too: say what changed for a reader of the app.

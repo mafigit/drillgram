@@ -228,8 +228,10 @@ Project started 2026-11-03.
   be brought into an empty workspace of the server, with its change log, once.
 - Without a server (J62; owner's call, 2026-11-26, which takes back "no mode without a
   server" of the same day): `build:browser` builds the same app to run in the browser alone,
-  as files for a static host. Nobody signs in; where the account menu is, a note says that the
-  diagrams are kept in this browser. Workspaces and their change logs are in the browser's
+  as files for a static host. Nobody signs in; where the account menu is, "About this site" says that
+  the diagrams are kept in this browser and leads to the imprint and the privacy policy
+  (`apps/web/imprint.html`, `privacy.html`: of who runs the site, in this build alone; the
+  postal address and the e-mail address are still to be filled in, and the pages say so). Workspaces and their change logs are in the browser's
   IndexedDB, behind the same API the server answers (`lib/browserServer.ts`), so the editor,
   several workspaces, the history and the two-tabs rule of J60 work as with a server. Not
   there: users, sharing, the same diagrams on a second device. Not yet: a workspace as a file,

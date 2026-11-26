@@ -60,7 +60,11 @@ The web app needs it: see "The web app and the server" below.
   after an entry that is not the newest gets its 409 there too. It keeps what the server keeps
   and nothing else: no users, no members. `/api/session` always names one user, who is no
   admin, so the router lets everybody in and nobody to `/users`; `AppHeader.vue` shows
-  `KeptInBrowser.vue` where the account menu is. Everything above `api.ts` is the same code.
+  `AboutSite.vue` where the account menu is: where the diagrams are, and links to the imprint
+  and the privacy policy. Those are `imprint.html` and `privacy.html` beside `index.html`,
+  pages of their own (no Vue; `src/legal.ts` gives them the app's stylesheet and theme) and
+  inputs of this build alone (`vite.config.ts`): the build with a server has neither. The
+  service worker keeps them like every other file, so they are not answered with the app. Everything above `api.ts` is the same code.
   A change to what the app asks of the server needs its answer in `browserServer.ts` too
   (its tests say of it what `workspaces_test.go` says of the server).
 - **Who is signed in:** `useSession` (one answer for the app, from `/api/session`). The router

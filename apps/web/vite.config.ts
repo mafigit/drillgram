@@ -7,6 +7,9 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 import { VitePWA } from 'vite-plugin-pwa'
 import { techIcons } from './tech-icons.vite.ts'
 
+/** The build that runs without a server (`build:browser`, `dev:browser`). */
+const browserOnly = process.env.VITE_BROWSER_ONLY === '1'
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
@@ -58,7 +61,10 @@ export default defineConfig({
   ],
   // The dev server gives out the app; the API is the server's (apps/server), started beside it.
   // The app without a server (`dev:browser`, `build:browser`) asks nobody.
-  server: process.env.VITE_BROWSER_ONLY === '1' ? {} : { proxy: { '/api': process.env.DRILLGRAM_API ?? 'http://localhost:8080' } },
+  server: browserOnly ? {} : { proxy: { '/api': process.env.DRILLGRAM_API ?? 'http://localhost:8080' } },
+  // Without a server the site says who runs it: the imprint and the privacy policy are pages
+  // of that build alone. Who runs a server for others says their own.
+  build: browserOnly ? { rolldownOptions: { input: ['index.html', 'imprint.html', 'privacy.html'] } } : {},
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),

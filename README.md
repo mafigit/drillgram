@@ -64,7 +64,8 @@ mise run browser     # on http://localhost:5174
 ```
 
 `pnpm --filter @drillgram/web build:browser` writes it to `apps/web/dist-browser`: files for any
-static host. `mise run cloudflare` puts them on Cloudflare, where the free plan is enough
+static host. Before you host it for others, put your own name into `apps/web/imprint.html`
+and `apps/web/privacy.html`: they say who runs the site. `mise run cloudflare` puts them on Cloudflare, where the free plan is enough
 ([context/operations.md](context/operations.md), "Without a server").
 
 ## What is where

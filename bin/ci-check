@@ -63,7 +63,17 @@ fi
 case "$part" in
   image) ;;
   all)
-    inside 'pnpm test && pnpm typecheck && pnpm licences && pnpm test:e2e'
+    # The journeys a project after the other, as CI runs them side by side: in one run of all
+    # projects, the workers of WebKit (5 times slower a step than Chromium on Linux) starve, and
+    # the longest journeys run out of time (J42 on the tablet over 30 s, alone 7 s; 2026-11-26).
+    # WebKit with fewer workers too: as fast in all, J42 14 s instead of 24 (14 cores, busy).
+    inside 'pnpm test && pnpm typecheck && pnpm licences
+      failed=
+      for project in chromium webkit tablet phone browser-only; do
+        case $project in webkit | tablet) workers=--workers=30% ;; *) workers= ;; esac
+        pnpm test:e2e --project=$project $workers || failed="$failed $project"
+      done
+      if [ -n "$failed" ]; then echo "ci-check: journeys failed in:$failed" >&2; exit 1; fi'
     deploy/licences/reuse
     ;;
   unit)

@@ -132,4 +132,6 @@ Every change is test-driven. No production code without a failing test that dema
 - `bin/ci-check` is the full check CI runs: the server's tests, unit tests, typecheck and every
   journey, in the official Playwright image built from `apps/web/e2e/Dockerfile`, without network.
   It needs Docker. Run it before you push. Keep the image tag in the Dockerfile equal to the
-  `@playwright/test` version (pinned exactly) when upgrading.
+  `@playwright/test` version (pinned exactly) when upgrading. It runs the journeys one project
+  after the other, WebKit's with fewer workers: WebKit on Linux is about five times slower a
+  step than Chromium, and all projects in one run starved its workers until J42 timed out.

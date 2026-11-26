@@ -1292,3 +1292,30 @@ the search and the export work as ever. The lock is kept in the browser for this
 it is still on after the reload. Once unlocked the editor works as before, and the change log
 has the three changes of step 1 and nothing from the time it was locked. The lock is this
 browser's: an agent (J7) and the others in a shared session (J19) still change the workspace.
+
+## J67 Import a Miro board
+
+Test: `apps/web/e2e/j67-miro-board.spec.ts`
+
+Miro has no open file export. Two ways in: items copied on a board and pasted (what Miro puts
+on the clipboard, undocumented), or a whole board read through Miro's REST API with an access
+token the user makes in Miro (an app of their own with the scope `boards:read`, installed to
+their team; not everybody may make one). The token is used for the one import and not kept.
+
+1. Open the app, press "Import", then "Miro".
+2. On a Miro board, copy a frame with two sticky notes and a connector between them; paste
+   into "Miro items" and press "Import from Miro". Open "Checkout".
+3. Again, "Or read a whole board, with an access token": paste the board's link and the token,
+   press "Import from Miro". Open "Checkout". Go back and undo.
+
+Also: paste what is no copy from Miro; a token Miro refuses; a link that is no board's.
+
+Expected: the field says what the paste holds ("3 boxes and 1 connection from Miro"). The
+board comes onto the open diagram as one change, laid out by the layout engine: a frame is a
+box with what stands in it inside; a sticky note, a shape, a text and a card are boxes named
+by their first line, the rest of their text is the description; a shape keeps its outline
+where we have it (a can is a cylinder, a rhombus a diamond); a connector is a connection with
+its captions as the label and its colour. Images, documents and embeds come only where a
+connector ends at them, named by their title; a connector with a loose end does not come. One
+undo takes it back. What is no copy from Miro, a refused token or a link that is no board is
+said at the field, and nothing comes in.

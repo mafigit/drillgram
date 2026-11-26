@@ -302,7 +302,11 @@ Project started 2026-11-03.
   (`AgentPresence.vue` in `App.vue`), and the router asks before the workspace is left, which
   ends the connection (`lib/agentSharing.ts`: a guard for every way out but a deleted
   workspace).
-- Journeys J1 to J5, J7, J9, J11, J15 and J18 to J65 are real tests. J6, J8, J10,
+- Lock (J66, 2026-11-26): "Lock" in the top bar makes the editor look-only for that workspace,
+  kept in the browser (`drillgram.locked.<workspace or room>`, `useLock`). The controls that
+  change anything are disabled or gone, and the editor's own `dispatch` does nothing while
+  locked; agents write to the store directly and are not held back.
+- Journeys J1 to J5, J7, J9, J11, J15 and J18 to J66 are real tests. J6, J8, J10,
   J12 to J14, J16 and J17 are still `test.fixme`.
 - Event sourcing (owner's call, 2026-11-22; begun 2026-11-26): the events are the truth and the
   workspace is what they add up to: the server keeps the log, the editor makes the workspace

@@ -13,6 +13,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 const props = defineProps<{
   views: { id: string; name: string; to: string }[]
   current: string
+  /** Looked at, not changed (J66): the tabs only go from view to view. */
+  locked?: boolean
 }>()
 const emit = defineEmits<{
   add: [name: string, copy: boolean]
@@ -22,6 +24,7 @@ const emit = defineEmits<{
 
 /** The first view is the one every box has: it keeps its name and cannot be deleted. */
 const isAdded = (viewId: string) => props.views[0]?.id !== viewId
+const changeable = (viewId: string) => !props.locked && isAdded(viewId)
 
 // Adding: a name, and whether the new view starts with what this one shows.
 const adding = ref(false)
@@ -42,7 +45,7 @@ const renamed = ref('')
 const field = ref<HTMLInputElement[]>()
 
 async function startRenaming(view: { id: string; name: string }) {
-  if (!isAdded(view.id)) return
+  if (!changeable(view.id)) return
   renaming.value = view.id
   renamed.value = view.name
   await nextTick()
@@ -84,15 +87,15 @@ function commitRenaming() {
             role="tab"
             :to="view.to"
             :aria-selected="view.id === current"
-            :title="isAdded(view.id) ? 'Double-click to rename' : undefined"
+            :title="changeable(view.id) ? 'Double-click to rename' : undefined"
             class="text-sm leading-7 font-medium whitespace-nowrap"
-            :class="isAdded(view.id) ? 'pr-1 pl-2.5' : 'px-2.5'"
+            :class="changeable(view.id) ? 'pr-1 pl-2.5' : 'px-2.5'"
             @dblclick.prevent="startRenaming(view)"
           >
             {{ view.name }}
           </RouterLink>
           <button
-            v-if="isAdded(view.id)"
+            v-if="changeable(view.id)"
             type="button"
             class="hover:bg-muted hover:text-foreground mr-1 grid size-5 place-items-center rounded opacity-60 hover:opacity-100"
             :aria-label="`Delete the view ${view.name}`"
@@ -104,7 +107,7 @@ function commitRenaming() {
         </template>
       </div>
     </div>
-    <Popover v-model:open="adding">
+    <Popover v-if="!locked" v-model:open="adding">
       <PopoverTrigger as-child>
         <Button variant="ghost" size="icon-sm" class="text-muted-foreground" aria-label="New view" title="New view">
           <PlusIcon aria-hidden="true" />

@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea'
 const props = defineProps<{
   /** Put the diagram on the open one; throws with a reason in words when it does not fit. */
   bring: (diagram: Diagram) => Promise<void>
+  disabled?: boolean
 }>()
 
 const FORMATS: { format: DiagramFormat; hint: string; accept: string; icon: typeof FileCodeIcon; example: string }[] = [
@@ -76,7 +77,7 @@ async function bring() {
 <template>
   <DropdownMenuRoot :modal="false">
     <DropdownMenuTrigger as-child>
-      <Button variant="ghost" size="icon" aria-label="Import" title="Import a diagram written as text">
+      <Button variant="ghost" size="icon" aria-label="Import" title="Import a diagram written as text" :disabled="disabled">
         <UploadIcon aria-hidden="true" />
       </Button>
     </DropdownMenuTrigger>

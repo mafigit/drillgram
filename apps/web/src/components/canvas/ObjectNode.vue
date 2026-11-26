@@ -18,6 +18,7 @@ import type { ObjectNode } from './types'
 const props = defineProps<NodeProps<ObjectNode>>()
 
 const actions = inject(CANVAS_ACTIONS)
+const locked = computed(() => actions?.locked.value === true)
 const faded = inject(CANVAS_FADED)
 const connection = useConnection()
 /** While a connection is being drawn, the whole card of every other object takes the drop. */
@@ -107,6 +108,7 @@ const textFieldStyle = computed(() => ({
 }))
 
 function onDoubleClick(event: MouseEvent) {
+  if (locked.value) return
   if (newName.value !== undefined || newText.value !== undefined) return
   const target = event.target as Element
   // Not on a button of the card, and not on a link in its text: those have their own click.
@@ -239,7 +241,7 @@ function commitText() {
     </Button>
 
     <!-- Shown with the card selected or under the pointer (main.css). -->
-    <div class="card-tools nodrag nopan absolute top-1 right-1 gap-0.5">
+    <div v-if="!locked" class="card-tools nodrag nopan absolute top-1 right-1 gap-0.5">
       <Button variant="ghost" size="icon-xs" class="text-muted-foreground" aria-label="Edit" title="Edit" @click.stop="edit">
         <PencilIcon aria-hidden="true" />
       </Button>
@@ -262,6 +264,7 @@ function commitText() {
       type="source"
       :position="Position.Right"
       class="connect-handle"
+      :class="{ invisible: locked }"
       data-testid="connection-handle"
       title="Drag to connect"
     />

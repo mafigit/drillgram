@@ -38,6 +38,8 @@ export type ConnectionEdge = Edge<
 
 /** What the canvas parts need from the editor around them. */
 export interface CanvasActions {
+  /** The workspace is looked at, not changed (J66): a card offers nothing that changes it. */
+  locked: Readonly<Ref<boolean>>
   /** Drill down into an object. */
   open: (objectId: string) => void
   /** Give an object another name. */

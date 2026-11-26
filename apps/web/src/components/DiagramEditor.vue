@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, markRaw, nextTick, provide, ref, shallowRef, watch } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useEventListener } from '@vueuse/core'
 import {
   CopyPlusIcon,
@@ -8,6 +8,8 @@ import {
   LayoutDashboardIcon,
   ListChecksIcon,
   LoaderCircleIcon,
+  LockIcon,
+  LockOpenIcon,
   Redo2Icon,
   Trash2Icon,
   GroupIcon,
@@ -84,6 +86,7 @@ import { nearestPlace, placeBlock } from './canvas/blockPlace'
 import { cardRoom } from './canvas/cardRoom'
 import { languageIcon } from './canvas/codeLanguages'
 import { clearErrors, showError } from '../composables/useErrors'
+import { useLock } from '../composables/useLock'
 import { useTouch } from '../composables/useTouch'
 import { KIND_ICON, KIND_LABEL } from './canvas/kinds'
 import { labelSize } from './canvas/labelSize'
@@ -111,7 +114,15 @@ const KINDS: ElementKind[] = ['box', 'person', 'softwareSystem', 'container', 'c
 // Every change goes through `dispatch`, which logs it: that is what undo, redo and the timeline
 // step through.
 const store = useWorkspaceStore()
-const { dispatch, history } = store
+const { history } = store
+// Locked (J66): the workspace is looked at, not changed, in this browser. The controls that
+// change it are not offered, and a change of the editor that comes through anyway is not made.
+// An agent (J7) writes to the store itself and is not held back.
+const route = useRoute()
+const locked = useLock(String(route.params.workspace ?? route.params.room ?? ''))
+const dispatch = (event: WorkspaceEvent) => {
+  if (!locked.value) store.dispatch(event)
+}
 /** Working on this workspace with others; a guest is in somebody else's (collab/, J19). */
 const sharing = store.sharing
 const guest = sharing?.role === 'guest'
@@ -436,6 +447,7 @@ function onCanvasClick(event: MouseEvent) {
 function onCanvasDoubleClick(event: MouseEvent) {
   const first = clickedEdge
   clickedEdge = undefined
+  if (locked.value) return
   if (!first || event.timeStamp - first.at > 600) return
   if (Math.hypot(event.clientX - first.x, event.clientY - first.y) > 8) return
   const connection = workspace.value.model.connections.find((c) => c.id === first.id)
@@ -452,6 +464,7 @@ const editName = ref('')
 const editDetails = ref<{ description: string; technology: string; external: boolean; shape: BoxShape | ''; columns: ColumnRow[] }>({ description: '', technology: '', external: false, shape: '', columns: [] })
 
 function startEditing(objectId: string, at: Point) {
+  if (locked.value) return
   const object = workspace.value.model.objects.find((o) => o.id === objectId)
   if (!object) return
   editName.value = object.name
@@ -546,9 +559,10 @@ function commitLabel() {
 }
 
 provide(CANVAS_ACTIONS, {
+  locked,
   open,
   rename: (objectId, name) => dispatch({ type: 'objectRenamed', object: objectId, name }),
-  pickIcons: (objectId, at) => (iconsOf.value = { id: objectId, at }),
+  pickIcons: (objectId, at) => locked.value || (iconsOf.value = { id: objectId, at }),
   edit: startEditing,
   copy: (objectId) => copyCards([objectId]),
   describe: (objectId, text) => {
@@ -1138,6 +1152,7 @@ async function arrangeWithGroups(
 }
 
 async function arrange(signal?: AbortSignal, boxIds?: string[]) {
+  if (locked.value && !signal) return
   if (boxIds && boxIds.length < 2) throw new Error('Choose at least two boxes to arrange a selection.')
   if (!canArrange.value || arranging.value) {
     if (signal) throw new Error('Arrange needs a diagram with cards and an idle layout engine.')
@@ -1422,6 +1437,7 @@ const canClear = computed(
 )
 
 async function clearWorkspace() {
+  if (locked.value) return
   labelling.value = null
   stopAdding()
   editing.value = undefined
@@ -1436,7 +1452,9 @@ async function clearWorkspace() {
   if (viewId.value !== ROOT_VIEW_ID || props.viewId !== undefined) router.replace(viewPath(ROOT_VIEW_ID, ROOT_VIEW_ID))
 }
 
+/** `confirm`: asked by an agent, which a lock does not hold back. */
 function travel(to: number, confirm = false) {
+  if (locked.value && !confirm) return undefined
   const from = history.value.cursor
   const before = { view: view.value, id: viewId.value }
   const saved = confirm ? store.goToSaved(to) : store.goTo(to)
@@ -1461,6 +1479,19 @@ function travel(to: number, confirm = false) {
 }
 const undo = () => travel(history.value.cursor - 1)
 const redo = () => travel(history.value.cursor + 1)
+
+// Locking leaves what was open to change something, and the history: going along it is a change too.
+watch(locked, (now) => {
+  if (!now) return
+  stopAdding()
+  editing.value = undefined
+  iconsOf.value = undefined
+  groupEditing.value = undefined
+  grouping.value = false
+  labelling.value = null
+  quickMenuAt.value = undefined
+  showHistory.value = false
+})
 
 // The tour (J63, TourGuide.vue): it is told on the example, which it loads into an empty
 // workspace, and follows what is done here to know when a step was answered.
@@ -1521,6 +1552,8 @@ useEventListener(window, 'keydown', (event: KeyboardEvent) => {
   // A field being typed in keeps its own undo and its own Delete.
   const field = 'input:not([type=range], [type=checkbox]), textarea, select, [contenteditable]'
   if (event.target instanceof Element && event.target.matches(field)) return
+  // The other keys change the workspace.
+  if (locked.value) return
   const key = event.key.toLowerCase()
   if (event.ctrlKey || event.metaKey) {
     // Copy the selection: before the browser takes the key for a bookmark.
@@ -1613,9 +1646,21 @@ const keyKinds = computed(() =>
         <Button
           variant="ghost"
           size="icon"
+          aria-label="Lock"
+          :title="locked ? 'Unlock: change the workspace again' : 'Lock: look at the workspace without changing it'"
+          :aria-pressed="locked"
+          :class="{ 'bg-accent': locked }"
+          @click="locked = !locked"
+        >
+          <LockIcon v-if="locked" aria-hidden="true" />
+          <LockOpenIcon v-else aria-hidden="true" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
           aria-label="Arrange"
           :title="arrangeSome ? `Arrange the ${selected.length} selected cards (A)` : 'Arrange the diagram (A)'"
-          :disabled="!canArrange || arranging !== undefined"
+          :disabled="locked || !canArrange || arranging !== undefined"
           :class="{ 'disabled:opacity-100': arranging }"
           :aria-busy="arranging !== undefined"
           @click="arrange()"
@@ -1628,7 +1673,7 @@ const keyKinds = computed(() =>
           size="icon"
           aria-label="Undo"
           title="Undo (Ctrl+Z)"
-          :disabled="!store.canUndo.value"
+          :disabled="locked || !store.canUndo.value"
           @click="undo"
         >
           <Undo2Icon aria-hidden="true" />
@@ -1638,7 +1683,7 @@ const keyKinds = computed(() =>
           size="icon"
           aria-label="Redo"
           title="Redo (Ctrl+Shift+Z)"
-          :disabled="!store.canRedo.value"
+          :disabled="locked || !store.canRedo.value"
           @click="redo"
         >
           <Redo2Icon aria-hidden="true" />
@@ -1648,15 +1693,16 @@ const keyKinds = computed(() =>
           size="icon"
           aria-label="History"
           title="History: the timeline and the change log"
+          :disabled="locked"
           :aria-pressed="showHistory"
           :class="{ 'bg-accent': showHistory }"
           @click="showHistory = !showHistory"
         >
           <HistoryIcon aria-hidden="true" />
         </Button>
-        <ImportMenu :bring="bringDiagram" />
+        <ImportMenu :bring="bringDiagram" :disabled="locked" />
         <!-- To empty a shared workspace is for the one who shares it. -->
-        <ClearWorkspace :disabled="!canClear || guest" @clear="clearWorkspace" />
+        <ClearWorkspace :disabled="locked || !canClear || guest" @clear="clearWorkspace" />
         <ExportMenu :scene="exportScene" :diagram="() => diagramOfView(workspace, viewId)" :disabled="nodes.length === 0" />
         <ShareMenu v-if="sharing" :sharing="sharing" />
       </template>
@@ -1690,9 +1736,11 @@ const keyKinds = computed(() =>
           :edges-focusable="false"
           snap-to-grid
           :snap-grid="[SNAP_GRID, SNAP_GRID]"
+          :nodes-draggable="!locked"
+          :nodes-connectable="!locked"
           attribution-position="bottom-left"
           @connect="onConnect"
-          @pane-context-menu="(event: MouseEvent) => (event.preventDefault(), (quickMenuAt = { x: event.clientX, y: event.clientY }))"
+          @pane-context-menu="(event: MouseEvent) => (event.preventDefault(), locked || (quickMenuAt = { x: event.clientX, y: event.clientY }))"
           @node-drag="onNodeDrag"
           @node-drag-stop="onNodeDragStop"
         >
@@ -1744,7 +1792,7 @@ const keyKinds = computed(() =>
             <h2 class="text-base font-semibold">
               {{ boxTitle }}<span v-if="title !== boxTitle" class="sr-only">{{ title.slice(boxTitle.length) }}</span>
             </h2>
-            <ViewTabs :views="views" :current="viewId" @add="addView" @rename="renameView" @remove="removeView" />
+            <ViewTabs :views="views" :current="viewId" :locked="locked" @add="addView" @rename="renameView" @remove="removeView" />
           </Panel>
           <CanvasKey
             :kinds="keyKinds"
@@ -1779,13 +1827,14 @@ const keyKinds = computed(() =>
                   title="Press to select its cards, double-click to change it"
                   class="nodrag nopan hover:bg-accent/60 pointer-events-auto absolute top-1 left-1.5 flex max-w-[calc(100%-36px)] flex-col items-start rounded-md px-1.5 py-0.5 text-left"
                   @click.stop="selectGroup(frame.id)"
-                  @dblclick.stop="(event: MouseEvent) => (groupEditing = { id: frame.id, at: { x: event.clientX, y: event.clientY } })"
+                  @dblclick.stop="(event: MouseEvent) => locked || (groupEditing = { id: frame.id, at: { x: event.clientX, y: event.clientY } })"
                 >
                   <strong class="max-w-full truncate text-xs leading-tight font-semibold">{{ frame.name }}</strong>
                   <span v-if="frame.type" class="text-muted-foreground max-w-full truncate text-[10px] leading-tight">[{{ frame.type }}]</span>
                 </button>
                 <!-- In sight on the frame itself: the cards stay, one undo brings the frame back. -->
                 <button
+                  v-if="!locked"
                   type="button"
                   :aria-label="`Delete the group ${frame.name}`"
                   title="Delete this frame: its cards stay"
@@ -1916,18 +1965,18 @@ const keyKinds = computed(() =>
       >
         <p>Nothing here yet. Add something from the bar below.</p>
         <Button
-          v-if="workspace.model.objects.length === 0"
+          v-if="workspace.model.objects.length === 0 && !locked"
           variant="outline"
           class="pointer-events-auto"
           @click="loadExample"
         >
           Load an example
         </Button>
-        <Button v-if="workspace.model.objects.length === 0" variant="outline" class="pointer-events-auto" @click="tour?.start()">
+        <Button v-if="workspace.model.objects.length === 0 && !locked" variant="outline" class="pointer-events-auto" @click="tour?.start()">
           Take the tour
         </Button>
         <Button
-          v-if="kept && workspace.model.objects.length === 0 && history.log.length === 0"
+          v-if="kept && !locked && workspace.model.objects.length === 0 && history.log.length === 0"
           variant="outline"
           class="pointer-events-auto"
           title="The diagrams this browser kept before the app had a server, with their change log"
@@ -2001,8 +2050,18 @@ const keyKinds = computed(() =>
         aria-label="Diagram tools"
         class="bg-popover/90 absolute bottom-4 left-1/2 z-20 flex max-w-[calc(100%-2rem)] -translate-x-1/2 items-center gap-1 rounded-2xl border p-1.5 shadow-lg backdrop-blur"
       >
+        <template v-if="locked">
+          <p class="text-muted-foreground flex items-center gap-2 px-2 text-sm">
+            <LockIcon class="size-4" aria-hidden="true" />
+            Locked: look, don't change
+          </p>
+          <Button variant="ghost" size="lg" @click="locked = false">
+            <LockOpenIcon aria-hidden="true" />
+            Unlock
+          </Button>
+        </template>
         <AddObjectForm
-          v-if="addingKind && !floatAt"
+          v-else-if="addingKind && !floatAt"
           v-model:name="newName"
           v-model:details="newDetails"
           :kind="addingKind"

@@ -18,6 +18,7 @@ you sign in, and your diagrams are kept there, in as many workspaces as you like
   "Arrange" lays out the whole diagram.
 - **Undo, redo and a timeline**: every change is logged with its time. Step back and forth, or
   drag the timeline to see the diagram as it was. The log survives a reload.
+- **Lock**: look at a workspace without changing it by accident. Kept in the browser.
 - **Import and export**: SVG, PNG, Mermaid and D2 out; Mermaid (C4 and flowcharts) and D2 in.
 - **Working together**: without a server, share a workspace under a link. Whoever opens it
   changes the diagrams with you, live, and you see each other's pointers. The browsers talk to

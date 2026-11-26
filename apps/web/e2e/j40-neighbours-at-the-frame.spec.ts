@@ -58,8 +58,9 @@ test('J40 Inside an object, its own connections run to its frame', async ({ edit
   // Opened again, the diagram shows all of it, the neighbours above the frame too.
   await editor.backTo('Overview')
   await editor.drillDown('Online Shop')
-  await expect(customer).toBeInViewport({ ratio: 1 })
-  await expect(payments).toBeInViewport({ ratio: 1 })
+  // By their boxes: the fit leaves room around the diagram, so the zoom is no whole number, and
+  // there the browser's own measure of "in the viewport" is a hair under 1 for a card that is.
+  await expect.poll(() => editor.outOfSight([customer, payments, editor.boundary], {})).toEqual([])
   await editor.connect('Customer', 'Web App', 'Shops in')
   await expect(editor.relationship('Shops in')).toHaveCount(1)
   await expect(editor.boundaryRelationships).toHaveText(['Charges through'])

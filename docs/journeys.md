@@ -316,8 +316,9 @@ Test: `apps/web/e2e/j21-start-from-an-example.spec.ts`
 3. Open "Web Shop".
 
 Expected: the Overview shows a made-up bookshop with its people, its own software systems
-and external ones such as "Card Processor", all on screen; the diagram inside "Web Shop"
-shows "Shop API". Once something is on the Overview, the example is no longer offered.
+and external ones such as "Card Processor", all on screen: every card whole, with air to the
+edge of the canvas, and none under the toolbar, the minimap or the title. The diagram inside
+"Web Shop" shows "Shop API", its frame whole on the screen too. Once something is on the Overview, the example is no longer offered.
 
 ## J22 Focus on one object
 

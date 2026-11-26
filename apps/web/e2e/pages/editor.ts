@@ -107,6 +107,37 @@ export class DiagramEditor {
     await this.canvas.click({ position: { x: box.width - 10, y: 10 } })
   }
 
+  /** Every card on the canvas. */
+  get cards(): Locator {
+    return this.canvas.locator('.vue-flow__node')
+  }
+
+  /**
+   * Which of the things given lie wrong on the screen, in words; empty when all is well. Each
+   * is on the screen with all of it, and under none of what stands over the canvas' edges.
+   */
+  async outOfSight(things: Locator[], over: Record<string, Locator>): Promise<string[]> {
+    const screen = this.page.viewportSize()
+    if (!screen) throw new Error('The page has no size')
+    const covers = await Promise.all(Object.entries(over).map(async ([name, locator]) => ({ name, box: await locator.boundingBox() })))
+    const found: string[] = []
+    for (const thing of things) {
+      const box = await thing.boundingBox()
+      const name = (await thing.getAttribute('aria-label')) ?? (await thing.getAttribute('data-testid')) ?? 'something'
+      if (!box) {
+        found.push(`"${name}" is not there`)
+        continue
+      }
+      // A hair of a pixel is no cut: at a fractional zoom a card can be that far off a whole one.
+      if (box.x < -0.5 || box.y < -0.5 || box.x + box.width > screen.width + 0.5 || box.y + box.height > screen.height + 0.5) found.push(`"${name}" is cut off by the edge of the screen`)
+      for (const cover of covers) {
+        const c = cover.box
+        if (c && box.x < c.x + c.width && c.x < box.x + box.width && box.y < c.y + c.height && c.y < box.y + box.height) found.push(`"${name}" lies under the ${cover.name}`)
+      }
+    }
+    return found
+  }
+
   /** Points along a connector's line, a few pixels apart, where they are on the screen. */
   async pointsAlong(connector: Locator): Promise<Point[]> {
     return this.pointsOfPath(connector.locator('path.vue-flow__edge-path'))

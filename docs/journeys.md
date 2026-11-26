@@ -1342,3 +1342,22 @@ its captions as the label and its colour. Images, documents and embeds come only
 connector ends at them, named by their title; a connector with a loose end does not come. One
 undo takes it back. What is no copy from Miro, a file that is no PDF, a refused token or a link that is no board is
 said at the field, and nothing comes in.
+
+## J68 Resize a card
+
+Test: `apps/web/e2e/j68-resize-a-card.spec.ts`
+
+1. Open the app and add a box "Notes" and a database "Orders DB".
+2. Select "Notes" and drag its bottom right corner down and right; then its top left corner up
+   and left. Make "Orders DB" taller.
+3. Undo, then reload the page.
+4. On another workspace add "Notes" and "Neighbour" beside it, and drag the right corner of
+   "Notes" into "Neighbour".
+5. Lock the workspace and select a card.
+
+Expected: a selected card has a handle on each corner and can be pulled at each side; an
+unselected one shows none. The card follows the pointer and lands on the grid, the side across
+from the one pulled staying where it was; a shape's outline is drawn at the new size. Each
+resize is one change ("Resized "Notes"") that one undo takes back, and the size stays after a
+reload. A card made to reach into another goes back to its size, and a card says
+"Notes" would reach into another card. A locked workspace offers no resizing.

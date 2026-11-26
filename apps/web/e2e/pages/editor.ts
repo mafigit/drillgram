@@ -329,6 +329,23 @@ export class DiagramEditor {
     await this.page.mouse.move(grab.x + by.x * scale, grab.y + by.y * scale, { steps: 8 })
   }
 
+  /**
+   * Select a card and drag one of its corners by an offset in pixels of the diagram; `scale` is
+   * how many screen pixels one of them takes.
+   */
+  async resize(name: string, corner: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right', by: Point, scale = 1): Promise<void> {
+    const card = this.element(name)
+    await card.getByText(name, { exact: true }).click()
+    const handle = card.getByTestId(`resize-${corner}`)
+    const box = await handle.boundingBox()
+    if (!box) throw new Error(`The corner ${corner} of "${name}" is not visible`)
+    const grab = { x: box.x + box.width / 2, y: box.y + box.height / 2 }
+    await this.page.mouse.move(grab.x, grab.y)
+    await this.page.mouse.down()
+    await this.page.mouse.move(grab.x + by.x * scale, grab.y + by.y * scale, { steps: 8 })
+    await this.page.mouse.up()
+  }
+
   async delete(name: string): Promise<void> {
     await this.element(name).click()
     await this.page.keyboard.press('Delete')

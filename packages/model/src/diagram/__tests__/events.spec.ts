@@ -209,6 +209,37 @@ describe('the size of a card, with the change that asks for it', () => {
   })
 })
 
+describe('cardResized', () => {
+  const LARGE = { width: 300, height: 400 }
+
+  it('gives a card another size and, from a top or left corner, another place; and says so', () => {
+    const ws = j2()
+    const resized = applyEvent(ws, { type: 'cardResized', view: ROOT_VIEW_ID, object: 'OnlineShop', size: LARGE })
+    expect(resized.views[0]!.sizes).toEqual({ OnlineShop: LARGE })
+    expect(resized.views[0]!.positions.OnlineShop).toEqual(ws.views[0]!.positions.OnlineShop)
+    const at = { x: -400, y: -400 }
+    const moved = applyEvent(ws, { type: 'cardResized', view: ROOT_VIEW_ID, object: 'OnlineShop', size: LARGE, to: at })
+    expect(moved.views[0]!.positions.OnlineShop).toEqual(at)
+    expect(describeEvent(ws, { type: 'cardResized', view: ROOT_VIEW_ID, object: 'OnlineShop', size: LARGE })).toBe('Resized "Online Shop"')
+  })
+
+  it('back to the usual size keeps no size of its own', () => {
+    const wide = applyEvent(j2(), { type: 'cardResized', view: ROOT_VIEW_ID, object: 'OnlineShop', size: LARGE })
+    const back = applyEvent(wide, { type: 'cardResized', view: ROOT_VIEW_ID, object: 'OnlineShop', size: { width: 220, height: 120 } })
+    expect(back.views[0]).not.toHaveProperty('sizes')
+  })
+
+  it('is refused when the card would reach into another one, or the size is no size', () => {
+    const ws = j2()
+    const customer = ws.views[0]!.positions.Customer!
+    const shop = ws.views[0]!.positions.OnlineShop!
+    const across = { width: Math.abs(customer.x - shop.x) + 300, height: Math.abs(customer.y - shop.y) + 300 }
+    const to = { x: Math.min(customer.x, shop.x) - 10, y: Math.min(customer.y, shop.y) - 10 }
+    expect(applyEvent(ws, { type: 'cardResized', view: ROOT_VIEW_ID, object: 'OnlineShop', size: across, to })).toBe(ws)
+    expect(applyEvent(ws, { type: 'cardResized', view: ROOT_VIEW_ID, object: 'OnlineShop', size: { width: 0, height: 100 } })).toBe(ws)
+  })
+})
+
 describe('objectsCopied', () => {
   const two = () => apply([shop, customer])
 

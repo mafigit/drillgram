@@ -2,11 +2,14 @@ name: CI
 
 # All logic lives in bin/ci-check (no private address in a file, unit tests, typecheck, the licence
 # gate, the e2e journeys in the pinned Playwright image, the licence of every file), so the job
-# only checks out and calls it. It needs Docker.
+# only checks out and calls it. It needs Docker. A commit on main whose check is green then goes
+# to Cloudflare, as the app without a server (the job `deploy`).
 on:
   push:
     branches: [main]
   pull_request:
+  # By hand, on main: the check and the deployment once more, without a new commit.
+  workflow_dispatch:
 
 # A newer commit supersedes older PR validation; keep main pushes independent.
 concurrency:
@@ -34,3 +37,29 @@ jobs:
         run: |
           docker builder prune --all --force --filter until=6h | tail -n 1
           docker system df
+
+  # The app without a server, to Cloudflare (context/operations.md, "Without a server"): what
+  # `mise run cloudflare` does on a machine. Only for main, only after its check, and only in
+  # the repository that has the two secrets: a fork deploys nothing until its owner names it
+  # here and gives it secrets of its own.
+  deploy:
+    needs: ci-check
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && github.repository == 'mafigit/drillgram'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # One deployment at a time, and none stopped half-way.
+    concurrency:
+      group: deploy-cloudflare
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: true
+      # The tools of mise.toml but Go: the server is not built here.
+      - uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
+        with:
+          install_args: node pnpm rust
+      - run: mise run cloudflare
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

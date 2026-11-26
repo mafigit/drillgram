@@ -83,7 +83,8 @@ with `index.html`.
 
 ### On Cloudflare
 
-`mise run cloudflare` builds and then runs `wrangler deploy` in `apps/web`
+The workflow deploys every commit on `main` that passed its check ("CI" below); by hand it
+is the same command. `mise run cloudflare` builds and then runs `wrangler deploy` in `apps/web`
 (`wrangler.jsonc`): the files become the static assets of a Worker named `drillgram`, with no
 code of its own, at `drillgram.<your subdomain>.workers.dev`. Requests for static assets are
 free and not counted on the free plan, which takes up to 20,000 files of at most 25 MiB each.
@@ -150,6 +151,14 @@ the proxy must take away such a header when a request brings one from outside.
 
 `.github/workflows/ci.yml` only checks out and calls `bin/ci-check`, on every push to `main` and
 every pull request. It runs on GitHub Actions and on any server that runs the same workflows.
+
+After a green check of a commit on `main`, its job `deploy` puts the app without a server on
+Cloudflare: `mise run cloudflare`, with the tools of `mise.toml` (see "On Cloudflare" above).
+It reads the repository's secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` (GitHub:
+Settings, Secrets and variables, Actions). So what is pushed to `main` is live some twenty
+minutes later, without anybody looking at it again. "Run workflow" on the workflow's page
+checks and deploys `main` once more without a new commit. A pull request and a fork deploy
+nothing.
 
 On a runner that is not thrown away after the job, the Docker build cache grows with every build
 until the disk is full; then every run fails within half a minute with `no space left on device`,

@@ -113,7 +113,8 @@ Capacitor is planned for later mobile apps. Rules: [stack](../docs/agents/stack.
   `apps/web/wrangler.jsonc` puts them on Cloudflare as the static assets of a Worker without
   code (`operations.md`, "Without a server").
 - The server is deployed nowhere: it and the app are built and run locally
-  (`context/operations.md`). CI is `bin/ci-check`, called by `.github/workflows/ci.yml`.
+  (`context/operations.md`). CI is `bin/ci-check`, called by `.github/workflows/ci.yml`, which then
+  deploys the app without a server from `main`.
 - **As one image** (`Dockerfile`): stages build the layout engine (Rust to WebAssembly), the
   web app (Node) and the server (Go, no C); what runs is the program and the built app in a
   distroless image, as a user who owns nothing. `compose.yaml` runs it with a PostgreSQL. No

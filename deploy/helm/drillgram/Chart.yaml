@@ -1,0 +1,11 @@
+apiVersion: v2
+name: drillgram
+description: Hosted Drillgram with its web app, API and optional PostgreSQL
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/mafigit/drillgram
+sources:
+  - https://github.com/mafigit/drillgram
+annotations:
+  artifacthub.io/license: Apache-2.0

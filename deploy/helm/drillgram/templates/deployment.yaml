@@ -1,0 +1,101 @@
+{{- $publicUrl := .Values.publicUrl }}
+{{- if and .Values.ingress.enabled (not $publicUrl) }}
+{{- $publicUrl = printf "%s://%s" (ternary "https" "http" (not (empty .Values.ingress.tlsSecret))) .Values.ingress.host }}
+{{- end }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    {{- include "drillgram.appSelector" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "drillgram.appSelector" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "drillgram.appSelector" . | nindent 8 }}
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: drillgram
+          image: {{ printf "%s:%s" .Values.image.repository (default .Chart.AppVersion .Values.image.tag) | quote }}
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: DRILLGRAM_LISTEN
+              value: ":8080"
+            {{- if $publicUrl }}
+            - name: DRILLGRAM_PUBLIC_URL
+              value: {{ $publicUrl | quote }}
+            {{- end }}
+            {{- with .Values.admin.existingSecret }}
+            - name: DRILLGRAM_ADMIN_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . | quote }}
+                  key: email
+            - name: DRILLGRAM_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . | quote }}
+                  key: password
+            {{- end }}
+            {{- if .Values.postgresql.enabled }}
+            - name: DRILLGRAM_DATABASE_URL
+              value: {{ printf "postgres://drillgram@%s:5432/drillgram?sslmode=disable" (include "drillgram.postgresqlName" .) | quote }}
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ required "Set postgresql.existingSecret to a Secret with a password key" .Values.postgresql.existingSecret | quote }}
+                  key: password
+            {{- else }}
+            - name: DRILLGRAM_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ required "Set externalDatabase.existingSecret to a Secret with a url key" .Values.externalDatabase.existingSecret | quote }}
+                  key: url
+            {{- end }}
+          {{- with .Values.envFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 15
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if and (not .Values.postgresql.enabled) .Values.externalDatabase.caSecret }}
+          volumeMounts:
+            - name: database-ca
+              mountPath: /etc/drillgram/db-ca
+              readOnly: true
+      volumes:
+        - name: database-ca
+          secret:
+            secretName: {{ .Values.externalDatabase.caSecret | quote }}
+          {{- end }}

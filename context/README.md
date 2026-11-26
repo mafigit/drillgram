@@ -240,6 +240,8 @@ Project started 2026-11-03.
 - Run as a stack (2026-11-26): `docker compose up --build` builds one image with the server and
   the web app and runs it with a PostgreSQL (`Dockerfile`, `compose.yaml`; `operations.md`,
   "The stack").
+- Kubernetes: the [Helm chart](../deploy/helm/drillgram/README.md) runs the hosted app with
+  bundled PostgreSQL or connects to an external PostgreSQL database.
 - Not built yet: the MCP server (`apps/mcp-server` is planned). Journeys J1 to
   J5, J9, J11, J15, J18 and J20 to J62 are real tests; the others (J6 to J8, J10, J12 to J14,
   J16, J17, J19) are still `test.fixme`.

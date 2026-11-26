@@ -54,6 +54,11 @@ mise run dev     # the server with a PostgreSQL that keeps its data, and the app
 More commands, and everything the server can be told:
 [context/operations.md](context/operations.md).
 
+### On Kubernetes
+
+The [Helm chart](deploy/helm/drillgram/README.md) installs the hosted app with either a
+bundled PostgreSQL database or an external PostgreSQL connection.
+
 ### Without a server
 
 The same app can be built to run in the browser alone: nobody signs in, and the diagrams are

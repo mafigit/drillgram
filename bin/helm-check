@@ -22,7 +22,7 @@ cleanup() {
     for namespace in "$bundled" "$external"; do
       kubectl -n "$namespace" get pods,pvc >&2 || true
       kubectl -n "$namespace" logs deployment/drillgram >&2 || true
-      kubectl -n "$namespace" logs statefulset/drillgram-postgresql >&2 || true
+      kubectl -n "$namespace" logs statefulset/drillgram-postgres >&2 || true
     done
   fi
   kubectl delete namespace "$bundled" "$external" --ignore-not-found --wait=false >/dev/null || true
@@ -36,6 +36,11 @@ if helm template drillgram "$chart" --set postgresql.enabled=false >"$tmp/invali
   exit 1
 fi
 grep -q 'externalDatabase.existingSecret' "$tmp/invalid"
+if helm template drillgram "$chart" --set ingress.enabled=true >"$tmp/invalid" 2>&1; then
+  echo 'Ingress requires a host.' >&2
+  exit 1
+fi
+grep -q 'ingress.host' "$tmp/invalid"
 
 for namespace in "$bundled" "$external"; do
   kubectl create namespace "$namespace"
@@ -43,6 +48,12 @@ for namespace in "$bundled" "$external"; do
     --from-literal=email=admin@example.org --from-literal=password="$admin_password"
 done
 kubectl -n "$bundled" create secret generic drillgram-postgresql --from-literal=password="$db_password"
+
+helm template drillgram "$chart" --set ingress.enabled=true --set ingress.host=drillgram.example.org \
+  --set ingress.tlsSecret=drillgram-tls --set postgresql.enabled=false \
+  --set externalDatabase.existingSecret=external-db --set externalDatabase.caSecret=external-ca >"$tmp/https"
+grep -q 'value: "https://drillgram.example.org"' "$tmp/https"
+kubectl -n "$external" apply --dry-run=server -f "$tmp/https"
 
 install() {
   namespace=$1
@@ -87,8 +98,8 @@ curl -fsS -b "$tmp/cookie" -H 'Content-Type: application/json' \
   -d '{"name":"Helm smoke workspace"}' "$app/api/workspaces"
 close_app
 
-kubectl -n "$bundled" delete pod drillgram-postgresql-0
-kubectl -n "$bundled" rollout status statefulset/drillgram-postgresql --timeout=120s
+kubectl -n "$bundled" delete pod drillgram-postgres-0
+kubectl -n "$bundled" rollout status statefulset/drillgram-postgres --timeout=120s
 kubectl -n "$bundled" wait --for=condition=Available deployment/drillgram --timeout=120s
 use_app "$bundled"
 login
@@ -97,10 +108,10 @@ grep -q 'Helm smoke workspace' "$tmp/workspaces"
 close_app
 
 # Use a PostgreSQL server outside the external release's namespace.
-kubectl -n "$bundled" exec drillgram-postgresql-0 -- env PGPASSWORD="$db_password" \
-  psql -h drillgram-postgresql -U drillgram -d drillgram -v ON_ERROR_STOP=1 -c 'CREATE DATABASE external'
+kubectl -n "$bundled" exec drillgram-postgres-0 -- env PGPASSWORD="$db_password" \
+  psql -h drillgram-postgres -U drillgram -d drillgram -v ON_ERROR_STOP=1 -c 'CREATE DATABASE external'
 kubectl -n "$external" create secret generic external-db \
-  --from-literal="url=postgres://drillgram:test%2Fdb%3Ap%40ss%25word@drillgram-postgresql.$bundled:5432/external?sslmode=disable"
+  --from-literal="url=postgres://drillgram:test%2Fdb%3Ap%40ss%25word@drillgram-postgres.$bundled:5432/external?sslmode=disable"
 install "$external" --set postgresql.enabled=false --set externalDatabase.existingSecret=external-db
 test -z "$(kubectl -n "$external" get statefulsets,pvc -o name)"
 use_app "$external"

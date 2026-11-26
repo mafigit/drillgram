@@ -1,0 +1,81 @@
+{{- if .Values.postgresql.enabled }}
+{{- $name := include "drillgram.postgresqlName" . }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "drillgram.postgresqlSelector" . | nindent 4 }}
+spec:
+  clusterIP: None
+  selector:
+    {{- include "drillgram.postgresqlSelector" . | nindent 4 }}
+  ports:
+    - name: postgresql
+      port: 5432
+      targetPort: postgresql
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "drillgram.postgresqlSelector" . | nindent 4 }}
+spec:
+  serviceName: {{ $name }}
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "drillgram.postgresqlSelector" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "drillgram.postgresqlSelector" . | nindent 8 }}
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      containers:
+        - name: postgresql
+          image: {{ .Values.postgresql.image | quote }}
+          ports:
+            - name: postgresql
+              containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              value: drillgram
+            - name: POSTGRES_DB
+              value: drillgram
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgresql.existingSecret | quote }}
+                  key: password
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          readinessProbe:
+            exec:
+              command: [pg_isready, -q, -h, "127.0.0.1", -U, drillgram, -d, drillgram]
+            periodSeconds: 5
+          securityContext:
+            allowPrivilegeEscalation: false
+            seccompProfile:
+              type: RuntimeDefault
+          {{- with .Values.postgresql.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        {{- with .Values.postgresql.storageClass }}
+        storageClassName: {{ . | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.postgresql.storageSize | quote }}
+{{- end }}

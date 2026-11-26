@@ -59,6 +59,17 @@ throws it away.
 - `bin/ci-check` does not build this image: after a change to the build of the app or the
   server, run `docker compose up --build` once.
 
+## On Kubernetes
+
+The [Helm chart](../deploy/helm/drillgram/README.md) installs the hosted image and an optional
+PostgreSQL StatefulSet. The bundled database uses a volume claim that survives Helm uninstall.
+The external mode takes a PostgreSQL connection URL from a Kubernetes Secret.
+
+The Helm workflow creates a kind cluster and runs `bin/helm-check` against the packaged chart.
+The test signs into both database modes and checks that a workspace survives a PostgreSQL pod
+restart. A `helm-v<version>` tag on main publishes the chart to GitHub Releases and the hosted
+image to GitHub Container Registry.
+
 ## Without a server
 
 `pnpm --filter @drillgram/web build:browser` builds the app to run in the browser alone and

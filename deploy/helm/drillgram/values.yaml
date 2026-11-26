@@ -1,0 +1,38 @@
+image:
+  repository: ghcr.io/mafigit/drillgram
+  # Defaults to the chart's appVersion.
+  tag: ""
+imagePullSecrets: []
+
+admin:
+  # Keys: email and password. Set to "" to omit password-based bootstrap.
+  existingSecret: drillgram-admin
+
+# Use the full address behind a TLS proxy, or leave blank to derive it from the Ingress.
+publicUrl: ""
+# Import extra DRILLGRAM_* variables from ConfigMaps or Secrets.
+envFrom: []
+resources: {}
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  host: ""
+  tlsSecret: ""
+
+postgresql:
+  enabled: true
+  image: postgres:17-bookworm
+  # Key: password.
+  existingSecret: drillgram-postgresql
+  storageSize: 8Gi
+  # Empty uses the default StorageClass.
+  storageClass: ""
+  resources: {}
+
+externalDatabase:
+  # Used when postgresql.enabled is false. Key: url.
+  existingSecret: ""
+  # Optional Secret with ca.crt for a private CA.
+  caSecret: ""

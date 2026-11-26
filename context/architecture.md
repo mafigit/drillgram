@@ -107,8 +107,8 @@ Capacitor is planned for later mobile apps. Rules: [stack](../docs/agents/stack.
 
 ## Where it runs
 
-- The public repository is <https://github.com/mafigit/drillgram>. It gets the files of `main` through
-  `bin/publish` and has a history of its own (`docs/agents/publishing.md`).
+- The repository is <https://github.com/mafigit/drillgram>: the work happens there, and every
+  push is public (`docs/agents/publishing.md`).
 - The app without a server is files (`apps/web/dist-browser`) for any static host;
   `apps/web/wrangler.jsonc` puts them on Cloudflare as the static assets of a Worker without
   code (`operations.md`, "Without a server").

@@ -1,0 +1,35 @@
+#!/bin/sh
+# The check before a push: git's pre-push hook. Link it once in a clone:
+#
+#   ln -sf ../../bin/pre-push "$(git rev-parse --git-path hooks/pre-push)"
+#
+# What reaches the public repository is public at once and for good, so a push there is refused
+# unless every commit of it
+# - is of the public history, which began with PUBLIC_ROOT: a clone that still holds the
+#   history from before must never push it, also not merged into a later commit;
+# - carries the address EMAIL, as author and as committer;
+# and unless bin/public-check finds nothing in its files. See docs/agents/publishing.md.
+PUBLIC_ROOT=0bc5bdcd7cb06698852a7fd49c2ce6e6633803bb
+EMAIL=mafi@inagile.org
+
+case "$2" in
+  *github.com[:/]mafigit/drillgram*) ;;
+  *) exit 0 ;;
+esac
+
+refuse() {
+  echo "pre-push: refused: $*" >&2
+  exit 1
+}
+
+while read -r local_ref local_sha _ remote_sha; do
+  # A branch that is deleted there takes nothing there.
+  case "$local_sha" in *[!0]*) ;; *) continue ;; esac
+  roots=$(git rev-list --max-parents=0 "$local_sha") || exit 1
+  [ "$roots" = "$PUBLIC_ROOT" ] || refuse "$local_ref is not of the public history alone (it began with $PUBLIC_ROOT)"
+  case "$remote_sha" in *[!0]*) range="$remote_sha..$local_sha" ;; *) range="$local_sha" ;; esac
+  others=$(git log --format='%ae%n%ce' "$range" | sort -u | grep -vx "$EMAIL")
+  [ -z "$others" ] || refuse "$local_ref has commits with another address than $EMAIL: $(echo $others)"
+  bin/public-check "$local_sha" >&2 || refuse "$local_ref has files that say what must stay private"
+done
+exit 0

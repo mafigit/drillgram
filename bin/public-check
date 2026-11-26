@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Fails when a file of the repository says what the public repository must not say: an address
 # of a private network, a host of a local domain, or the open port of a Docker daemon. Such
-# things belong in context/private/ (in .gitignore). bin/ci-check and bin/publish run it; see
+# things belong in context/private/ (in .gitignore). bin/ci-check and bin/pre-push run it; see
 # docs/agents/publishing.md. Checks the commit given (default HEAD), not the working tree.
 set -euo pipefail
 cd "$(dirname "$0")/.."

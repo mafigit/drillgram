@@ -12,7 +12,7 @@ task touches.
 | Verification | [docs/agents/verification.md](docs/agents/verification.md) | Run the change, property tests, no gaming flaky tests or checks |
 | Design rules | [docs/agents/design.md](docs/agents/design.md) | Nothing ever just sticks: every press gives feedback at once, long work runs off the main thread. Errors are cards, top right |
 | Icon licences | [docs/icon-licences.md](docs/icon-licences.md) | Icons on cards come from theSVG's allow-list and Cloudflare's docs only and are never changed |
-| Publishing | [docs/agents/publishing.md](docs/agents/publishing.md) | GitHub gets the files of main through `bin/publish` only, never a push of main. Nothing private in a file |
+| Publishing | [docs/agents/publishing.md](docs/agents/publishing.md) | The work is on GitHub and public at once: `bin/pre-push` guards every push. Nothing private in a file, a message or a commit's address |
 | Licences | [docs/agents/licences.md](docs/agents/licences.md) | Apache-2.0; every file, npm package and crate is checked against a list. A new folder or a file from elsewhere must be declared |
 | C4 model | [docs/agents/c4.md](docs/agents/c4.md) | C4 is a shape library, not the model's rules: everything is a box. Then: c4model.com is the reference: abstractions, diagram scopes, notation, open gaps |
 | Layout engine | [docs/agents/layout-engine.md](docs/agents/layout-engine.md) | Rust port of TALA in `packages/layout`, MPL-2.0; record TALA's answers before porting |

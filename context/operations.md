@@ -27,7 +27,7 @@ pnpm --filter @drillgram/web exec playwright install   # browsers, once
 | `bin/with-postgres go test ./...` (in `apps/server`) | The server's tests, on a PostgreSQL that goes with the command (a container; needs Docker). |
 | `bin/ci-check` | The full check: the server's format, `go vet` and tests, unit tests, typecheck, the licence gate (`pnpm licences`) and journeys in the pinned Playwright image without network, then the licence of every file (`deploy/licences/reuse`). Needs Docker. Run before pushing. |
 | `bin/public-check` | Fails when a file names an address of a private network, a local host or a Docker daemon's open port. First step of `bin/ci-check`. |
-| `bin/publish "<message>"` | Puts the files of `main` on the public repository on GitHub as one commit (`--dry-run` to look first). The only way there: see `docs/agents/publishing.md`. |
+| `bin/pre-push` | The check before a push to GitHub, as git's pre-push hook: only the public history, only the address of the repository, nothing `bin/public-check` refuses. Link it once in a clone; see `docs/agents/publishing.md`. |
 | `bin/docker-build` | `docker build` that says nothing unless it fails; then the whole build log, and a hint when the Docker host's disk is full. The checks build with it. |
 | `pnpm licences` | The licence gate alone: npm packages, the engine's crates and the server's Go modules against `deploy/licences/licences.allow.json` (see `docs/agents/licences.md`). |
 | `deploy/licences/reuse` | `reuse lint` alone: every file against `REUSE.toml`. Needs Docker. |

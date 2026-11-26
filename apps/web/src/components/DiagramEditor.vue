@@ -654,6 +654,24 @@ const framed = computed(() => {
   }
   return { about, isInside, parentOf: (id: string) => objects.get(id)?.parent }
 })
+/**
+ * What runs between two cards inside the frame is inside too: the connector's line (its points)
+ * and its label. The frame is drawn around them as around its cards.
+ */
+function linesInside(
+  isInside: (id: string) => boolean,
+  routeOf: (link: (typeof links.value)[number]) => { route: readonly Point[]; labelAt?: Point } | undefined,
+): Box[] {
+  const found: Box[] = []
+  for (const link of links.value) {
+    if (!isInside(link.from) || !isInside(link.to)) continue
+    const drawn = routeOf(link)
+    for (const point of drawn?.route ?? []) found.push({ ...point, width: 0, height: 0 })
+    if (drawn?.labelAt && link.label) found.push({ ...drawn.labelAt, ...labelSize(link.label) })
+  }
+  return found
+}
+
 const boundary = computed(() => {
   if (!framed.value) return undefined
   const { about, isInside } = framed.value
@@ -666,13 +684,7 @@ const boundary = computed(() => {
     }))
   // Nothing inside yet: the frame stands where the first card will.
   if (cards.length === 0) cards.push({ x: 40, y: 40, ...CARD })
-  // What runs between two of its cards is inside too: the connector's line and its label.
-  for (const link of links.value) {
-    if (!isInside(link.from) || !isInside(link.to)) continue
-    const drawn = routes.value.get(link.id)
-    for (const point of drawn?.route ?? []) cards.push({ ...point, width: 0, height: 0 })
-    if (drawn?.labelAt && link.label) cards.push({ ...drawn.labelAt, ...labelSize(link.label) })
-  }
+  cards.push(...linesInside(isInside, (link) => routes.value.get(link.id)))
   const left = Math.min(...cards.map((card) => card.x)) - BOUNDARY_ROOM.side
   const top = Math.min(...cards.map((card) => card.y)) - BOUNDARY_ROOM.top
   const right = Math.max(...cards.map((card) => card.x + card.width)) + BOUNDARY_ROOM.side
@@ -1072,13 +1084,16 @@ const NEIGHBOUR_GAP = 60
  * outside; `undefined` when the engine finds no layout (the cards outside then stay).
  */
 async function arrangeAroundFrame(inside: readonly (Box & { id: string })[], outside: (Box & { id: string })[]) {
+  // The frame is drawn around the lines and labels between its cards too, and a long label
+  // reaches past them: the block is as large as the frame will be drawn.
+  const drawn = [...inside, ...linesInsideAt(inside)]
   const box =
     inside.length > 0
       ? {
-          x: Math.min(...inside.map((card) => card.x)) - BOUNDARY_ROOM.side - FRAME_SLACK,
-          y: Math.min(...inside.map((card) => card.y)) - BOUNDARY_ROOM.top - FRAME_SLACK,
-          right: Math.max(...inside.map((card) => card.x + card.width)) + BOUNDARY_ROOM.side + FRAME_SLACK,
-          bottom: Math.max(...inside.map((card) => card.y + card.height)) + BOUNDARY_ROOM.bottom + FRAME_SLACK,
+          x: Math.min(...drawn.map((card) => card.x)) - BOUNDARY_ROOM.side - FRAME_SLACK,
+          y: Math.min(...drawn.map((card) => card.y)) - BOUNDARY_ROOM.top - FRAME_SLACK,
+          right: Math.max(...drawn.map((card) => card.x + card.width)) + BOUNDARY_ROOM.side + FRAME_SLACK,
+          bottom: Math.max(...drawn.map((card) => card.y + card.height)) + BOUNDARY_ROOM.bottom + FRAME_SLACK,
         }
       : boundary.value && {
           x: boundary.value.x - FRAME_SLACK,
@@ -1110,6 +1125,25 @@ async function arrangeAroundFrame(inside: readonly (Box & { id: string })[], out
   } catch (error) {
     console.warn('The layout engine could not lay out the cards around the frame:', error)
     return undefined
+  }
+}
+
+/** The lines and labels between the frame's cards, routed for the places the cards are arranged to. */
+function linesInsideAt(cards: readonly (Box & { id: string })[]): Box[] {
+  if (!engine.value || cards.length < 2) return []
+  const ids = new Set(cards.map((card) => card.id))
+  const among = links.value.filter((link) => ids.has(link.from) && ids.has(link.to))
+  if (among.length === 0) return []
+  try {
+    const answer = routeWithClearLabels(engine.value, {
+      cards: [...cards],
+      connections: among.map((link) => ({ from: link.from, to: link.to, label: link.label ? labelSize(link.label) : undefined })),
+    })
+    const routed = new Map(among.map((link, i) => [link.id, { route: answer.routes[i] ?? [], labelAt: answer.labels[i] ?? undefined }]))
+    return linesInside((id) => ids.has(id), (link) => routed.get(link.id))
+  } catch (error) {
+    console.warn('The layout engine could not route the connectors inside the frame:', error)
+    return []
   }
 }
 

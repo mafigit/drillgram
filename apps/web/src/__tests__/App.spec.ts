@@ -1,4 +1,4 @@
-import { beforeEach, describe, it, expect, vi } from 'vitest'
+import { beforeAll, beforeEach, describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import App from '../App.vue'
 import { useSession } from '../composables/useSession'
@@ -51,6 +51,9 @@ async function mountApp(path = '/') {
 }
 
 describe('App', () => {
+  // The pages load lazily: the first test to reach one would otherwise spend its waitFor on Vite
+  // transforming the editor, past 1 s on a slow runner.
+  beforeAll(() => Promise.all(router.getRoutes().map((r) => (r.components?.default as () => unknown)?.())))
   beforeEach(() => {
     signedIn = true
   })

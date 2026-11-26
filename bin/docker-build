@@ -3,11 +3,24 @@
 # shows why (a quiet build showed only the step, 2026-11-25), and what to do when the Docker
 # host's disk is full. Takes the arguments of `docker build`. bin/ci-check and the scripts it
 # runs build with it.
+#
+# With DRILLGRAM_BUILD_CACHE_FROM or DRILLGRAM_BUILD_CACHE_TO set, the build takes its layers
+# from a cache outside the machine and puts them there (the values of buildx's `--cache-from`
+# and `--cache-to`). CI does: its runners start with nothing, and the image of the check is
+# minutes of compiling that seldom changes (.github/workflows/ci.yml). That needs a builder
+# that can, which the workflow makes; the image is loaded into Docker as ever.
 set -euo pipefail
+
+build=(docker build)
+if [ -n "${DRILLGRAM_BUILD_CACHE_FROM:-}${DRILLGRAM_BUILD_CACHE_TO:-}" ]; then
+  build=(docker buildx build --load)
+  if [ -n "${DRILLGRAM_BUILD_CACHE_FROM:-}" ]; then build+=(--cache-from "$DRILLGRAM_BUILD_CACHE_FROM"); fi
+  if [ -n "${DRILLGRAM_BUILD_CACHE_TO:-}" ]; then build+=(--cache-to "$DRILLGRAM_BUILD_CACHE_TO"); fi
+fi
 
 log=$(mktemp)
 trap 'rm -f "$log"' EXIT
-docker build --progress=plain "$@" >"$log" 2>&1 && exit 0
+"${build[@]}" --progress=plain "$@" >"$log" 2>&1 && exit 0
 status=$?
 cat "$log" >&2
 if grep -qi 'no space left on device' "$log"; then

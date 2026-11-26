@@ -11,6 +11,9 @@
 #                                          the licence gate, the licence of every file
 #                            chromium, webkit, tablet, browser-only
 #                                          the journeys of that Playwright project
+#   bin/ci-check <project> <n>/<of>
+#                          one share of a project's journeys, as Playwright cuts them
+#                          (`--shard`): CI runs the slow projects as two jobs
 #
 # The image is built for the run and removed after it. With DRILLGRAM_CI_IMAGE set, the image
 # of that name is used and kept instead: `image` builds it, the other parts expect it there.
@@ -19,10 +22,19 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 part=${1:-all}
+shard=${2:-}
 case "$part" in
   all | image | unit | chromium | webkit | tablet | browser-only) ;;
   *)
     echo "ci-check: there is no part \"$part\". The parts: image, unit, chromium, webkit, tablet, browser-only; none of them for the whole check." >&2
+    exit 2
+    ;;
+esac
+case "$part $shard" in
+  *' ') ;;
+  chromium\ [1-9]/[1-9] | webkit\ [1-9]/[1-9] | tablet\ [1-9]/[1-9] | browser-only\ [1-9]/[1-9]) ;;
+  *)
+    echo "ci-check: \"$shard\" is no share of \"$part\". A share is <n>/<of>, as in: bin/ci-check tablet 1/2" >&2
     exit 2
     ;;
 esac
@@ -59,6 +71,6 @@ case "$part" in
     deploy/licences/reuse
     ;;
   *)
-    inside "pnpm test:e2e --project=$part"
+    inside "pnpm test:e2e --project=$part${shard:+ --shard=$shard}"
     ;;
 esac

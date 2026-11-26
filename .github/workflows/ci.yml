@@ -22,28 +22,61 @@ permissions:
 
 jobs:
   ci-check:
-    name: ${{ matrix.part }}
+    name: ${{ matrix.part }}${{ matrix.shard && format(' {0}', matrix.shard) || '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
       # Every part says how it went: one that fails does not stop the others.
       fail-fast: false
       matrix:
-        # The parts of bin/ci-check: what is no journey, and the journeys of each browser.
-        part: [unit, chromium, webkit, tablet, browser-only]
+        # The parts of bin/ci-check: what is no journey, and the journeys of each browser. The
+        # two slowest (4 and 7 minutes on a runner, 2026-11-26) are two jobs each.
+        include:
+          - part: unit
+          - part: chromium
+          - part: webkit
+            shard: 1/2
+          - part: webkit
+            shard: 2/2
+          - part: tablet
+            shard: 1/2
+          - part: tablet
+            shard: 2/2
+          - part: browser-only
     env:
       # The image a job builds in one step and checks with in the next: one of its own, also
       # where the jobs of a run share a machine.
-      DRILLGRAM_CI_IMAGE: drillgram-ci-${{ github.run_id }}-${{ matrix.part }}
+      DRILLGRAM_CI_IMAGE: drillgram-ci-${{ github.run_id }}-${{ strategy.job-index }}
     steps:
       - uses: actions/checkout@v6
         with:
           submodules: true # packages/layout is the engine's own repository
+      # The image is 4 to 6 minutes of compiling on a runner that starts with nothing, and most
+      # of it (the engine, the server, the packages) is the same from one commit to the next.
+      # So its layers are kept in GitHub's cache between runs (bin/docker-build): every job
+      # takes them from there, and the job `unit` puts them there. That takes a builder that
+      # can, and what a step needs to reach the cache, which GitHub gives to actions only.
+      # Not on other servers that run this workflow: they keep their own build cache.
+      - name: Let the build reach GitHub's cache
+        if: github.server_url == 'https://github.com'
+        uses: actions/github-script@v9
+        with:
+          script: |
+            for (const [name, value] of Object.entries(process.env)) {
+              if (name.startsWith('ACTIONS_')) core.exportVariable(name, value)
+            }
+      - name: Make a builder that takes layers from a cache
+        if: github.server_url == 'https://github.com'
+        run: docker buildx create --use --driver docker-container --driver-opt network=host --buildkitd-flags '--allow-insecure-entitlement network.host'
       # Two steps, so that a run says how long each took and which of them failed.
       - name: Build the check's image
         run: bin/ci-check image
+        env:
+          DRILLGRAM_BUILD_CACHE_FROM: ${{ github.server_url == 'https://github.com' && 'type=gha,scope=check' || '' }}
+          # A cache that cannot be written is no reason for a check to fail.
+          DRILLGRAM_BUILD_CACHE_TO: ${{ github.server_url == 'https://github.com' && matrix.part == 'unit' && 'type=gha,scope=check,mode=max,ignore-error=true' || '' }}
       - name: Check
-        run: bin/ci-check ${{ matrix.part }}
+        run: bin/ci-check ${{ matrix.part }} ${{ matrix.shard }}
       # A runner that is not thrown away after the job keeps its Docker build cache, and nothing
       # else takes it away: every build adds layers until the disk is full and no job can start.
       # So the job's image goes, and what no build used for 6 hours, after every check, and the

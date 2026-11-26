@@ -1,0 +1,114 @@
+#!/usr/bin/env bash
+# Run against a disposable Kubernetes cluster that has the hosted image loaded.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+chart=${1:-deploy/helm/drillgram}
+image=${2:-drillgram:helm-test}
+bundled="helm-bundled-$$"
+external="helm-external-$$"
+tmp=$(mktemp -d)
+port_forward_pid=
+db_password='test/db:p@ss%word'
+admin_password='helm-test-admin'
+
+cleanup() {
+  status=$?
+  if [ -n "$port_forward_pid" ]; then
+    kill "$port_forward_pid" 2>/dev/null || true
+    wait "$port_forward_pid" 2>/dev/null || true
+  fi
+  if [ "$status" -ne 0 ]; then
+    for namespace in "$bundled" "$external"; do
+      kubectl -n "$namespace" get pods,pvc >&2 || true
+      kubectl -n "$namespace" logs deployment/drillgram >&2 || true
+      kubectl -n "$namespace" logs statefulset/drillgram-postgresql >&2 || true
+    done
+  fi
+  kubectl delete namespace "$bundled" "$external" --ignore-not-found --wait=false >/dev/null || true
+  rm -rf "$tmp"
+}
+trap cleanup EXIT
+
+helm lint "$chart" --strict
+if helm template drillgram "$chart" --set postgresql.enabled=false >"$tmp/invalid" 2>&1; then
+  echo 'External PostgreSQL requires a database URL Secret.' >&2
+  exit 1
+fi
+grep -q 'externalDatabase.existingSecret' "$tmp/invalid"
+
+for namespace in "$bundled" "$external"; do
+  kubectl create namespace "$namespace"
+  kubectl -n "$namespace" create secret generic drillgram-admin \
+    --from-literal=email=admin@example.org --from-literal=password="$admin_password"
+done
+kubectl -n "$bundled" create secret generic drillgram-postgresql --from-literal=password="$db_password"
+
+install() {
+  namespace=$1
+  shift
+  helm upgrade --install drillgram "$chart" --namespace "$namespace" --wait --timeout 4m \
+    --set-string image.repository="${image%:*}" --set-string image.tag="${image##*:}" "$@"
+}
+
+use_app() {
+  namespace=$1
+  kubectl -n "$namespace" port-forward service/drillgram :8080 >"$tmp/forward" 2>&1 &
+  port_forward_pid=$!
+  port=
+  for ((attempt = 0; attempt < 50; attempt++)); do
+    port=$(sed -n 's/^Forwarding from 127\.0\.0\.1:\([0-9]*\) -> 8080$/\1/p' "$tmp/forward")
+    if [ -n "$port" ]; then break; fi
+    kill -0 "$port_forward_pid"
+    sleep 0.2
+  done
+  test -n "$port"
+  app="http://127.0.0.1:$port"
+}
+
+close_app() {
+  kill "$port_forward_pid"
+  wait "$port_forward_pid" || true
+  port_forward_pid=
+}
+
+login() {
+  curl -fsS "$app/" >"$tmp/index"
+  grep -q '<title>Drillgram</title>' "$tmp/index"
+  curl -fsS "$app/api/health"
+  curl -fsS -c "$tmp/cookie" -H 'Content-Type: application/json' \
+    -d "{\"email\":\"admin@example.org\",\"password\":\"$admin_password\"}" "$app/api/auth/login"
+}
+
+install "$bundled"
+use_app "$bundled"
+login
+curl -fsS -b "$tmp/cookie" -H 'Content-Type: application/json' \
+  -d '{"name":"Helm smoke workspace"}' "$app/api/workspaces"
+close_app
+
+kubectl -n "$bundled" delete pod drillgram-postgresql-0
+kubectl -n "$bundled" rollout status statefulset/drillgram-postgresql --timeout=120s
+kubectl -n "$bundled" wait --for=condition=Available deployment/drillgram --timeout=120s
+use_app "$bundled"
+login
+curl -fsS -b "$tmp/cookie" "$app/api/workspaces" >"$tmp/workspaces"
+grep -q 'Helm smoke workspace' "$tmp/workspaces"
+close_app
+
+# Use a PostgreSQL server outside the external release's namespace.
+kubectl -n "$bundled" exec drillgram-postgresql-0 -- env PGPASSWORD="$db_password" \
+  psql -h drillgram-postgresql -U drillgram -d drillgram -v ON_ERROR_STOP=1 -c 'CREATE DATABASE external'
+kubectl -n "$external" create secret generic external-db \
+  --from-literal="url=postgres://drillgram:test%2Fdb%3Ap%40ss%25word@drillgram-postgresql.$bundled:5432/external?sslmode=disable"
+install "$external" --set postgresql.enabled=false --set externalDatabase.existingSecret=external-db
+test -z "$(kubectl -n "$external" get statefulsets,pvc -o name)"
+use_app "$external"
+login
+curl -fsS -b "$tmp/cookie" "$app/api/workspaces" >"$tmp/workspaces"
+if grep -q 'Helm smoke workspace' "$tmp/workspaces"; then
+  echo 'The external release connected to the bundled release database.' >&2
+  exit 1
+fi
+close_app
+echo 'Helm smoke test passed with bundled and external PostgreSQL.'

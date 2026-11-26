@@ -13,8 +13,10 @@ test('J62 The app opens on a workspace this browser keeps, and nobody signs in',
   await expect(editor.title).toHaveText('Overview')
   await expect(page.getByRole('button', { name: 'Account' })).toHaveCount(0)
   // Where the account was: the diagrams are in this browser and nowhere else.
-  await page.getByRole('button', { name: 'Kept in this browser' }).click()
-  await expect(page.getByRole('dialog', { name: 'Kept in this browser' })).toContainText('Export what you want to keep')
+  await page.getByRole('button', { name: 'About this site' }).click()
+  const about = page.getByRole('dialog', { name: 'About this site' })
+  await expect(about).toContainText('Kept in this browser')
+  await expect(about).toContainText('Export what you want to keep')
   await page.keyboard.press('Escape')
 
   await editor.addElement('Person', 'Customer')
@@ -74,4 +76,38 @@ test('J62 A change in a tab that has not seen what another tab did is not kept, 
   // From there on it works as ever.
   await editor.addElement('Software System', 'Mail')
   await expect(editor.element('Mail')).toBeVisible()
+})
+
+test('J62 The site says who runs it and what happens to data', async ({ page, context, editor, consoleErrors }) => {
+  await editor.open()
+  await editor.addElement('Person', 'Customer')
+
+  await page.getByRole('button', { name: 'About this site' }).click()
+  await page.getByRole('dialog', { name: 'About this site' }).getByRole('link', { name: 'Imprint' }).click()
+  await expect(page).toHaveURL(/\/imprint\.html$/)
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Imprint / Impressum')
+  await expect(page.getByText('Angaben gemäß § 5 DDG')).toBeVisible()
+
+  await page.getByRole('link', { name: 'Privacy Policy / Datenschutzerklärung' }).click()
+  await expect(page).toHaveURL(/\/privacy\.html$/)
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Privacy Policy / Datenschutzerklärung')
+  await expect(page.getByRole('heading', { name: 'Datenschutzerklärung', exact: true })).toBeVisible()
+  await page.getByRole('link', { name: 'Imprint / Impressum' }).click()
+  await expect(page).toHaveURL(/\/imprint\.html$/)
+
+  await page.getByRole('link', { name: 'Back to Drillgram' }).click()
+  await expect(editor.element('Customer')).toBeVisible()
+  // The way from the app is short: the same link is one press away again.
+  await page.getByRole('button', { name: 'About this site' }).click()
+  await expect(page.getByRole('link', { name: 'Privacy' })).toHaveAttribute('href', '/privacy.html')
+  expect(consoleErrors).toEqual([])
+
+  // The service worker answers an address that is no file with the app. These two are files,
+  // and they are there without a connection too.
+  await editor.waitForServiceWorker()
+  await context.setOffline(true)
+  await page.goto('/imprint.html')
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Imprint / Impressum')
+  await page.goto('/privacy.html')
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Privacy Policy / Datenschutzerklärung')
 })

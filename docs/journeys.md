@@ -22,7 +22,8 @@ Test: `apps/web/e2e/j1-open-the-app.spec.ts`
 
 1. Open the app.
 
-Expected: the empty editor loads, with no console errors.
+Expected: the empty editor loads, with no console errors. The app has no imprint and no
+privacy notice of its own (`/imprint.html`, `/privacy.html`): who runs a server says theirs.
 
 ## J2 First diagram
 
@@ -1102,9 +1103,12 @@ The app can be built to run without a server (`pnpm --filter @drillgram/web buil
 browser keeps the workspaces and their change logs itself, and the app is files alone.
 
 1. Open the app in a browser that never ran it.
-2. Press "Kept in this browser" in the top bar.
+2. Press "About this site" in the top bar.
 3. Add "Customer" and "Online Shop", connect them, and undo the connection. Reload, then redo.
 4. Open the addresses `/login` and `/users`.
+
+Also: press "Imprint" under "About this site", go on to the privacy policy and back to the
+app; then open both pages without a connection.
 
 Also: go offline, reload, add "Billing" and reload again. And with the workspace open in two
 tabs, add "Billing" in the second, then "Mail" in the first, then "Mail" in the first again.
@@ -1114,4 +1118,7 @@ Where it was, a note says that the diagrams are kept in this browser alone and t
 is worth keeping. The cards, the change log and the place in it survive the reload. Both
 addresses lead to the diagrams. The app asks nothing of `/api`. Offline everything is there
 and can be changed. A change made in a tab that has not seen what another one did is not kept,
-as between two browsers of a server (J60); the next change works as ever.
+as between two browsers of a server (J60); the next change works as ever. The imprint
+("Imprint / Impressum") names who runs the site, the privacy policy says in English and in
+German what happens to data; each leads to the other and back to the app, where the diagram
+still is, and both are there offline.

@@ -3,7 +3,8 @@
 A design tool for product engineers: draw and maintain software architecture as diagrams of
 boxes that open into deeper diagrams (C4's elements are one library of shapes), let AI agents change them over MCP,
 and export them to many formats. A web app (installable PWA) with a server of its own, which
-keeps the users and their workspaces; iOS and Android may follow.
+keeps the users and their workspaces, or built to run in the browser alone; iOS and Android
+may follow.
 
 ## How it is built
 
@@ -207,8 +208,7 @@ Project started 2026-11-03.
   several workspaces for a user, each with members (owner, editor, viewer) and a change log
   that is the truth about it. See `architecture.md` ("Server") and `operations.md`
   ("The server").
-- The app needs the server and a signed-in user (owner's call, 2026-11-26): there is no mode
-  without one. Sign in and out (J57): a page for it, with the password form, a button for
+- With a server the app needs a signed-in user (owner's call, 2026-11-26). Sign in and out (J57): a page for it, with the password form, a button for
   single sign-on where the server has it, and the reason when a sign-in was refused; an address
   asked for while signed out is where the browser is after the sign-in. The account menu in the
   top bar names the user, changes their password and signs them out.
@@ -226,11 +226,20 @@ Project started 2026-11-03.
   changes as they are made (J19).
 - What a browser kept before (J61): the one workspace the app used to keep in the browser can
   be brought into an empty workspace of the server, with its change log, once.
+- Without a server (J62; owner's call, 2026-11-26, which takes back "no mode without a
+  server" of the same day): `build:browser` builds the same app to run in the browser alone,
+  as files for a static host. Nobody signs in; where the account menu is, a note says that the
+  diagrams are kept in this browser. Workspaces and their change logs are in the browser's
+  IndexedDB, behind the same API the server answers (`lib/browserServer.ts`), so the editor,
+  several workspaces, the history and the two-tabs rule of J60 work as with a server. Not
+  there: users, sharing, the same diagrams on a second device. Not yet: a workspace as a file,
+  to take it to another browser or keep a copy. `mise run cloudflare` puts the build on
+  Cloudflare (Workers static assets, the free plan; `operations.md`, "Without a server").
 - Run as a stack (2026-11-26): `docker compose up --build` builds one image with the server and
   the web app and runs it with a PostgreSQL (`Dockerfile`, `compose.yaml`; `operations.md`,
   "The stack").
 - Not built yet: the MCP server (`apps/mcp-server` is planned). Journeys J1 to
-  J5, J9, J11, J15, J18 and J20 to J61 are real tests; the others (J6 to J8, J10, J12 to J14,
+  J5, J9, J11, J15, J18 and J20 to J62 are real tests; the others (J6 to J8, J10, J12 to J14,
   J16, J17, J19) are still `test.fixme`.
 - Event sourcing (owner's call, 2026-11-22; begun 2026-11-26): the events are the truth and the
   workspace is what they add up to: the server keeps the log, the editor makes the workspace

@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { useBusy } from '../composables/useBusy'
 import { showError } from '../composables/useErrors'
 import { useWorkspaces } from '../composables/useWorkspaces'
-import { failureText } from '../lib/api'
+import { failureText, NO_ANSWER } from '../lib/api'
 
 // The app's own address: on to the workspace that was open last. Somebody who has none (they
 // deleted their last one) makes one here.
@@ -53,8 +53,8 @@ const make = () =>
         Opening your workspace
       </p>
       <div v-else-if="state === 'unreachable'" class="flex max-w-sm flex-col items-start gap-3">
-        <h2 class="text-lg font-semibold tracking-tight">The server does not answer</h2>
-        <p class="text-muted-foreground text-sm leading-snug">Your diagrams are kept on the server. Check the connection, then try again.</p>
+        <h2 class="text-lg font-semibold tracking-tight">{{ NO_ANSWER.title }}</h2>
+        <p class="text-muted-foreground text-sm leading-snug">{{ NO_ANSWER.text }}</p>
         <Button @click="open">Try again</Button>
       </div>
       <form v-else aria-label="New workspace" class="bg-card flex w-full max-w-sm flex-col gap-4 rounded-xl border p-6 shadow-sm" :aria-busy="busy" @submit.prevent="make">

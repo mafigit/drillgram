@@ -37,6 +37,11 @@ Every change is test-driven. No production code without a failing test that dema
   `test.use({ signedIn: false })` starts signed out; `newAccount()` makes one more user;
   `browserOf(account)` opens one more browser, signed in: another device, or another person.
   Anything a test makes that other tests could see (a user's address) is one of a kind.
+- A fourth project, `browser-only`, runs against the app built without a server
+  (`e2e/serve-browser`): J62 and the journeys named in `playwright.config.ts`. There the option
+  `server` is off: `account` makes nobody and signs nobody in, `newAccount` refuses. A journey
+  that needs somebody else skips itself there (`test.skip(!server, …)`). A journey about what
+  a workspace keeps belongs on that project's list.
 - A browser notes a refused request in its console ("401", "409"). A journey that makes the
   server refuse something on purpose takes that note out of `consoleErrors` by its status, and
   nothing else.
@@ -102,6 +107,8 @@ Every change is test-driven. No production code without a failing test that dema
 - On failure, the trace, screenshot and video are kept in `test-results/` and the HTML report in
   `playwright-report/` (both git-ignored). Open a trace with
   `pnpm --filter @drillgram/web exec playwright show-trace <trace.zip>`.
+- `lib/browserServer.ts` is tested on `fake-indexeddb`, a browser's database in memory: two
+  servers on one database are two tabs.
 - Code that talks to the server is tested without one where it can be: `lib/workspaceLog.ts`
   is given its server and its storage, and its tests give it fakes that are slow, deaf or busy
   with somebody else (`lib/__tests__/workspaceLog.spec.ts`).

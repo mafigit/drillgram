@@ -1,0 +1,12 @@
+// The app without a server on Cloudflare: its files as the static assets of a Worker without
+// code of its own. See context/operations.md ("On Cloudflare").
+{
+  "name": "drillgram",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    // What `pnpm build:browser` writes.
+    "directory": "./dist-browser",
+    // The app's own addresses (/w/<id>) are no files: they get the app.
+    "not_found_handling": "single-page-application"
+  }
+}

@@ -10,7 +10,7 @@ import { useSession } from '../composables/useSession'
 import { openWorkspaceStore } from '../composables/useWorkspaceStore'
 import type { WorkspaceStore } from '../composables/useWorkspaceStore'
 import { useWorkspaces } from '../composables/useWorkspaces'
-import { ApiError } from '../lib/api'
+import { ApiError, NO_ANSWER } from '../lib/api'
 import type { Problem } from '../lib/workspaceLog'
 
 // A workspace of the server, opened: its change log is read, then the editor works on it.
@@ -30,7 +30,7 @@ function signInAgain() {
 
 // What the change log has to say while the editor is open (lib/workspaceLog.ts).
 function said(problem: Problem) {
-  if (problem === 'offline') showError('The server does not answer. Your changes are kept in this browser and written as soon as it answers again.')
+  if (problem === 'offline') showError(NO_ANSWER.waiting)
   else if (problem === 'conflict') showError('This workspace was changed somewhere else. It is shown as it is now; your last change was not kept.')
   else if (problem === 'readOnly') showError('You can look at this workspace, not change it. Your change was taken back.')
   else if (problem === 'signedOut') signInAgain()
@@ -62,8 +62,8 @@ onMounted(open)
     <AppHeader :plain="!unreachable" />
     <main class="flex flex-1 items-start justify-center p-6 pt-[12vh]" :aria-busy="!unreachable">
       <div v-if="unreachable" class="flex max-w-sm flex-col items-start gap-3">
-        <h2 class="text-lg font-semibold tracking-tight">The server does not answer</h2>
-        <p class="text-muted-foreground text-sm leading-snug">Your diagrams are kept on the server. Check the connection, then try again.</p>
+        <h2 class="text-lg font-semibold tracking-tight">{{ NO_ANSWER.title }}</h2>
+        <p class="text-muted-foreground text-sm leading-snug">{{ NO_ANSWER.text }}</p>
         <Button @click="open">Try again</Button>
       </div>
       <p v-else role="status" class="text-muted-foreground flex items-center gap-2 text-sm">

@@ -43,7 +43,8 @@
   global install.
 - **Commands** (from the repo root): `mise install`, `mise run dev` (the server and the app's
   dev server together; the tasks are in `mise.toml`), `pnpm install`, `pnpm test`, `pnpm test:e2e`, `pnpm test:e2e:ui`,
-  `pnpm typecheck`, `pnpm build`, `bin/engine build|test`, `pnpm --filter @drillgram/web generate-pwa-assets`.
+  `pnpm typecheck`, `pnpm build`, `mise run browser` and `pnpm --filter @drillgram/web build:browser`
+  (the app without a server), `bin/engine build|test`, `pnpm --filter @drillgram/web generate-pwa-assets`.
   Run the dev server with `pnpm --filter @drillgram/web dev`. The server's tests:
   `bin/with-postgres go test ./...` from `apps/server`.
 
@@ -58,6 +59,11 @@
 - The workspace is the server's log. Nothing of it is written to the browser's storage but
   what waits to be sent (`lib/outbox.ts`). The browser's storage is for what belongs to the
   browser: the theme, the tab last used, the workspace last open.
+- The build without a server (`build:browser`, J62) has the server in the browser:
+  `lib/browserServer.ts` answers what `lib/api.ts` asks, from IndexedDB. Nothing else writes
+  a workspace there, and no component asks whether there is a server but to show what only one
+  of the two has (`browserOnly` in `lib/api.ts`). What the app newly asks of the server gets
+  its answer there in the same change, or says in the journey that it needs a server.
 - Change the workspace only with `dispatch(event)` from `useWorkspaceStore`: a new kind of change
   is a new `WorkspaceEvent` in `packages/model/src/diagram/events.ts` (reducer, description, tests).
   Anything else would miss the change log, undo and redo. `applyEvent` must stay deterministic.

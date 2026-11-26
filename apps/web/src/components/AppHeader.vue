@@ -12,8 +12,10 @@ import {
 import { useRoute } from 'vue-router'
 import { Button } from '@/components/ui/button'
 import AccountMenu from './AccountMenu.vue'
+import KeptInBrowser from './KeptInBrowser.vue'
 import WorkspaceMenu from './WorkspaceMenu.vue'
 import { useSession } from '../composables/useSession'
+import { browserOnly } from '../lib/api'
 import { THEMES, useTheme } from '../composables/useTheme'
 import type { Theme } from '../composables/useTheme'
 
@@ -85,6 +87,10 @@ const route = useRoute()
         </DropdownMenuContent>
       </DropdownMenuPortal>
     </DropdownMenuRoot>
-    <AccountMenu v-if="!plain" />
+    <template v-if="!plain">
+      <!-- Without a server there is no account: where the diagrams are instead. -->
+      <KeptInBrowser v-if="browserOnly" />
+      <AccountMenu v-else />
+    </template>
   </header>
 </template>

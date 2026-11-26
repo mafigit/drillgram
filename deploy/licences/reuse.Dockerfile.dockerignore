@@ -2,6 +2,7 @@
 .git
 **/node_modules
 **/dist
+**/dist-browser
 **/coverage
 **/target
 test-results

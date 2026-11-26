@@ -57,7 +57,8 @@ export default defineConfig({
     }),
   ],
   // The dev server gives out the app; the API is the server's (apps/server), started beside it.
-  server: { proxy: { '/api': process.env.DRILLGRAM_API ?? 'http://localhost:8080' } },
+  // The app without a server (`dev:browser`, `build:browser`) asks nobody.
+  server: process.env.VITE_BROWSER_ONLY === '1' ? {} : { proxy: { '/api': process.env.DRILLGRAM_API ?? 'http://localhost:8080' } },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),

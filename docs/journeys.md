@@ -1115,4 +1115,3 @@ is worth keeping. The cards, the change log and the place in it survive the relo
 addresses lead to the diagrams. The app asks nothing of `/api`. Offline everything is there
 and can be changed. A change made in a tab that has not seen what another one did is not kept,
 as between two browsers of a server (J60); the next change works as ever.
-

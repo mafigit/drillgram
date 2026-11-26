@@ -54,6 +54,19 @@ mise run dev     # the server with a PostgreSQL that keeps its data, and the app
 More commands, and everything the server can be told:
 [context/operations.md](context/operations.md).
 
+### Without a server
+
+The same app can be built to run in the browser alone: nobody signs in, and the diagrams are
+kept in the browser that drew them, on that device and nowhere else.
+
+```sh
+mise run browser     # on http://localhost:5174
+```
+
+`pnpm --filter @drillgram/web build:browser` writes it to `apps/web/dist-browser`: files for any
+static host. `mise run cloudflare` puts them on Cloudflare, where the free plan is enough
+([context/operations.md](context/operations.md), "Without a server").
+
 ## What is where
 
 | Folder | What |

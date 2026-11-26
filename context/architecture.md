@@ -52,6 +52,17 @@ The web app needs it: see "The web app and the server" below.
 
 - **`src/lib/api.ts`**: every request to `/api`, `ApiError` with the status and the server's
   words. What is sent may outlive the page (`keepalive`), so a change is not cut off by a reload.
+- **Without a server** (`build:browser` sets `VITE_BROWSER_ONLY=1`; `browserOnly` in `api.ts`):
+  a request does not leave the browser. `src/lib/browserServer.ts` answers it in the server's
+  place, with the server's statuses and words, from IndexedDB (database `drillgram`: the store
+  `workspaces`, and `log` with every entry under `[workspace, seq]`). One transaction is one
+  piece of work for all tabs, as the row lock of a workspace is on the server, so an append
+  after an entry that is not the newest gets its 409 there too. It keeps what the server keeps
+  and nothing else: no users, no members. `/api/session` always names one user, who is no
+  admin, so the router lets everybody in and nobody to `/users`; `AppHeader.vue` shows
+  `KeptInBrowser.vue` where the account menu is. Everything above `api.ts` is the same code.
+  A change to what the app asks of the server needs its answer in `browserServer.ts` too
+  (its tests say of it what `workspaces_test.go` says of the server).
 - **Who is signed in:** `useSession` (one answer for the app, from `/api/session`). The router
   (`src/router/index.ts`) lets nobody past `/login` who is not, and brings them to where they
   wanted to go afterwards (`next`). Pages are in `src/pages/`: `SignIn`, `StartPage` (on to the
@@ -94,7 +105,10 @@ Capacitor is planned for later mobile apps. Rules: [stack](../docs/agents/stack.
 
 - The public repository is <https://github.com/mafigit/drillgram>. It gets the files of `main` through
   `bin/publish` and has a history of its own (`docs/agents/publishing.md`).
-- Nothing is deployed: the app and the server are built and run locally
+- The app without a server is files (`apps/web/dist-browser`) for any static host;
+  `apps/web/wrangler.jsonc` puts them on Cloudflare as the static assets of a Worker without
+  code (`operations.md`, "Without a server").
+- The server is deployed nowhere: it and the app are built and run locally
   (`context/operations.md`). CI is `bin/ci-check`, called by `.github/workflows/ci.yml`.
 - **As one image** (`Dockerfile`): stages build the layout engine (Rust to WebAssembly), the
   web app (Node) and the server (Go, no C); what runs is the program and the built app in a

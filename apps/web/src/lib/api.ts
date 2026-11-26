@@ -1,4 +1,13 @@
+import { browserServer } from './browserServer'
+import type { Answer } from './browserServer'
+
 // The server's API (apps/server), under /api of the address the app itself comes from.
+
+/**
+ * The app was built to run without a server (`build:browser`): the browser keeps the
+ * workspaces itself and answers in the server's place (lib/browserServer.ts).
+ */
+export const browserOnly = import.meta.env.VITE_BROWSER_ONLY === '1'
 
 /** The server refused a request: its status and what it says about it. */
 export class ApiError extends Error {
@@ -14,15 +23,27 @@ export class ApiError extends Error {
 
 /** What to tell somebody when a request failed: the server's words, or that it did not answer. */
 export function failureText(failure: unknown): string {
-  return failure instanceof ApiError ? failure.message : 'The server does not answer. Try again in a moment.'
+  return failure instanceof ApiError ? failure.message : `${NO_ANSWER.title}. Try again in a moment.`
 }
+
+/** What a page says when nothing answers: the server, or without one the browser's own storage. */
+export const NO_ANSWER = browserOnly
+  ? {
+      title: 'This browser does not open its storage',
+      text: 'Your diagrams are kept in this browser. It may refuse to keep data in a private window, or when its disk is full.',
+      waiting: 'This browser could not write your last change to its storage. It is tried again.',
+    }
+  : {
+      title: 'The server does not answer',
+      text: 'Your diagrams are kept on the server. Check the connection, then try again.',
+      waiting: 'The server does not answer. Your changes are kept in this browser and written as soon as it answers again.',
+    }
 
 /** A browser lets a request outlive its page only when it carries less than 64 KiB. */
 const OUTLIVES_PAGE = 60_000
 
-async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
-  const sent = body === undefined ? undefined : JSON.stringify(body)
-  // A request that never arrives throws: fetch's own error, without a status.
+/** Asks the server. A request that never arrives throws: fetch's own error, without a status. */
+async function askServer(method: string, path: string, sent?: string): Promise<Answer> {
   const answer = await fetch(`/api${path}`, {
     method,
     credentials: 'same-origin',
@@ -39,9 +60,19 @@ async function call<T>(method: string, path: string, body?: unknown): Promise<T>
   } catch {
     data = undefined
   }
-  if (!answer.ok) {
+  return { status: answer.status, data }
+}
+
+const inBrowser = browserOnly ? browserServer() : undefined
+/** Asks the browser in the server's place, with what would have gone over the wire. */
+const askBrowser = (method: string, path: string, sent?: string) => inBrowser!(method, path, sent === undefined ? undefined : JSON.parse(sent))
+
+async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const sent = body === undefined ? undefined : JSON.stringify(body)
+  const { status, data } = await (browserOnly ? askBrowser : askServer)(method, path, sent)
+  if (status >= 400) {
     const said = typeof data === 'object' && data !== null ? (data as Record<string, unknown>) : {}
-    throw new ApiError(answer.status, typeof said.error === 'string' ? said.error : `The server answered with ${answer.status}.`, said)
+    throw new ApiError(status, typeof said.error === 'string' ? said.error : `The server answered with ${status}.`, said)
   }
   return data as T
 }

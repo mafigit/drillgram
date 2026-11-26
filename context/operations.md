@@ -17,9 +17,10 @@ pnpm --filter @drillgram/web exec playwright install   # browsers, once
 | `docker compose up --build` | The whole app as it runs for real: one image with the server and the built web app (`Dockerfile`), and a PostgreSQL, on `http://localhost:8080`. See "The stack" below. Needs Docker only. |
 | `bin/dev` | The server for work on the app, on `:8080`, with a PostgreSQL that keeps its data between runs (a container and a volume, both `drillgram-dev-db`; `--forget` throws them away). The first start makes the admin `admin@example.org` with the password `drillgram-dev`. Needs Docker. |
 | `pnpm --filter @drillgram/web dev` | The app's dev server. It sends `/api` to the server on `localhost:8080` (`DRILLGRAM_API` for another address): start `bin/dev` beside it. |
+| `mise run browser` | The app without a server (`dev:browser`), on `http://localhost:5174`: the browser keeps the workspaces. See "Without a server" below. |
 | `pnpm test` | All unit tests, headless, one run. |
 | `pnpm typecheck` | vue-tsc for `apps/web`, tsc for `packages/*`. |
-| `pnpm test:e2e` | Every journey on all Playwright projects, headless, against the server with the built app (`apps/web/e2e/serve`: builds both and starts a PostgreSQL that goes with it). Needs Docker and Go. |
+| `pnpm test:e2e` | Every journey on all Playwright projects, headless, against the server with the built app (`apps/web/e2e/serve`: builds both and starts a PostgreSQL that goes with it), and the project `browser-only` against the app built without a server (`apps/web/e2e/serve-browser`, port 4174). Needs Docker and Go. |
 | `pnpm test:e2e:ui` | Playwright UI for local debugging. |
 | `pnpm build` | Build every package. |
 | `pnpm --filter @drillgram/web generate-pwa-assets` | Regenerate icons after changing `apps/web/public/logo.svg`; commit the PNGs. |
@@ -57,6 +58,38 @@ throws it away.
   itself: `drillgram health`. The licence texts of what is in it are under `/licences`.
 - `bin/ci-check` does not build this image: after a change to the build of the app or the
   server, run `docker compose up --build` once.
+
+## Without a server
+
+`pnpm --filter @drillgram/web build:browser` builds the app to run in the browser alone and
+writes it to `apps/web/dist-browser` (about 6,100 files, 30 MB, most of them card icons). Any
+host of static files can give it out, if it answers an address that is no file (`/w/<id>`)
+with `index.html`.
+
+- The diagrams are in the browser that drew them (IndexedDB, database `drillgram`), per
+  address of the app: another browser, another device or another address starts empty, and
+  clearing the site's data deletes them. The app asks the browser once to keep its storage
+  when the disk runs full (`navigator.storage.persist`); a browser may say no.
+- Nothing is sent anywhere: the host sees requests for files only.
+- A new version reaches a browser as with a server: the service worker fetches it and the app
+  asks before it reloads.
+
+### On Cloudflare
+
+`mise run cloudflare` builds and then runs `wrangler deploy` in `apps/web`
+(`wrangler.jsonc`): the files become the static assets of a Worker named `drillgram`, with no
+code of its own, at `drillgram.<your subdomain>.workers.dev`. Requests for static assets are
+free and not counted on the free plan, which takes up to 20,000 files of at most 25 MiB each.
+
+- It reads `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` from the environment. The token
+  needs the permissions of Cloudflare's template "Edit Cloudflare Workers"; with less, the
+  deploy stops with "No access to the specified resource". Without the two variables wrangler
+  uses the account of `wrangler login` on this machine: check with `wrangler whoami` that it
+  is the one you mean.
+- An address of your own is set for the Worker in Cloudflare's dashboard (Settings, Domains
+  & Routes), not in `wrangler.jsonc`.
+- The name of the Worker is in `wrangler.jsonc`; another name is another Worker with its own
+  address, and so with its own, empty storage in every browser.
 
 ## The server
 

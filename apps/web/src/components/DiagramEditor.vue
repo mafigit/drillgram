@@ -59,6 +59,7 @@ import HistoryPanel from './HistoryPanel.vue'
 import IconPicker from './IconPicker.vue'
 import ObjectSearch from './ObjectSearch.vue'
 import ShapePicker from './ShapePicker.vue'
+import TourGuide from './TourGuide.vue'
 import ViewTabs from './ViewTabs.vue'
 import GroupForm from './GroupForm.vue'
 import type { Found } from './ObjectSearch.vue'
@@ -89,6 +90,8 @@ import { useWorkspaceStore } from '../composables/useWorkspaceStore'
 import { failureText } from '../lib/api'
 import { BROUGHT_KEY, localHistory } from '../lib/localWorkspace'
 import { viewPath } from '../router'
+import { TOUR_BOX } from '../tour/steps'
+import type { TourScene } from '../tour/steps'
 
 /** The view to show, from the address; the Overview when absent or unknown. */
 const props = defineProps<{ viewId?: string }>()
@@ -1389,6 +1392,31 @@ function travel(to: number) {
 const undo = () => travel(history.value.cursor - 1)
 const redo = () => travel(history.value.cursor + 1)
 
+// The tour (J63, TourGuide.vue): it is told on the example, which it loads into an empty
+// workspace, and follows what is done here to know when a step was answered.
+const tour = ref<InstanceType<typeof TourGuide>>()
+/** Nothing was ever done in this workspace: the tour starts by itself there, once in a browser. */
+const fresh = store.workspace.value.model.objects.length === 0 && history.value.log.length === 0
+/** The view inside the box the tour opens, while the example is there. */
+const tourView = computed(() => {
+  const box = workspace.value.model.objects.find((object) => object.name === TOUR_BOX)
+  return box && `inside-${box.id}`
+})
+const tourScene = computed<TourScene>(() => ({
+  at: viewId.value === ROOT_VIEW_ID ? 'overview' : viewId.value === tourView.value ? 'inside' : 'elsewhere',
+  objects: workspace.value.model.objects.length,
+  connections: workspace.value.model.connections.length,
+  changes: history.value.cursor,
+  lastChange: history.value.log[history.value.cursor - 1]?.event.type,
+  historyOpen: showHistory.value,
+  typing: labelling.value !== null,
+}))
+/** Opens the diagram a step of the tour is about; stays where it is when that is not there. */
+async function tourGo(where: 'overview' | 'inside') {
+  const to = where === 'overview' ? ROOT_VIEW_ID : tourView.value
+  if (to) await router.push(viewPath(to, ROOT_VIEW_ID))
+}
+
 useEventListener(window, 'keydown', (event: KeyboardEvent) => {
   // Escape leaves the icons, wherever the cursor is.
   if (event.key === 'Escape' && iconsOf.value) {
@@ -1800,6 +1828,9 @@ const keyKinds = computed(() =>
         >
           Load an example
         </Button>
+        <Button v-if="workspace.model.objects.length === 0" variant="outline" class="pointer-events-auto" @click="tour?.start()">
+          Take the tour
+        </Button>
         <Button
           v-if="kept && workspace.model.objects.length === 0 && history.log.length === 0"
           variant="outline"
@@ -1867,6 +1898,8 @@ const keyKinds = computed(() =>
           </div>
         </div>
       </Teleport>
+
+      <TourGuide ref="tour" :scene="tourScene" :fresh="fresh" :load="loadExample" :go="tourGo" />
 
       <div
         role="toolbar"

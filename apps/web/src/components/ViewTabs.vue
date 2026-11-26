@@ -57,7 +57,7 @@ function commitRenaming() {
 </script>
 
 <template>
-  <div class="flex items-center gap-1">
+  <div class="flex items-center gap-1" data-tour="views">
     <!-- Nothing here changes its width with the view that is open: every added tab has its own
          delete button, so going from tab to tab moves no tab and no button. -->
     <div role="tablist" aria-label="Views" class="bg-muted/70 flex items-center gap-0.5 rounded-lg p-0.5">

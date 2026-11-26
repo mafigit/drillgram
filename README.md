@@ -19,6 +19,8 @@ you sign in, and your diagrams are kept there, in as many workspaces as you like
 - **Undo, redo and a timeline**: every change is logged with its time. Step back and forth, or
   drag the timeline to see the diagram as it was. The log survives a reload.
 - **Import and export**: SVG, PNG, Mermaid and D2 out; Mermaid (C4 and flowcharts) and D2 in.
+- **A tour**: the first visit offers a tour of three minutes through all of this, on an
+  example.
 - **Sign-in your way**: a password, single sign-on (OpenID Connect), or the proxy in front of
   the server says who you are, by a header or a signed token, as Grafana does it.
 

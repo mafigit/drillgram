@@ -366,6 +366,15 @@ describe('the shapes of Miro', () => {
     expect([...shapes]).toEqual(BASIC)
   })
 
+  it('each come as ours, copied: a basic shape by its number', () => {
+    // The number a copy gives each basic shape, in the order of BASIC.
+    const numbers = ['3', '7', '4', '5', '8', '6', '10', '11', '12', '13', '21', '16', '18', '17', '20', '19', '22', '25', '26', '23', '24', '32', '33']
+    const objects = BASIC.map(([name], id) => ({ id, widgetData: { type: 'shape', json: { text: name, shape: numbers[id] } } }))
+    const { items, connectors } = miroClipboardBoard({ data: { objects } })
+    const shapes = new Map(miroDiagram(items, connectors).elements.map((element) => [element.name, element.shape]))
+    expect([...shapes]).toEqual(BASIC)
+  })
+
   it('each come as ours, copied: a shape of a library by the name of its element', () => {
     const objects = STENCILS.map(([element], id) => ({ id, widgetData: { type: 'stencil', json: { 'ns:diagrammingNotation': { element }, schema: { id: element, data: { texts: { name: { text: element } } } } } } }))
     const { items, connectors } = miroClipboardBoard({ data: { objects } })

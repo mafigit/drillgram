@@ -1845,11 +1845,11 @@ describe('the shape of a box', () => {
   it('is one of the shapes there are, and not for a person or a piece of code, which have their own', () => {
     expect(BOX_SHAPES).toEqual(expect.arrayContaining(['cylinder', 'queue', 'document', 'hexagon', 'diamond', 'circle', 'stadium', 'parallelogram', 'cloud', 'subroutine']))
     const made = (kind: ElementKind, shape: string) => addObject(emptyWorkspace(), ROOT_VIEW_ID, kind, 'X', { shape: shape as never }).model.objects[0]!
-    expect(made('box', 'star')).not.toHaveProperty('shape')
+    expect(made('box', 'heart')).not.toHaveProperty('shape')
     expect(made('person', 'cylinder')).not.toHaveProperty('shape')
     expect(made('code', 'cylinder')).not.toHaveProperty('shape')
     for (const kind of ['box', 'softwareSystem', 'container', 'component'] as const) expect(made(kind, 'hexagon').shape).toBe('hexagon')
-    expect(editObject(db(), 'OrdersDB', 'Orders DB', { shape: 'star' as never }).model.objects[0]!.shape).toBe('cylinder')
+    expect(editObject(db(), 'OrdersDB', 'Orders DB', { shape: 'heart' as never }).model.objects[0]!.shape).toBe('cylinder')
   })
 
   it('goes with a copy of the box, and with the box into a text format and back', () => {
@@ -1863,8 +1863,8 @@ describe('the shape of a box', () => {
 
   it('is refused when saved wrongly', () => {
     const unknown = structuredClone(db())
-    ;(unknown.model.objects[0] as { shape: string }).shape = 'star'
-    expect(() => validateWorkspace(unknown)).toThrow('has an unknown shape: star')
+    ;(unknown.model.objects[0] as { shape: string }).shape = 'heart'
+    expect(() => validateWorkspace(unknown)).toThrow('has an unknown shape: heart')
     const person = structuredClone(addObject(emptyWorkspace(), ROOT_VIEW_ID, 'person', 'Customer'))
     ;(person.model.objects[0] as { shape?: string }).shape = 'cylinder'
     expect(() => validateWorkspace(person)).toThrow('A person has no shape of its own to choose')

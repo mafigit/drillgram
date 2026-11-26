@@ -4,6 +4,7 @@ import { fixtureFetch } from '../../issues/testing/fixture-fetch'
 import { isMiroClipboard, miroBoardId, miroClipboardBoard, miroClipboardData, miroDiagram, miroPastedDiagram, readMiroBoard } from '../miro'
 import type { MiroConnector, MiroItem } from '../miro'
 import { validateDiagram } from '../model'
+import type { BoxShape } from '../model'
 import { emptyWorkspace, findViewInside, importDiagram, ROOT_VIEW_ID, validateWorkspace } from '../workspace'
 
 const ITEMS: MiroItem[] = [
@@ -210,6 +211,7 @@ const COPIED = {
       { id: 10, type: 14, widgetData: { type: 'shape', json: { text: '<p>Orders DB</p>', shape: '4' } } },
       { id: 11, type: 14, widgetData: { type: 'shape', json: { text: '<p>Paid?</p>', shape: '8' } } },
       { id: 12, type: 14, widgetData: { type: 'shape', json: { text: '<p>Later</p>', shape: '99' } } },
+      { id: 13, type: 14, widgetData: { type: 'shape', json: { text: '<p>Store</p>', shape: '26' } } },
     ],
     meta: {},
   },
@@ -236,6 +238,7 @@ describe('a copy from Miro', () => {
     expect(named('Orders DB')).toMatchObject({ shape: 'circle' })
     expect(named('Paid?')).toMatchObject({ shape: 'diamond' })
     expect(named('Later')?.shape).toBeUndefined()
+    expect(named('Store')).toMatchObject({ shape: 'cylinder' })
     expect(named('Billing')?.shape).toBeUndefined()
     expect(named('Shape')).toMatchObject({ shape: 'callout' })
     expect(diagram.relationships).toEqual([
@@ -269,5 +272,110 @@ describe('a copy from Miro', () => {
         validateWorkspace(importDiagram(emptyWorkspace(), ROOT_VIEW_ID, miroDiagram(items, connectors)))
       }),
     )
+  })
+})
+
+// Every shape of Miro's shape panel (Basic, Flowchart and Callouts, 2026-11-26), by the name
+// Miro gives it, and ours. Read off a board holding each of them, through Miro's MCP server.
+const BASIC: [string, BoxShape | undefined][] = [
+  ['rectangle', undefined],
+  ['round_rectangle', undefined],
+  ['circle', 'circle'],
+  ['triangle', 'triangle'],
+  ['rhombus', 'diamond'],
+  ['wedge_round_rectangle_callout', 'callout'],
+  ['parallelogram', 'parallelogram'],
+  ['star', 'star'],
+  ['right_arrow', 'arrowRight'],
+  ['left_arrow', 'arrowLeft'],
+  ['left_right_arrow', 'arrowBoth'],
+  ['pentagon', 'pentagon'],
+  ['octagon', 'octagon'],
+  ['hexagon', 'hexagon'],
+  ['flow_chart_predefined_process', 'subroutine'],
+  ['trapezoid', 'trapezoid'],
+  ['cloud', 'cloud'],
+  ['cross', 'cross'],
+  ['can', 'cylinder'],
+  ['left_brace', 'brace'],
+  ['right_brace', 'braceRight'],
+  ['chevron', 'step'],
+  ['pentagon_arrow', 'tag'],
+]
+const STENCILS: [string, BoxShape | undefined][] = [
+  ['flowchart-process', undefined],
+  ['flowchart-decision', 'diamond'],
+  ['flowchart-terminator', 'stadium'],
+  ['flowchart-predefined-process', 'subroutine'],
+  ['flowchart-document', 'document'],
+  ['flowchart-multiple-documents', 'documents'],
+  ['flowchart-manual-input', 'manualInput'],
+  ['flowchart-preparation', 'hexagon'],
+  ['flowchart-data', 'parallelogram'],
+  ['flowchart-database', 'cylinder'],
+  ['flowchart-hard-disk', 'queue'],
+  ['flowchart-internal-storage', 'internalStorage'],
+  ['flowchart-manual-operation', 'invTrapezoid'],
+  ['flowchart-delay', 'delay'],
+  ['flowchart-stored-data', 'storedData'],
+  ['flowchart-merge', 'flippedTriangle'],
+  ['flowchart-connector', 'circle'],
+  ['flowchart-or', 'circlePlus'],
+  ['flowchart-summing-junction', 'circleCross'],
+  ['flowchart-display', 'display'],
+  ['flowchart-off-page-link', 'offPage'],
+  ['flowchart-note-curly-right', 'braceRight'],
+  ['flowchart-note-curly-left', 'brace'],
+  ['flowchart-note-square', 'bracket'],
+  ['flowchart-magnetic-tape', 'magneticTape'],
+  ['flowchart-multiproc', 'processes'],
+  ['flowchart-lined-shaded', 'linedProcess'],
+  ['flowchart-lined-document', 'linedDocument'],
+  ['flowchart-divided', 'divided'],
+  ['flowchart-process-sharp', undefined],
+  ['flowchart-trapezoid', 'trapezoid'],
+  ['flowchart-asymmetric', 'odd'],
+  ['flowchart-lean-left', 'leanLeft'],
+  ['flowchart-double-circle', 'doubleCircle'],
+  ['flowchart-start', 'circle'],
+  ['flowchart-stop', 'doubleCircle'],
+  ['flowchart-junction', 'filledCircle'],
+  ['flowchart-card', 'card'],
+  ['flowchart-tagged-process', 'taggedProcess'],
+  ['flowchart-loop-limit', 'loopLimit'],
+  ['flowchart-collate', 'hourglass'],
+  ['flowchart-extract', 'triangle'],
+  ['flowchart-tagged-document', 'taggedDocument'],
+  ['flowchart-disk-storage', 'disk'],
+  ['flowchart-lightning-bolt', 'bolt'],
+  ['flowchart-text-block', 'text'],
+  ['flowchart-note-curly-both', 'braces'],
+  ['flowchart-cloud', 'cloud'],
+  ['flowchart-bang', 'bang'],
+  ['flowchart-folder', 'folder'],
+  ['flowchart-bucket', 'bucket'],
+  ['callouts-callout', 'callout'],
+  ['callouts-speech-bubble', 'speechBubble'],
+  ['callouts-bracket', 'brace'],
+]
+
+describe('the shapes of Miro', () => {
+  it('each come as ours, read from the board by their name', () => {
+    const items: MiroItem[] = BASIC.map(([shape], at) => ({ id: String(at), type: 'shape', data: { content: shape, shape } }))
+    const shapes = new Map(miroDiagram(items, []).elements.map((element) => [element.name, element.shape]))
+    expect([...shapes]).toEqual(BASIC)
+  })
+
+  it('each come as ours, copied: a shape of a library by the name of its element', () => {
+    const objects = STENCILS.map(([element], id) => ({ id, widgetData: { type: 'stencil', json: { 'ns:diagrammingNotation': { element }, schema: { id: element, data: { texts: { name: { text: element } } } } } } }))
+    const { items, connectors } = miroClipboardBoard({ data: { objects } })
+    const shapes = new Map(miroDiagram(items, connectors).elements.map((element) => [element.name, element.shape]))
+    expect([...shapes]).toEqual(STENCILS)
+  })
+
+  it('come as a frame where a container holds things', () => {
+    const objects = [{ id: 0, widgetData: { type: 'stencil', json: { 'ns:diagrammingNotation': { element: 'flowchart-container' }, schema: { data: { texts: { title: { text: 'Billing' } } } } } } }]
+    const { items } = miroClipboardBoard({ data: { objects } })
+    expect(items).toMatchObject([{ id: '0', type: 'frame', data: { title: 'Billing' } }])
   })
 })

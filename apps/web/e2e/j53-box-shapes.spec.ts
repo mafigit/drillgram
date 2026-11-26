@@ -77,10 +77,12 @@ test('J53 The Flowchart library has the rest of the shapes; a text has no outlin
   await page.getByRole('button', { name: 'Add shape' }).click()
   await page.getByRole('tab', { name: 'Flowchart' }).click()
   const offered = await page.getByRole('tabpanel').getByRole('button').evaluateAll((all) => all.map((b) => b.getAttribute('aria-label')))
-  expect(offered).toEqual(expect.arrayContaining(['Add Trapezoid', 'Add Manual operation', 'Add Documents', 'Add Disk', 'Add Comment', 'Add Browser', 'Add Data store']))
-  expect(offered).toHaveLength(30)
+  expect(offered).toEqual(
+    expect.arrayContaining(['Add Trapezoid', 'Add Manual operation', 'Add Documents', 'Add Disk', 'Add Comment', 'Add Browser', 'Add Data store', 'Add Or', 'Add Junction', 'Add Speech bubble']),
+  )
+  expect(offered).toHaveLength(39)
   await page.getByRole('tab', { name: 'Basic' }).click()
-  await expect(page.getByRole('tabpanel').getByRole('button')).toHaveCount(18)
+  await expect(page.getByRole('tabpanel').getByRole('button')).toHaveCount(26)
 
   // A pile of documents: its outline and the edges of the two sheets behind.
   await page.getByRole('searchbox', { name: 'Search shapes' }).fill('pile of documents')
@@ -109,7 +111,7 @@ test('J53 The Flowchart library has the rest of the shapes; a text has no outlin
   await editor.openEditForm('Only words')
   const shape = page.getByRole('form', { name: 'Edit box' }).getByRole('combobox', { name: 'Shape' })
   await expect(shape.locator('optgroup')).toHaveCount(2)
-  await expect(shape.locator('option')).toHaveCount(48)
+  await expect(shape.locator('option')).toHaveCount(65)
   await shape.selectOption({ label: 'Comment' })
   await page.getByRole('form', { name: 'Edit box' }).getByRole('button', { name: 'Save' }).click()
   await expect(words.getByTestId('card-shape')).toHaveAttribute('data-shape', 'brace')

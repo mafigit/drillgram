@@ -130,6 +130,9 @@ describe('flowchartFormat.parse', () => {
         '  i@{ shape: person, label: "Customer" }',
         '  j@{ shape: no-such-shape, label: "Unknown" }',
         '  k@{ shape: hourglass, label: "Collate" }',
+        '  l@{ shape: bolt }',
+        '  m@{ shape: f-circ }',
+        '  n@{ shape: cross-circ }',
       ].join('\n'),
     )
     validateDiagram(read)
@@ -144,9 +147,12 @@ describe('flowchartFormat.parse', () => {
       ['h', 'box', 'h', 'doubleCircle'],
       // A person is a person here, not a box with a shape.
       ['i', 'person', 'Customer', undefined],
-      // A shape nobody knows, and one that is a sign without room for a name: a plain box.
+      // A shape nobody knows: a plain box.
       ['j', 'box', 'Unknown', undefined],
-      ['k', 'box', 'Collate', undefined],
+      ['k', 'box', 'Collate', 'hourglass'],
+      ['l', 'box', 'l', 'bolt'],
+      ['m', 'box', 'm', 'filledCircle'],
+      ['n', 'box', 'n', 'circleCross'],
     ])
     expect(read.relationships).toEqual([
       { from: 'e', to: 'f' },

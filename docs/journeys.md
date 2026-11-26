@@ -973,16 +973,20 @@ Test: `apps/web/e2e/j53-box-shapes.spec.ts`
    text to "Comment" in its form; reload.
 7. Import a flowchart that names shapes (`a@{ shape: lin-cyl }`, `c[/Priority\]`).
 
-Expected: the Basic library offers the plain box and seventeen shapes that say what a box is:
+Expected: the Basic library offers the plain box and the shapes that say what a box is:
 Database (a cylinder), Queue (a lying cylinder), Document, Hexagon, Decision (a diamond), Circle,
 Pill, Input or output (a slanted box), Cloud, Subroutine, D2's Page, Folder, Step, Callout,
-Stored data and Text, and the Table (J56). The Flowchart library has the thirty others a Mermaid flowchart knows
-(trapezoids, piles of documents and boxes, a disk, a display, comments beside a brace, a browser
-window, a data store). The search finds them all, and a box's form lists them in the two groups.
+Stored data and Text, the Table (J56), and the basic shapes of Miro's panel (J66): Star,
+Pentagon, Octagon, Cross, three block arrows and Tag. The Flowchart library has the thirty-nine
+others a Mermaid flowchart and Miro's Flowchart and Callouts libraries know (trapezoids, piles of
+documents and boxes, a disk, a display, comments beside a brace or a bracket, a browser window, a
+data store, a circle with a plus or a cross, a filled circle, an off-page link, an hourglass, a
+lightning bolt, a magnetic tape, a speech bubble). The search finds them all, and a box's form
+lists them in the two groups.
 A text has no outline until it is selected, a comment has a brace only, a data store a line
 above and below. A flowchart's shapes come along on import, written with brackets or by any of
-Mermaid's names; a shape that is a sign without room for a name (an hourglass, a bolt, a bar)
-and a name nobody knows give a plain box, a `person` a person. The card is drawn
+Mermaid's names (an hourglass, a bolt, a filled or crossed circle too); a fork or join bar and a
+name nobody knows give a plain box, a `person` a person. The card is drawn
 as that outline, without a border or ground of its own, and its text keeps clear of the outline.
 Any box says its shape in its form, a C4 container too, and stays what it is ("Container");
 "Rectangle" gives the plain card back. A person and a piece of code have no shape to choose. A
@@ -1318,7 +1322,10 @@ that is no board's.
 Expected: the field says what the paste or the PDF holds ("3 boxes and 1 connection from
 Miro", "… from board.pdf"). From the PDF, a frame is called "Frame" (Miro leaves its title
 out), a box is a closed outline, a connection an open line from box to box, towards its
-arrowhead, and a text beside such a line its caption; a text in no box is a box of its own. The
+arrowhead, and a text beside such a line its caption; a text in no box is a box of its own.
+Every shape of Miro's Basic, Flowchart and Callouts libraries comes as one of ours, by its name
+from a paste or a token; from a PDF by its outline and what is drawn on it (the bars of a
+subroutine, the rim of a database), all but the Callouts bracket, which the PDF leaves out. The
 board comes onto the open diagram as one change, laid out by the layout engine: a frame is a
 box with what stands in it inside; a sticky note, a shape, a text and a card are boxes named
 by their first line, the rest of their text is the description; a shape keeps its outline

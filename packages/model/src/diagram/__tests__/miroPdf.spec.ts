@@ -110,3 +110,55 @@ describe('miroPdfPagesDiagram', () => {
     expect(miroPdfPagesDiagram([page])).toEqual(miroPdfDiagram(page))
   })
 })
+
+describe('the outlines of Miro, in its vector PDF', () => {
+  /** A drawing of one shape 100 wide and 60 high at 100, 100: its outline and what is on it. */
+  const at = (points: [number, number][]) => points.map(([x, y]) => ({ x: 100 + x * 100, y: 100 + y * 60 }))
+  const outline = (points: [number, number][], paint: Partial<DrawnPath> = { stroke: '#1a1a1a' }): DrawnPath => ({ pieces: [{ points: at(points), closed: true, curved: false }], ...paint })
+  const mark = (points: [number, number][], curved = false): DrawnPath => ({ pieces: [{ points: at(points), closed: false, curved }], stroke: '#1a1a1a' })
+  const round = (inset = 0, paint: Partial<DrawnPath> = { stroke: '#1a1a1a' }): DrawnPath => ({
+    pieces: [{ points: Array.from({ length: 64 }, (_, i) => ({ x: 150 + (50 - inset) * Math.cos((i / 64) * 2 * Math.PI), y: 130 + (30 - inset * 0.6) * Math.sin((i / 64) * 2 * Math.PI) })), closed: true, curved: true }],
+    ...paint,
+  })
+  const arc = (y: number): [number, number][] => Array.from({ length: 9 }, (_, i) => [i / 8, y + 0.1 * Math.sin((i / 8) * Math.PI)])
+  const rect: [number, number][] = [[0, 0], [1, 0], [1, 1], [0, 1]]
+  const shapeOf = (...paths: DrawnPath[]) => miroPdfDiagram({ width: 600, height: 400, paths, texts: [] }).elements.map((element) => element.shape)
+
+  it.each<[string, DrawnPath[], string | undefined]>([
+    ['star', [outline([[0.5, 0], [0.62, 0.35], [1, 0.38], [0.7, 0.6], [0.8, 1], [0.5, 0.78], [0.2, 1], [0.3, 0.6], [0, 0.38], [0.38, 0.35]])], 'star'],
+    ['arrow right', [outline([[0, 0.2], [0.7, 0.2], [0.7, 0], [1, 0.5], [0.7, 1], [0.7, 0.8], [0, 0.8]])], 'arrowRight'],
+    ['arrow left', [outline([[0, 0.5], [0.3, 0], [0.3, 0.2], [1, 0.2], [1, 0.8], [0.3, 0.8], [0.3, 1]])], 'arrowLeft'],
+    ['arrow both ways', [outline([[0, 0.5], [0.3, 0], [0.3, 0.2], [0.7, 0.2], [0.7, 0], [1, 0.5], [0.7, 1], [0.7, 0.8], [0.3, 0.8], [0.3, 1]])], 'arrowBoth'],
+    ['cross', [outline([[0.3, 0], [0.7, 0], [0.7, 0.3], [1, 0.3], [1, 0.7], [0.7, 0.7], [0.7, 1], [0.3, 1], [0.3, 0.7], [0, 0.7], [0, 0.3], [0.3, 0.3]])], 'cross'],
+    ['octagon', [outline([[0.3, 0], [0.7, 0], [1, 0.3], [1, 0.7], [0.7, 1], [0.3, 1], [0, 0.7], [0, 0.3]])], 'octagon'],
+    ['pentagon', [outline([[0.5, 0], [1, 0.4], [0.8, 1], [0.2, 1], [0, 0.4]])], 'pentagon'],
+    ['tag', [outline([[0, 0], [0.8, 0], [1, 0.5], [0.8, 1], [0, 1]])], 'tag'],
+    ['chevron', [outline([[0, 0], [0.8, 0], [1, 0.5], [0.8, 1], [0, 1], [0.2, 0.5]])], 'step'],
+    ['off-page link', [outline([[0, 0], [1, 0], [1, 0.6], [0.5, 1], [0, 0.6]])], 'offPage'],
+    ['hourglass', [outline([[0, 0], [1, 0], [0.5, 0.5], [1, 1], [0, 1], [0.5, 0.5]])], 'hourglass'],
+    ['lightning bolt', [outline([[0.8, 0], [0.4, 0.45], [1, 0.45], [0.2, 1], [0.6, 0.55], [0, 0.55]])], 'bolt'],
+    ['circle', [round()], 'circle'],
+    ['or', [round(), mark([[0.5, 0], [0.5, 1]]), mark([[0, 0.5], [1, 0.5]])], 'circlePlus'],
+    ['summing junction', [round(), mark([[0.15, 0.15], [0.85, 0.85]]), mark([[0.85, 0.15], [0.15, 0.85]])], 'circleCross'],
+    ['magnetic tape', [round(), mark([[0.5, 1], [1, 1]])], 'magneticTape'],
+    ['double circle', [round(), round(4)], 'doubleCircle'],
+    ['junction', [round(0, { fill: '#050038' })], 'filledCircle'],
+    ['subroutine', [outline(rect), mark([[0.1, 0], [0.1, 1]]), mark([[0.9, 0], [0.9, 1]])], 'subroutine'],
+    ['lined process', [outline(rect), mark([[0.1, 0], [0.1, 1]])], 'linedProcess'],
+    ['divided', [outline(rect), mark([[0, 0.2], [1, 0.2]])], 'divided'],
+    ['internal storage', [outline(rect), mark([[0.1, 0], [0.1, 1]]), mark([[0, 0.15], [1, 0.15]])], 'internalStorage'],
+    ['database', [outline(rect), mark(arc(0.05), true)], 'cylinder'],
+    ['plain', [outline(rect)], undefined],
+  ])('reads a %s', (_, paths, shape) => {
+    expect(shapeOf(...paths)).toEqual([shape])
+  })
+
+  it('reads a lone curly brace or bracket as a comment, two braces facing each other as one', () => {
+    const brace = (x: number, way: 1 | -1): DrawnPath => mark([[x + way * 0.08, 0], [x + way * 0.04, 0.05], [x + way * 0.04, 0.45], [x, 0.5], [x + way * 0.04, 0.55], [x + way * 0.04, 0.95], [x + way * 0.08, 1]])
+    const bracket = mark([[0.08, 0], [0, 0], [0, 1], [0.08, 1]])
+    expect(shapeOf(brace(0, 1))).toEqual(['brace'])
+    expect(shapeOf(brace(0.08, -1))).toEqual(['braceRight'])
+    expect(shapeOf(bracket)).toEqual(['bracket'])
+    expect(shapeOf(brace(0, 1), brace(1, -1))).toEqual(['braces'])
+  })
+})

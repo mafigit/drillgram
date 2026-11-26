@@ -349,7 +349,10 @@ describe('WorkspaceLog', () => {
     const { log, server } = await open()
     let release = () => {}
     server.gate = new Promise((resolve) => (release = resolve))
-    for (let i = 0; i < 1201; i++) log.dispatch(add(`S${i}`), AT)
+    // One card renamed over and over: what is sent counts here, not how big the diagram grows.
+    log.dispatch(add('S0'), AT)
+    const shop = log.history.states[log.history.cursor]!.model.objects[0]!.id
+    for (let i = 1; i < 1201; i++) log.dispatch({ type: 'objectRenamed', object: shop, name: `S${i}` }, AT)
     release()
     await log.settled()
     expect(server.appends.map((sent) => sent.entries.length)).toEqual([1, 500, 500, 200])

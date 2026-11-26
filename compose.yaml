@@ -1,0 +1,55 @@
+# Drillgram with its database: to try it, and for a small installation of your own.
+#
+#   docker compose up --build        then open http://localhost:8080
+#   docker compose down              stops it; the database stays (add -v to throw it away)
+#
+# The first start makes an admin: admin@example.org with the password drillgram-dev. Change the
+# password in the app (the account menu), or set another one before the first start.
+#
+# For more than trying it: a file `.env` beside this one. It is read here (the ${…} below) and
+# every DRILLGRAM_* variable in it reaches the server; context/operations.md lists them all.
+#
+#   POSTGRES_PASSWORD=…                letters and digits only: it stands in an address below
+#   DRILLGRAM_ADMIN_EMAIL=you@example.org
+#   DRILLGRAM_ADMIN_PASSWORD=…         at least 10 characters; of no effect once there is a user
+#   DRILLGRAM_PUBLIC_URL=https://drillgram.example.org     where people reach it, behind your proxy
+#   DRILLGRAM_PORT=8080                the port on this machine
+#
+# It listens on this machine alone (127.0.0.1): put a proxy with TLS in front for anybody else.
+name: drillgram
+
+services:
+  db:
+    image: postgres:17.2-bookworm
+    environment:
+      POSTGRES_DB: drillgram
+      POSTGRES_USER: drillgram
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-drillgram}
+    volumes:
+      - db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -q -U drillgram -d drillgram"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
+  app:
+    build: .
+    image: drillgram:local
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DRILLGRAM_DATABASE_URL: postgres://drillgram:${POSTGRES_PASSWORD:-drillgram}@db:5432/drillgram
+      DRILLGRAM_ADMIN_EMAIL: ${DRILLGRAM_ADMIN_EMAIL:-admin@example.org}
+      DRILLGRAM_ADMIN_PASSWORD: ${DRILLGRAM_ADMIN_PASSWORD:-drillgram-dev}
+    ports:
+      - "127.0.0.1:${DRILLGRAM_PORT:-8080}:8080"
+    restart: unless-stopped
+
+volumes:
+  db:

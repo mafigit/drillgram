@@ -2,6 +2,8 @@
 
 - **Stack:** Vue 3, Vite, TypeScript, Vitest, Playwright, pnpm workspace, Node
   `^22.22.2 || >=24.15.0`. vite-plugin-pwa with a Workbox service worker; Capacitor comes later.
+- **Server:** Go with Fiber 3 and PostgreSQL 17 (`pgx`), in `apps/server`, a Go module of its
+  own (owner's call, 2026-11-26). Rules: [server.md](server.md).
 - **UI:** Tailwind CSS 4 (`@tailwindcss/vite`) with shadcn-vue components on Reka UI, icons from
   `@lucide/vue`, the Geist font from `@fontsource-variable/geist`. Components are copied into
   `apps/web/src/components/ui/` by the CLI (`components.json`): add one with
@@ -27,19 +29,21 @@
   types; `src/issues/` holds the provider-neutral issue model and `IssueProvider` interface;
   `src/diagram/` holds the editor's `Workspace` (model plus views), the format-neutral C4 `Diagram`
   model and the `DiagramFormat` converters (Mermaid first); property tests use fast-check), `deploy/licences` (`@drillgram/licences`, the licence checks, see
-  [licences.md](licences.md)), later `apps/mcp-server`.
+  [licences.md](licences.md)), `apps/server` (the server, Go), later `apps/mcp-server`.
 - **PWA:** the manifest config lives in `apps/web/vite.config.ts` (`VitePWA`). Icons are generated
   from `apps/web/public/logo.svg` by `@vite-pwa/assets-generator` (`apps/web/pwa-assets.config.ts`,
   `minimal2023Preset`). Run `pnpm --filter @drillgram/web generate-pwa-assets` after changing the SVG, and
   commit the PNGs. A Workbox service worker (`registerType: 'prompt'`) precaches the app shell, with
   `navigateFallback: 'index.html'`; `src/components/ReloadPrompt.vue` registers it and asks before
   updating. `workbox-window` is a devDependency because `virtual:pwa-register/vue` imports it.
-- **Local tools:** [mise](https://mise.jdx.dev) installs every local dependency (Node, pnpm) from
+- **Local tools:** [mise](https://mise.jdx.dev) installs every local dependency (Node, pnpm, Rust, Go) from
   `mise.toml`: run `mise install` once in the repo root. Add new local tools there, never as a
   global install.
-- **Commands** (from the repo root): `mise install`, `pnpm install`, `pnpm test`, `pnpm test:e2e`, `pnpm test:e2e:ui`,
+- **Commands** (from the repo root): `mise install`, `mise run dev` (the server and the app's
+  dev server together; the tasks are in `mise.toml`), `pnpm install`, `pnpm test`, `pnpm test:e2e`, `pnpm test:e2e:ui`,
   `pnpm typecheck`, `pnpm build`, `bin/engine build|test`, `pnpm --filter @drillgram/web generate-pwa-assets`.
-  Run the dev server with `pnpm --filter @drillgram/web dev`.
+  Run the dev server with `pnpm --filter @drillgram/web dev`. The server's tests:
+  `bin/with-postgres go test ./...` from `apps/server`.
 
 ## Rules
 
@@ -47,13 +51,18 @@
 - Write components with `<script setup lang="ts">`.
 - Put tests in `src/**/__tests__/*.spec.ts`.
 - Keep shared domain code in `packages/*` with no Vue imports.
+- Ask the server through `src/lib/api.ts` only, never with `fetch` in a component. A button that
+  asks it is busy until the answer is there (`useBusy`).
+- The workspace is the server's log. Nothing of it is written to the browser's storage but
+  what waits to be sent (`lib/outbox.ts`). The browser's storage is for what belongs to the
+  browser: the theme, the tab last used, the workspace last open.
 - Change the workspace only with `dispatch(event)` from `useWorkspaceStore`: a new kind of change
   is a new `WorkspaceEvent` in `packages/model/src/diagram/events.ts` (reducer, description, tests).
   Anything else would miss the change log, undo and redo. `applyEvent` must stay deterministic.
 - Never introduce a framework or language that no issue asks for.
 - Style with Tailwind classes and the tokens in `main.css`; no hard-coded colours in components.
-- No requests to other hosts at run time (fonts, icons, scripts): the app works offline and the
-  e2e tests block the network. The shadcn-vue CLI adds a Google Fonts import to `main.css`; remove
+- No requests to other hosts at run time (fonts, icons, scripts): the app asks its own server
+  and nobody else, and the e2e tests block the rest of the network. The shadcn-vue CLI adds a Google Fonts import to `main.css`; remove
   it if it comes back.
 - A shadcn-vue `CommandItem` must sit inside a `CommandGroup`, or the list stays empty.
 - Buttons and fields inside a canvas card or edge label need the classes `nodrag nopan`.

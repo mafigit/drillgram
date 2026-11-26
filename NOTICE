@@ -25,7 +25,8 @@ Parts of this repository and of the app built from it are under other terms:
 - The Geist font, from the npm package @fontsource-variable/geist, is in every build:
   Copyright 2024 The Geist Project Authors, SIL Open Font License 1.1.
 
-- The packages the app is built with (pnpm-lock.yaml) keep their own licences.
+- The packages the app is built with (pnpm-lock.yaml) and the Go modules the server is built
+  with (apps/server/go.sum) keep their own licences.
 
 REUSE.toml says for every file of the repository whose it is and under which licence; the
 texts of those licences are in LICENSES/.

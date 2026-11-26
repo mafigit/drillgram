@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# What the journeys run against: the built web app, given out by the server, on a PostgreSQL
+# that goes when this stops. Playwright starts it (playwright.config.ts):
+#
+#   e2e/serve <port>
+#
+# The server is built here unless DRILLGRAM_SERVER_BIN names one (the image of the checks).
+set -euo pipefail
+cd "$(dirname "$0")/.."
+port=${1:?give the port}
+
+pnpm run build-only
+
+server=${DRILLGRAM_SERVER_BIN:-}
+if [ -z "$server" ]; then
+  server=$PWD/../../node_modules/.cache/drillgram-e2e-server
+  (cd ../server && go build -o "$server" ./cmd/drillgram)
+fi
+
+# The admin the tests make users with (e2e/fixtures.ts).
+export DRILLGRAM_LISTEN="127.0.0.1:$port" DRILLGRAM_WEB_DIR="$PWD/dist"
+export DRILLGRAM_ADMIN_EMAIL=admin@example.org DRILLGRAM_ADMIN_PASSWORD='the admin of the tests'
+# with-postgres says where its database is in DRILLGRAM_TEST_DATABASE_URL.
+exec ../../bin/with-postgres sh -c 'DRILLGRAM_DATABASE_URL=$DRILLGRAM_TEST_DATABASE_URL exec "$0"' "$server"

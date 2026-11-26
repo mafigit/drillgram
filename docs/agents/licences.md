@@ -6,7 +6,7 @@ checks keep that true; `bin/ci-check` runs them all.
 | What | Check | Its list |
 | --- | --- | --- |
 | Every file of the repository | `deploy/licences/reuse` (`reuse lint`, [reuse.software](https://reuse.software)) | `REUSE.toml`, texts in `LICENSES/` |
-| npm packages and the engine's crates | `pnpm licences` (`deploy/licences`) | `deploy/licences/licences.allow.json` |
+| npm packages, the engine's crates and the server's Go modules | `pnpm licences` (`deploy/licences`) | `deploy/licences/licences.allow.json` |
 | Icons a card can carry | tests in `apps/web/src/__tests__/tech-icons.spec.ts` | [icon-licences.md](../icon-licences.md) |
 
 ## A new file
@@ -34,7 +34,10 @@ licence that is not on the list of `licences.allow.json`.
 - An exception that no package needs any more fails the check too: take it out.
 
 The licences come from the package managers: `pnpm licenses list` and `cargo metadata` (in the
-check's image from the list written while the engine was built, `DRILLGRAM_CRATES`).
+check's image from the list written while the engine was built, `DRILLGRAM_CRATES`). A Go module
+states no licence in a manifest: `go-licenses` reads each module's licence file and names it
+(`DRILLGRAM_GO_MODULES` in the check's image). Only modules that are in the server count, not
+those its tests alone use.
 
 ## What the checks do not know
 

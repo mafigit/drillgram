@@ -2,7 +2,8 @@
 
 A design tool for product engineers: draw and maintain software architecture as diagrams of
 boxes that open into deeper diagrams (C4's elements are one library of shapes), let AI agents change them over MCP,
-and export them to many formats. Web app (installable PWA) first; iOS and Android may follow.
+and export them to many formats. A web app (installable PWA) with a server of its own, which
+keeps the users and their workspaces; iOS and Android may follow.
 
 ## How it is built
 
@@ -11,13 +12,13 @@ Development is
 test-driven first, outside-in from end-to-end browser tests of user journeys.
 Project started 2026-11-03.
 
-## Status (2026-11-23)
+## Status (2026-11-26)
 
 - Done: pnpm workspace with the Vue 3 app shell (installable PWA, offline app shell, update prompt),
   Playwright e2e harness with the journey catalogue, `bin/ci-check` as the one check that CI calls, and
   a provider-neutral issue model with Gitea, GitHub and GitLab adapters (`packages/model`).
 - Editor (J2): add a person or software system, connect two elements by dragging the handle and
-  label the relationship; saved in `localStorage`, survives a reload. The editor holds a workspace:
+  label the relationship; kept on the server, survives a reload. The editor holds a workspace:
   one model (objects, connections) and views that place parts of it.
 - Around the frame (J42): on a Container or Component diagram the frame is a card of its own
   for the layout engine. Its connectors (the object's own connections) are routed by the engine
@@ -151,8 +152,9 @@ Project started 2026-11-03.
   (buttons in the top bar, Ctrl+Z, Ctrl+Shift+Z or Ctrl+Y; Cmd on a Mac) step through it. The
   History button opens the timeline and the log: drag the slider, turn the wheel over it or click
   a change to see the diagram as it was; the diagram follows to where the change was made. A new
-  change after going back drops the undone ones. Log and position survive a reload
-  (`localStorage`, the last 1000 changes).
+  change after going back drops the undone ones. Log and position survive a reload and are the
+  same in every browser of the user: they are the workspace's log on the server (J60). The
+  editor works on the last 1000 changes.
 - Markdown on cards (J44): the description of a card is Markdown (CommonMark with tables,
   strikethrough, links found in plain text and task lists; `lib/markdown.ts`, markdown-it, MIT).
   HTML written in the text is shown as text. A card is as tall as its text needs, up to 480 px
@@ -168,10 +170,9 @@ Project started 2026-11-03.
   on screen marked and, inside a box, its frame; dragging in it moves the view, the wheel over it zooms. Not on an empty
   diagram or a phone, and it makes room for the history. A card that would lie under it counts
   as out of sight, so the view fits itself.
-- Clear the workspace (J43): "Clear workspace" in the top bar asks first, then deletes the
-  workspace and its change log from this browser (`drillgram.workspace.v1`, `drillgram.history.v1`) and
-  starts an empty one. It cannot be undone. This is how a new workspace begins until there is
-  a backend that keeps several.
+- Clear the workspace (J43): "Clear workspace" in the top bar asks first, then deletes
+  everything in the workspace and its change log, on the server. It cannot be undone. The
+  workspace stays, with its name; a new one is begun in the workspace menu (J58).
 - Rename and delete (J4): double-click a card to rename it; Delete, Backspace or the Delete
   button removes the selected cards from the model, with what is inside them and their
   connections.
@@ -200,12 +201,42 @@ Project started 2026-11-03.
   in the system or container the file frames them in (a new object with its own diagram, or the
   open diagram's object if it is of that kind), else in the open diagram's object; if nothing
   fits, the dialog says why. A line the app cannot read is named with its number.
+- Server (`apps/server`, 2026-11-26): Go with Fiber and PostgreSQL. Users (made by an admin, the
+  first start makes the admin), sign-in four ways (password, single sign-on through OpenID
+  Connect, the header of a proxy, a signed token in a header: the last two as Grafana does it),
+  several workspaces for a user, each with members (owner, editor, viewer) and a change log
+  that is the truth about it. See `architecture.md` ("Server") and `operations.md`
+  ("The server").
+- The app needs the server and a signed-in user (owner's call, 2026-11-26): there is no mode
+  without one. Sign in and out (J57): a page for it, with the password form, a button for
+  single sign-on where the server has it, and the reason when a sign-in was refused; an address
+  asked for while signed out is where the browser is after the sign-in. The account menu in the
+  top bar names the user, changes their password and signs them out.
+- Workspaces (J58): the top bar names the open workspace and leads to the others, to a new one,
+  and for its owner to another name or to deleting it. The address names the workspace
+  (`/w/<id>`, a view of it `/w/<id>/view/<view>`); the app's own address leads to the one that
+  was open last. Not yet in the app: sharing a workspace (the server can: members and roles).
+- Users (J59): an admin has a page for them (`/users`): make one, make one an admin, disable
+  and enable. Nobody is deleted.
+- The workspace is the server's log (J60): the editor reads it when a workspace opens and
+  writes every change to it, also undo, redo and the place on the timeline. A change shows at
+  once and is written after; what is not written yet waits in the browser and survives a
+  reload. A change made in a browser that has not seen what another one did is not kept: the
+  workspace is shown as the server has it and a card says so. Not yet: seeing each other's
+  changes as they are made (J19).
+- What a browser kept before (J61): the one workspace the app used to keep in the browser can
+  be brought into an empty workspace of the server, with its change log, once.
+- Run as a stack (2026-11-26): `docker compose up --build` builds one image with the server and
+  the web app and runs it with a PostgreSQL (`Dockerfile`, `compose.yaml`; `operations.md`,
+  "The stack").
 - Not built yet: the MCP server (`apps/mcp-server` is planned). Journeys J1 to
-  J5, J9, J15, J18 and J20 to J53 are real tests; the others are still `test.fixme`.
-- Later, not started (owner's call, 2026-11-22): event sourcing for the whole data store and its
-  history. Everything is an event and the events are the truth; the workspace is what they add
-  up to. Today it is the other way round: the saved workspace is the truth and the change log
-  sits beside it. The aim is real multi-user behaviour (several people on one diagram).
+  J5, J9, J11, J15, J18 and J20 to J61 are real tests; the others (J6 to J8, J10, J12 to J14,
+  J16, J17, J19) are still `test.fixme`.
+- Event sourcing (owner's call, 2026-11-22; begun 2026-11-26): the events are the truth and the
+  workspace is what they add up to: the server keeps the log, the editor makes the workspace
+  from it. Still to come for real multi-user behaviour (several people on one diagram): changes
+  that reach the other browsers as they are made, and bringing together what two people did at
+  the same time instead of dropping the later one.
 - Arrange (J32): the Arrange button lays the open diagram out as TALA does: the layout engine
   (`api::arrange` in `packages/layout`) runs TALA's whole pipeline with seeds 1, 2 and 3 and
   keeps the best drawing by TALA's score, among those that keep every two cards 20 px apart.
@@ -230,6 +261,8 @@ Project started 2026-11-03.
   journeys in `e2e/`.
 - **`packages/model`** (`@drillgram/model`): shared domain types, no Vue imports. `C4Level`, and in
   `src/issues/` the `IssueProvider` interface, a contract test and the three tracker adapters.
+- **`apps/server`**: the server, Go with Fiber and PostgreSQL; Go tests through HTTP on a real
+  database (`bin/with-postgres`).
 - **`deploy/licences`** (`@drillgram/licences`): the licence gate and the check of every file's licence.
 - **`bin/ci-check`**: the full check, locally and in CI.
 
@@ -237,7 +270,7 @@ Project started 2026-11-03.
 
 - [architecture](architecture.md), [operations](operations.md).
 - Agent rules (index): [AGENTS.md](../AGENTS.md), [testing](../docs/agents/testing.md),
-  [stack](../docs/agents/stack.md), [workflow](../docs/agents/workflow.md), [C4](../docs/agents/c4.md),
+  [stack](../docs/agents/stack.md), [server](../docs/agents/server.md), [workflow](../docs/agents/workflow.md), [C4](../docs/agents/c4.md),
   [layout engine](../docs/agents/layout-engine.md), [design rules](../docs/agents/design.md),
   [verification](../docs/agents/verification.md).
 - [User journeys](../docs/journeys.md).

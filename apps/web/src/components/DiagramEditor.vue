@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, markRaw, provide, ref, watch } from 'vue'
+import { computed, markRaw, provide, ref, shallowRef, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { useEventListener } from '@vueuse/core'
 import {
@@ -86,6 +86,8 @@ import type { ConnectionEdge, ObjectNode } from './canvas/types'
 import { arrangeInBackground, useLayoutEngine } from '../composables/useLayoutEngine'
 import type { Scene, SceneConnector } from '../export/svg'
 import { useWorkspaceStore } from '../composables/useWorkspaceStore'
+import { failureText } from '../lib/api'
+import { BROUGHT_KEY, localHistory } from '../lib/localWorkspace'
 import { viewPath } from '../router'
 
 /** The view to show, from the address; the Overview when absent or unknown. */
@@ -293,6 +295,16 @@ function loadExample() {
   // Far too big for the screen at full size: asking for its last card makes the canvas fit it all.
   const last = Object.keys(view.value.positions).at(-1)
   if (last) added.value = { id: last }
+}
+
+// What this browser kept from before the app had a server (lib/localWorkspace.ts): offered on a
+// workspace nothing was done in yet, until it was brought once.
+const kept = shallowRef(window.localStorage.getItem(BROUGHT_KEY) === null ? localHistory() : undefined)
+function bringKept() {
+  if (!kept.value) return
+  store.bring(kept.value)
+  window.localStorage.setItem(BROUGHT_KEY, new Date().toISOString())
+  kept.value = undefined
 }
 
 function commitAdding() {
@@ -1331,9 +1343,8 @@ const minimapShown = computed(() => nodes.value.length > 0 && !showHistory.value
 /** The minimap with the space around it, in px of the screen. */
 const MINIMAP_ROOM = { width: 210, height: 150 }
 
-// Starting over: the workspace and its change log go, in the browser's storage too, and the
-// editor is back on the empty Overview. Until there is a backend with workspaces of
-// their own, this is how a new one begins.
+// Starting over: everything in the workspace and its change log go, on the server, and the
+// editor is back on the empty Overview. The workspace itself stays, with its name and members.
 const canClear = computed(
   () =>
     history.value.log.length > 0 ||
@@ -1341,13 +1352,18 @@ const canClear = computed(
     store.workspace.value.model.connections.length > 0,
 )
 
-function clearWorkspace() {
+async function clearWorkspace() {
   labelling.value = null
   stopAdding()
   editing.value = undefined
   iconsOf.value = undefined
   showHistory.value = false
-  store.clear()
+  try {
+    await store.clear()
+  } catch (failure) {
+    showError(`The workspace was not cleared. ${failureText(failure)}`)
+    return
+  }
   if (viewId.value !== ROOT_VIEW_ID || props.viewId !== undefined) router.replace(viewPath(ROOT_VIEW_ID, ROOT_VIEW_ID))
 }
 
@@ -1783,6 +1799,15 @@ const keyKinds = computed(() =>
           @click="loadExample"
         >
           Load an example
+        </Button>
+        <Button
+          v-if="kept && workspace.model.objects.length === 0 && history.log.length === 0"
+          variant="outline"
+          class="pointer-events-auto"
+          title="The diagrams this browser kept before the app had a server, with their change log"
+          @click="bringKept"
+        >
+          Bring the diagrams of this browser
         </Button>
       </div>
 

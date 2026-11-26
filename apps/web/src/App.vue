@@ -5,7 +5,11 @@ import ReloadPrompt from './components/ReloadPrompt.vue'
 </script>
 
 <template>
-  <RouterView />
+  <!-- Another workspace is another page: nothing of the one before stays. A view of the same
+       workspace is the same page. -->
+  <RouterView v-slot="{ Component, route }">
+    <component :is="Component" :key="String(route.params.workspace ?? route.name)" />
+  </RouterView>
   <!-- The top right corner, under the bar: what the app has to say by itself, over the page. -->
   <div class="pointer-events-none fixed top-14 right-4 z-50 flex flex-col items-end gap-2 *:pointer-events-auto">
     <ReloadPrompt />

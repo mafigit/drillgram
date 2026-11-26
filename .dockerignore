@@ -6,3 +6,4 @@ playwright-report
 **/target
 packages/layout/pkg
 context/private
+**/.env

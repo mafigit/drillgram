@@ -19,6 +19,7 @@ path = [
   "deploy/**",
   "docs/**",
   "packages/model/**",
+  "apps/server/**",
   "apps/web/*",
   "apps/web/.vscode/**",
   "apps/web/e2e/**",

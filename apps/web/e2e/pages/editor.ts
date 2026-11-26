@@ -21,12 +21,15 @@ export class DiagramEditor {
   readonly title: Locator
   /** The key (legend) of the open diagram. */
   readonly key: Locator
+  /** The button that says which workspace is open, and opens the workspaces. */
+  readonly workspace: Locator
 
   constructor(readonly page: Page) {
     this.canvas = page.getByRole('application', { name: 'Diagram canvas' })
     this.breadcrumb = page.getByRole('navigation', { name: 'Breadcrumb' })
     this.title = page.getByRole('heading', { level: 2 })
     this.key = page.getByRole('list', { name: 'Key' })
+    this.workspace = page.getByRole('button', { name: /^Workspace: / })
   }
 
   async open(): Promise<void> {

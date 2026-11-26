@@ -3,8 +3,8 @@
 Architecture diagrams you can drill into.
 
 A design tool for **product engineers**: draw software architecture as boxes that open into
-deeper diagrams, and export them as pictures or as text. It runs in the browser and keeps its
-data there.
+deeper diagrams, and export them as pictures or as text. A web app with a server of its own:
+you sign in, and your diagrams are kept there, in as many workspaces as you like.
 
 ![The Web Shop of the example, opened: its parts inside the frame, its neighbours outside](docs/preview.png)
 
@@ -19,34 +19,47 @@ data there.
 - **Undo, redo and a timeline**: every change is logged with its time. Step back and forth, or
   drag the timeline to see the diagram as it was. The log survives a reload.
 - **Import and export**: SVG, PNG, Mermaid and D2 out; Mermaid (C4 and flowcharts) and D2 in.
+- **Sign-in your way**: a password, single sign-on (OpenID Connect), or the proxy in front of
+  the server says who you are, by a header or a signed token, as Grafana does it.
 
 ## Not built yet
 
 - **MCP server**: agents read, create and change diagrams through MCP tools.
-- **Working together**: several people on one diagram, comments, a backend that keeps
-  workspaces.
+- **Working together**: several people on one diagram at the same time, sharing a workspace
+  in the app (the server can already), comments.
 - **More export formats**, decided in issues. iOS and Android apps may follow the web app.
 
 ## Run it
 
-Needs [mise](https://mise.jdx.dev) and git.
+Needs git and Docker.
 
 ```sh
 git clone --recurse-submodules https://github.com/mafigit/drillgram.git
 cd drillgram
-mise install
-pnpm install
-pnpm --filter @drillgram/web dev
+docker compose up --build
 ```
 
-Then open `http://localhost:5173` and choose "Load an example". The app needs no network and
-no account. More commands: [context/operations.md](context/operations.md).
+Then open `http://localhost:8080`, sign in as `admin@example.org` with the password
+`drillgram-dev`, and choose "Load an example". The first build takes a few minutes. The
+database keeps its data between runs; [compose.yaml](compose.yaml) says how to set your own
+passwords and address.
+
+To work on the app instead, with [mise](https://mise.jdx.dev):
+
+```sh
+mise install
+mise run dev     # the server with a PostgreSQL that keeps its data, and the app on http://localhost:5173
+```
+
+More commands, and everything the server can be told:
+[context/operations.md](context/operations.md).
 
 ## What is where
 
 | Folder | What |
 | --- | --- |
 | `apps/web` | The app: Vue 3, Vite, TypeScript, the canvas on Vue Flow. Journey tests in `e2e/`. |
+| `apps/server` | The server: Go with Fiber, PostgreSQL. Users, sign-in, workspaces and their change logs. |
 | `packages/model` | Boxes, connections, views and the file formats. No Vue. |
 | `packages/layout` | The layout engine: Rust, compiled to WebAssembly. A git submodule. |
 | `docs/journeys.md` | What a user can do, each with an end-to-end test. |

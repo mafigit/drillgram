@@ -1,19 +1,10 @@
-import { computed, shallowRef } from 'vue'
-import type { ComputedRef, ShallowRef } from 'vue'
-import {
-  emptyWorkspace,
-  goTo,
-  parseHistory,
-  parseWorkspace,
-  record,
-  serializeHistory,
-  serializeWorkspace,
-  startHistory,
-} from '@drillgram/model'
+import { computed, inject, provide, shallowRef } from 'vue'
+import type { ComputedRef, InjectionKey, ShallowRef } from 'vue'
 import type { History, Workspace, WorkspaceEvent } from '@drillgram/model'
-
-export const STORAGE_KEY = 'drillgram.workspace.v1'
-export const HISTORY_KEY = 'drillgram.history.v1'
+import { api, ApiError } from '../lib/api'
+import { storedOutbox } from '../lib/outbox'
+import { WorkspaceLog } from '../lib/workspaceLog'
+import type { LogServer, Problem, ServerEntry } from '../lib/workspaceLog'
 
 export interface WorkspaceStore {
   /** The workspace at the point of the change log the editor is at. */
@@ -29,73 +20,73 @@ export interface WorkspaceStore {
   canUndo: ComputedRef<boolean>
   canRedo: ComputedRef<boolean>
   /**
-   * Start over: an empty workspace and an empty change log, in the browser's storage too. This
-   * is no change in the log and cannot be undone.
+   * Start over: an empty workspace and an empty change log, on the server. This is no change
+   * in the log and cannot be undone. Throws when the server does not do it.
    */
-  clear: () => void
+  clear: () => Promise<void>
+  /** Bring a workspace that this browser kept from before the server, with its change log. */
+  bring: (from: History) => void
+}
+
+const STORE: InjectionKey<WorkspaceStore> = Symbol('workspace store')
+
+/** The log of a workspace on the server, as `WorkspaceLog` talks to it. */
+export function serverLog(workspaceId: string): LogServer {
+  const path = `/workspaces/${workspaceId}/log`
+  return {
+    read: (after) => api.get<{ head: number; entries: ServerEntry[] }>(`${path}?after=${after}`),
+    async append(after, entries) {
+      try {
+        return { ok: true, head: (await api.post<{ head: number }>(path, { after, entries })).head }
+      } catch (failure) {
+        // The log has moved on: not an error, the answer says how far.
+        if (failure instanceof ApiError && failure.status === 409 && typeof failure.data.head === 'number') return { ok: false, head: failure.data.head }
+        throw failure
+      }
+    },
+    clear: () => api.delete<{ head: number }>(path),
+  }
 }
 
 /**
- * The open workspace and its change log, both kept in localStorage so they survive a reload.
- * The workspace is the truth: a saved log that does not lead to it is dropped.
+ * Opens a workspace: reads its change log from the server, which is the truth about it, and
+ * writes every change of the editor to it. Throws when the workspace cannot be read.
  */
-export function useWorkspaceStore(): WorkspaceStore {
-  const history = shallowRef(load())
-  const set = (next: History) => {
-    if (next === history.value) return
-    history.value = next
-    save(next)
-  }
+export async function openWorkspaceStore(workspaceId: string, onProblem: (problem: Problem) => void): Promise<WorkspaceStore> {
+  // Made before the log calls back, filled when it is open.
+  const history = shallowRef<History>()
+  const log = await WorkspaceLog.open({
+    server: serverLog(workspaceId),
+    outbox: storedOutbox(workspaceId),
+    onHistory: (next) => (history.value = next),
+    onProblem,
+    newId: () => crypto.randomUUID(),
+    wait: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
+  })
+  history.value = log.history
+  const now = history as ShallowRef<History>
   return {
-    workspace: computed(() => history.value.states[history.value.cursor]!),
-    history,
-    dispatch: (event) => set(record(history.value, event, new Date().toISOString())),
-    undo: () => set(goTo(history.value, history.value.cursor - 1)),
-    redo: () => set(goTo(history.value, history.value.cursor + 1)),
-    goTo: (position) => set(goTo(history.value, position)),
-    canUndo: computed(() => history.value.cursor > 0),
-    canRedo: computed(() => history.value.cursor < history.value.log.length),
-    clear: () => {
-      history.value = startHistory(emptyWorkspace())
-      window.localStorage.removeItem(STORAGE_KEY)
-      window.localStorage.removeItem(HISTORY_KEY)
-    },
+    workspace: computed(() => now.value.states[now.value.cursor]!),
+    history: now,
+    dispatch: (event) => log.dispatch(event, new Date().toISOString()),
+    undo: () => log.goTo(now.value.cursor - 1),
+    redo: () => log.goTo(now.value.cursor + 1),
+    goTo: (position) => log.goTo(position),
+    canUndo: computed(() => now.value.cursor > 0),
+    canRedo: computed(() => now.value.cursor < now.value.log.length),
+    clear: () => log.clear(),
+    bring: (from) => log.bring(from),
   }
 }
 
-function save(history: History): void {
-  window.localStorage.setItem(STORAGE_KEY, serializeWorkspace(history.states[history.cursor]!))
-  try {
-    window.localStorage.setItem(HISTORY_KEY, serializeHistory(history))
-  } catch {
-    // The storage is full: the workspace matters more than its log.
-    window.localStorage.removeItem(HISTORY_KEY)
-  }
+/** Gives the open workspace to the editor below (pages/WorkspacePage.vue). */
+export function provideWorkspaceStore(store: WorkspaceStore): void {
+  provide(STORE, store)
 }
 
-function load(): History {
-  const workspace = loadWorkspace()
-  const saved = window.localStorage.getItem(HISTORY_KEY)
-  if (saved !== null) {
-    try {
-      const history = parseHistory(saved)
-      // Another version of the app, or another tab, may have written a different workspace.
-      const leadsHere =
-        serializeWorkspace(history.states[history.cursor]!) === serializeWorkspace(workspace)
-      if (leadsHere) return history
-    } catch {
-      // A broken log: start a new one.
-    }
-  }
-  return startHistory(workspace)
-}
-
-function loadWorkspace(): Workspace {
-  const saved = window.localStorage.getItem(STORAGE_KEY)
-  if (saved === null) return emptyWorkspace()
-  try {
-    return parseWorkspace(saved)
-  } catch {
-    return emptyWorkspace()
-  }
+/** The open workspace and its change log. */
+export function useWorkspaceStore(): WorkspaceStore {
+  const store = inject(STORE)
+  if (!store) throw new Error('No workspace is open: the editor stands inside pages/WorkspacePage.vue')
+  return store
 }

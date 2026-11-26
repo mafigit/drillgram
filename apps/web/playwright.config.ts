@@ -26,11 +26,14 @@ export default defineConfig({
     { name: 'webkit', use: { ...devices['Desktop Safari'] } },
     { name: 'tablet', use: { ...devices['iPad Pro 11'], hasTouch: true } },
   ],
-  // Build once and serve the production bundle, so the tests see what users get.
+  // Build once; the server gives out the production bundle and answers the API, on a database
+  // of its own, so the tests see what users get. Asked to stop, not killed: its database goes
+  // with it.
   webServer: {
-    command: `pnpm run build-only && pnpm run preview --port ${port} --strictPort`,
-    url: baseURL,
+    command: `e2e/serve ${port}`,
+    url: `${baseURL}/api/health`,
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    timeout: 180_000,
+    gracefulShutdown: { signal: 'SIGTERM', timeout: 10_000 },
   },
 })

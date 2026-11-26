@@ -1,17 +1,18 @@
-// `pnpm licences`: the licence gate, run by bin/ci-check. Lists the packages (npm, through pnpm)
-// and the crates of the layout engine (through cargo, or from the list the check's image was
-// built with) and fails when one is under a licence that licences.allow.json does not allow.
+// `pnpm licences`: the licence gate, run by bin/ci-check. Lists the packages (npm, through pnpm),
+// the crates of the layout engine (through cargo) and the Go modules of the server (through
+// go-licenses), the last two from the lists the check's image was built with where there are
+// such, and fails when one is under a licence that licences.allow.json does not allow.
 import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { judge } from './licences.ts'
+import { goModules, judge } from './licences.ts'
 import type { Allowed, Package } from './licences.ts'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const root = join(here, '../../..')
 const allowed = JSON.parse(readFileSync(join(here, '../licences.allow.json'), 'utf8')) as Allowed
-const run = (command: string, args: string[]) => execFileSync(command, args, { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'inherit'] })
+const run = (command: string, args: string[], cwd = root) => execFileSync(command, args, { cwd, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'inherit'] })
 
 /** Every package of the workspace's node_modules, as pnpm lists them: by licence. */
 function npmPackages(): Package[] {
@@ -33,7 +34,23 @@ function crates(): Package[] {
   return listed.packages.map((found) => ({ name: found.name, version: found.version, licence: found.license ?? undefined, from: 'crates' as const }))
 }
 
-const packages = [...npmPackages(), ...crates()]
+/** The version of go-licenses that lists the modules; apps/web/e2e/Dockerfile runs the same. */
+const GO_LICENSES = 'github.com/google/go-licenses/v2@v2.0.1'
+
+/**
+ * Every Go module that is in the server (apps/server), ours left out, as go-licenses finds
+ * them: it reads each module's licence file. The check's image has no Go: there the list was
+ * written while the server was built, and DRILLGRAM_GO_MODULES says where.
+ */
+function serverModules(): Package[] {
+  const given = process.env.DRILLGRAM_GO_MODULES
+  const template = join(here, '../go-modules.tpl')
+  // It says on stderr which modules hold code that is not Go: of no use here.
+  const list = () => execFileSync('go', ['run', GO_LICENSES, 'report', './...', '--ignore', 'github.com/mafigit/drillgram', '--template', template], { cwd: join(root, 'apps/server'), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+  return goModules(given && existsSync(given) ? readFileSync(given, 'utf8') : list())
+}
+
+const packages = [...npmPackages(), ...crates(), ...serverModules()]
 const { problems, unused } = judge(packages, allowed)
 for (const problem of problems) console.error(`Licence: ${problem}`)
 for (const pattern of unused) console.error(`Licence: the exception for ${pattern} is needed by no package: take it out of licences.allow.json`)
@@ -41,4 +58,5 @@ if (problems.length > 0 || unused.length > 0) {
   console.error('Allow the licence or except the package in deploy/licences/licences.allow.json, with the reason; see docs/agents/licences.md.')
   process.exit(1)
 }
-console.log(`Licences: ${packages.filter((found) => found.from === 'npm').length} npm packages and ${packages.filter((found) => found.from === 'crates').length} crates are under allowed licences.`)
+const count = (from: Package['from']) => packages.filter((found) => found.from === from).length
+console.log(`Licences: ${count('npm')} npm packages, ${count('crates')} crates and ${count('go')} Go modules are under allowed licences.`)

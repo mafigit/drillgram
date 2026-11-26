@@ -1,5 +1,15 @@
 import { test as base, expect } from '@playwright/test'
+import type { APIRequestContext, BrowserContext, Page } from '@playwright/test'
 import { DiagramEditor } from './pages/editor.ts'
+
+/** The admin the server of the tests starts with (e2e/serve). */
+export const ADMIN = { email: 'admin@example.org', password: 'the admin of the tests' }
+
+/** Somebody who can sign in. */
+export type Account = { email: string; name: string; password: string }
+
+/** One more browser, signed in. */
+export type Browser = { page: Page; editor: DiagramEditor; context: BrowserContext }
 
 /** The time every test starts at. */
 export const FIXED_TIME = new Date('2026-01-01T09:00:00Z')
@@ -20,6 +30,17 @@ const NO_MOTION_CSS = `*, *::before, *::after {
 }`
 
 type Fixtures = {
+  /**
+   * Whether the test starts signed in, as `account`. On unless a test says
+   * `test.use({ signedIn: false })`: the app is of no use to somebody who is not.
+   */
+  signedIn: boolean
+  /** A user of this test alone, made by the admin: every test starts with its own empty workspace. */
+  account: Account
+  /** Makes one more user. */
+  newAccount: (name?: string) => Promise<Account>
+  /** Opens one more browser, signed in as the account given: another device, or another person. */
+  browserOf: (account: Account) => Promise<Browser>
   /** Console errors and uncaught page errors seen during the test. */
   consoleErrors: string[]
   /** Page object for the diagram editor. */
@@ -28,30 +49,82 @@ type Fixtures = {
   deterministic: void
 }
 
+/** Known start time, no animations, no network outside localhost: for a browser of a test. */
+async function makeDeterministic(context: BrowserContext, page: Page): Promise<void> {
+  await context.route('**/*', (route) => {
+    const { hostname } = new URL(route.request().url())
+    return LOCAL_HOSTS.has(hostname) ? route.fallback() : route.abort('blockedbyclient')
+  })
+  // The clock starts at a fixed time and then runs. It must not stand still: Vue ignores an
+  // event handler when `Date.now()` has not moved on since the handler was attached and
+  // another Vue listener has already seen the event, so clicks would silently do nothing.
+  await page.clock.install({ time: FIXED_TIME })
+  await context.addInitScript((css) => {
+    const add = () => {
+      const style = document.createElement('style')
+      style.textContent = css
+      document.head.append(style)
+    }
+    if (document.head) add()
+    else document.addEventListener('DOMContentLoaded', add)
+  }, NO_MOTION_CSS)
+}
+
+/** Signs a browser in through the API: its cookie is the browser's from then on. */
+async function signIn(request: APIRequestContext, account: { email: string; password: string }): Promise<void> {
+  const answer = await request.post('/api/auth/login', { data: { email: account.email, password: account.password } })
+  if (!answer.ok()) throw new Error(`Sign-in of ${account.email} failed: ${answer.status()} ${await answer.text()}`)
+}
+
+let made = 0
+
 export const test = base.extend<Fixtures>({
   deterministic: [
     async ({ context, page }, use) => {
-      await context.route('**/*', (route) => {
-        const { hostname } = new URL(route.request().url())
-        return LOCAL_HOSTS.has(hostname) ? route.fallback() : route.abort('blockedbyclient')
-      })
-      // The clock starts at a fixed time and then runs. It must not stand still: Vue ignores an
-      // event handler when `Date.now()` has not moved on since the handler was attached and
-      // another Vue listener has already seen the event, so clicks would silently do nothing.
-      await page.clock.install({ time: FIXED_TIME })
-      await context.addInitScript((css) => {
-        const add = () => {
-          const style = document.createElement('style')
-          style.textContent = css
-          document.head.append(style)
-        }
-        if (document.head) add()
-        else document.addEventListener('DOMContentLoaded', add)
-      }, NO_MOTION_CSS)
+      await makeDeterministic(context, page)
       await use()
     },
     { auto: true },
   ],
+
+  signedIn: [true, { option: true }],
+
+  newAccount: async ({ playwright, baseURL }, use, testInfo) => {
+    // The admin, with cookies of its own: not the test's browser.
+    const admin = await playwright.request.newContext({ baseURL })
+    await signIn(admin, ADMIN)
+    await use(async (name = 'Test User') => {
+      // One of a kind on a server that every test of the run shares.
+      const email = `user-${testInfo.workerIndex}-${Date.now()}-${++made}@example.org`
+      const account = { email, name, password: 'a password of the tests' }
+      const answer = await admin.post('/api/users', { data: account })
+      if (!answer.ok()) throw new Error(`Could not make ${email}: ${answer.status()} ${await answer.text()}`)
+      return account
+    })
+    await admin.dispose()
+  },
+
+  account: [
+    async ({ newAccount, context, signedIn }, use) => {
+      const account = await newAccount()
+      if (signedIn) await signIn(context.request, account)
+      await use(account)
+    },
+    { auto: true },
+  ],
+
+  browserOf: async ({ browser }, use) => {
+    const opened: BrowserContext[] = []
+    await use(async (account) => {
+      const context = await browser.newContext()
+      opened.push(context)
+      const page = await context.newPage()
+      await makeDeterministic(context, page)
+      await signIn(context.request, account)
+      return { page, editor: new DiagramEditor(page), context }
+    })
+    for (const context of opened) await context.close()
+  },
 
   consoleErrors: async ({ page }, use) => {
     const errors: string[] = []

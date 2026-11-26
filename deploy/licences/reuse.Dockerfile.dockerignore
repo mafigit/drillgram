@@ -6,6 +6,7 @@
 **/target
 test-results
 playwright-report
+.env
 # The layout engine: a submodule, a repository of its own (MPL-2.0, see NOTICE).
 packages/layout
 context/private

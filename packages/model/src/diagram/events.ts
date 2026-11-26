@@ -10,6 +10,7 @@ import {
   connect,
   moveObject,
   openView,
+  parseWorkspace,
   placeObject,
   removeObjects,
   editObject,
@@ -79,6 +80,11 @@ export type WorkspaceEvent =
   | { type: 'connectionsRemoved'; connections: string[] }
   /** The made-up bookshop was loaded into an empty workspace. */
   | { type: 'exampleLoaded' }
+  /**
+   * A whole workspace was put into an empty one: what a browser had kept from before the app
+   * had a server, as it stood when its own change log began.
+   */
+  | { type: 'workspaceBrought'; workspace: Workspace }
   /** The layout engine laid out a diagram: every card it placed, with its place and size. */
   | { type: 'viewArranged'; view: string; cards: ArrangedCard[] }
   /**
@@ -143,12 +149,23 @@ export function applyEvent(ws: Workspace, event: WorkspaceEvent): Workspace {
       return setConnectionColour(ws, event.connection, event.colour)
     case 'exampleLoaded':
       return ws.model.objects.length === 0 ? bookshopExample() : ws
+    case 'workspaceBrought':
+      return ws.model.objects.length === 0 ? (brought(event.workspace) ?? ws) : ws
     case 'viewArranged':
       return onView(ws, event.view, (w) => arrangeView(w, event.view, event.cards))
     case 'diagramImported':
       return onView(ws, event.view, (w) => importDiagram(w, event.view, event.diagram, event.places))
     default:
       return ws
+  }
+}
+
+/** A workspace that came in an event, checked as one that was saved is; none when it is no workspace. */
+function brought(workspace: unknown): Workspace | undefined {
+  try {
+    return parseWorkspace(JSON.stringify(workspace))
+  } catch {
+    return undefined
   }
 }
 
@@ -240,6 +257,8 @@ export function describeEvent(before: Workspace, event: WorkspaceEvent): string 
     }
     case 'exampleLoaded':
       return 'Loaded the example'
+    case 'workspaceBrought':
+      return 'Brought the diagrams of this browser'
     case 'viewArranged': {
       // All cards of the diagram, or only some of them (the selected ones).
       const onView = Object.keys(openView(before, event.view).views.find((v) => v.id === event.view)?.positions ?? {})

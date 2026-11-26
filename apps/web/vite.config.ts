@@ -24,6 +24,8 @@ export default defineConfig({
         // wasm: the layout engine must work offline too.
         globPatterns: ['**/*.{js,css,html,svg,png,woff2,wasm}'],
         navigateFallback: 'index.html',
+        // The server's own addresses are not the app's: single sign-on sends the browser there.
+        navigateFallbackDenylist: [/^\/api\//],
         // The icon library is thousands of files: only the icons a diagram shows are kept for
         // offline use, as they are fetched.
         globIgnores: ['tech-icons/**'],
@@ -54,6 +56,8 @@ export default defineConfig({
       },
     }),
   ],
+  // The dev server gives out the app; the API is the server's (apps/server), started beside it.
+  server: { proxy: { '/api': process.env.DRILLGRAM_API ?? 'http://localhost:8080' } },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),

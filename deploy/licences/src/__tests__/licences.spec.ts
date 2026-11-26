@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { allows, judge } from '../licences.ts'
+import { allows, goModules, judge } from '../licences.ts'
 import type { Allowed } from '../licences.ts'
 
 const ALLOWED = ['MIT', 'Apache-2.0', 'ISC', 'BSD-3-Clause', 'Unicode-3.0', 'Unlicense']
@@ -83,5 +83,27 @@ describe('judge', () => {
   it('says which exceptions no package needs any more', () => {
     const found = judge([{ name: 'tidy-layout', version: '0.1.0', licence: 'MPL-2.0', from: 'crates' }], allowed)
     expect(found.unused).toEqual(['@img/sharp-libvips-*', 'gone-by-now'])
+  })
+})
+
+describe('goModules', () => {
+  it('reads the list of the server\'s modules: a line each, name, version and licence between tabs', () => {
+    const listed = 'github.com/gofiber/fiber/v3\tv3.7.0\tMIT\ngolang.org/x/crypto\tv0.59.0\tBSD-3-Clause\n\n'
+    expect(goModules(listed)).toEqual([
+      { name: 'github.com/gofiber/fiber/v3', version: 'v3.7.0', licence: 'MIT', from: 'go' },
+      { name: 'golang.org/x/crypto', version: 'v0.59.0', licence: 'BSD-3-Clause', from: 'go' },
+    ])
+  })
+
+  it('takes a module whose licence was not found as one that states none', () => {
+    expect(goModules('example.org/odd\tv1.0.0\tUnknown\nexample.org/bare\tv1.0.0\t\n')).toEqual([
+      { name: 'example.org/odd', version: 'v1.0.0', licence: undefined, from: 'go' },
+      { name: 'example.org/bare', version: 'v1.0.0', licence: undefined, from: 'go' },
+    ])
+    expect(judge(goModules('example.org/odd\tv1.0.0\tUnknown\n'), { licences: ALLOWED, exceptions: [] }).problems).toEqual(['example.org/odd v1.0.0 (go): no licence is stated'])
+  })
+
+  it('refuses a list that is no such list', () => {
+    expect(() => goModules('go: downloading example.org/odd v1.0.0\n')).toThrow(/line 1/)
   })
 })

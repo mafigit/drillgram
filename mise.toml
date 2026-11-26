@@ -1,4 +1,5 @@
-# Toolchain for local work and for agents: `mise install`, then `pnpm install`.
+# Toolchain for local work and for agents: `mise install`, then `mise run dev` (the tasks are at
+# the end of this file) or `pnpm install`.
 # Node matches the Playwright image bin/ci-check runs in and stays within the engines range;
 # pnpm matches packageManager in package.json.
 [tools]
@@ -7,3 +8,35 @@ pnpm = "10.34.9"
 # The layout engine (packages/layout) is Rust, compiled to WebAssembly. The Docker image of the checks uses
 # the same version (apps/web/e2e/Dockerfile).
 rust = { version = "1.99.1", targets = "wasm32-unknown-unknown" }
+# The server (apps/server) is Go. The image of the checks uses the same version.
+go = "1.27.4"
+
+# `mise run dev` starts what work on the app needs, side by side: the server with its database
+# and the app's dev server. Ctrl-C stops both. `mise tasks` lists these.
+[tasks.dev]
+description = "Work on the app: the server and the app's dev server, on http://localhost:5173"
+depends = ["server", "web"]
+
+[tasks.server]
+description = "The server on :8080, with a PostgreSQL that keeps its data (bin/dev, needs Docker)"
+run = "bin/dev"
+
+[tasks.web]
+description = "The app's dev server on http://localhost:5173; it sends /api to the server"
+depends = ["setup"]
+run = "pnpm --filter @drillgram/web dev --port 5173 --strictPort"
+
+# Skipped when nothing changed since it ran. The layout engine's repository is only fetched when
+# it is not there: a checkout that is being worked on stays as it is.
+[tasks.setup]
+description = "Fetch the layout engine's repository and the packages, where they are missing or old"
+sources = ["pnpm-lock.yaml"]
+outputs = ["node_modules/.modules.yaml"]
+run = [
+  "[ -f packages/layout/Cargo.toml ] || git submodule update --init",
+  "pnpm install --frozen-lockfile",
+]
+
+[tasks.stack]
+description = "The whole app as it runs for real, with docker compose, on http://localhost:8080"
+run = "docker compose up --build"

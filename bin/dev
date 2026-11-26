@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# The server for work on the app, with a PostgreSQL that keeps its data between runs:
+#
+#   bin/dev            the server on :8080 (then, in another shell: pnpm --filter @drillgram/web dev)
+#   bin/dev --forget   throw the database away first
+#
+# The dev server of the web app sends /api to it (vite.config.ts). The first start makes the
+# admin below; change the password in the app's own form, or set DRILLGRAM_ADMIN_PASSWORD before
+# the first start. Needs Docker and Go (mise install). Every DRILLGRAM_* variable that is set
+# reaches the server (context/operations.md lists them).
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+IMAGE=postgres:17.2-bookworm
+NAME=drillgram-dev-db
+PORT=${DRILLGRAM_DEV_DB_PORT:-54329}
+
+if [ "${1:-}" = --forget ]; then
+  docker rm -f "$NAME" >/dev/null 2>&1 || true
+  docker volume rm "$NAME" >/dev/null 2>&1 || true
+fi
+if [ -z "$(docker ps -q -f "name=^$NAME$")" ]; then
+  docker rm -f "$NAME" >/dev/null 2>&1 || true
+  docker run -d --name "$NAME" -e POSTGRES_PASSWORD=drillgram -e POSTGRES_DB=drillgram \
+    -p "127.0.0.1:$PORT:5432" -v "$NAME:/var/lib/postgresql/data" "$IMAGE" >/dev/null
+fi
+for _ in $(seq 1 120); do
+  docker exec "$NAME" pg_isready -q -h 127.0.0.1 -U postgres -d drillgram 2>/dev/null && break
+  sleep 0.5
+done
+
+export DRILLGRAM_DATABASE_URL="postgres://postgres:drillgram@127.0.0.1:$PORT/drillgram"
+export DRILLGRAM_LISTEN="${DRILLGRAM_LISTEN:-127.0.0.1:8080}"
+export DRILLGRAM_ADMIN_EMAIL="${DRILLGRAM_ADMIN_EMAIL:-admin@example.org}"
+export DRILLGRAM_ADMIN_PASSWORD="${DRILLGRAM_ADMIN_PASSWORD:-drillgram-dev}"
+echo "dev: the server on $DRILLGRAM_LISTEN, the admin is $DRILLGRAM_ADMIN_EMAIL"
+cd apps/server
+exec go run ./cmd/drillgram

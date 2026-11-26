@@ -297,3 +297,22 @@ describe('groups as changes', () => {
     expect(applyEvent(ws, { type: 'cardsUngrouped', view: ROOT_VIEW_ID, objects: ['Customer'] })).toBe(ws)
   })
 })
+
+describe('workspaceBrought', () => {
+  const brought = apply([shop, customer, connected])
+
+  it('puts a whole workspace into an empty one', () => {
+    expect(applyEvent(emptyWorkspace(), { type: 'workspaceBrought', workspace: brought })).toEqual(brought)
+    expect(describeEvent(emptyWorkspace(), { type: 'workspaceBrought', workspace: brought })).toBe('Brought the diagrams of this browser')
+  })
+
+  it('changes nothing in a workspace that has something, and takes nothing that is no workspace', () => {
+    const some = apply([shop])
+    expect(applyEvent(some, { type: 'workspaceBrought', workspace: brought })).toBe(some)
+    const empty = emptyWorkspace()
+    expect(applyEvent(empty, { type: 'workspaceBrought', workspace: { model: { objects: 'none' } } as unknown as Workspace })).toBe(empty)
+    // A connection to an object that is not there: `validateWorkspace` refuses it.
+    const broken = { ...brought, model: { ...brought.model, objects: brought.model.objects.slice(0, 1) } }
+    expect(applyEvent(empty, { type: 'workspaceBrought', workspace: broken })).toBe(empty)
+  })
+})

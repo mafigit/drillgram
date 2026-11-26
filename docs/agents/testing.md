@@ -31,6 +31,15 @@ Every change is test-driven. No production code without a failing test that dema
 - Import `test` and `expect` from `e2e/fixtures.ts`, never from `@playwright/test` directly. The
   fixtures start the clock at a fixed time, turn off animations and transitions, block all network outside
   localhost and collect console errors (`consoleErrors`). Each test gets fresh browser storage.
+- The journeys run against the real server with a real PostgreSQL (`e2e/serve`), one server
+  for the whole run. So that tests do not see each other, every test is a user of its own
+  (`account`), made by the admin and signed in before the test begins, with an empty workspace.
+  `test.use({ signedIn: false })` starts signed out; `newAccount()` makes one more user;
+  `browserOf(account)` opens one more browser, signed in: another device, or another person.
+  Anything a test makes that other tests could see (a user's address) is one of a kind.
+- A browser notes a refused request in its console ("401", "409"). A journey that makes the
+  server refuse something on purpose takes that note out of `consoleErrors` by its status, and
+  nothing else.
 - Drive the editor through the page object in `e2e/pages/editor.ts` (`editor` fixture), so tests
   read like the steps a user takes. Add a helper there rather than raw locators in a journey.
   `editor.element(name)` matches the exact name: "Customer" is not "Customer Accounts".
@@ -75,12 +84,16 @@ Every change is test-driven. No production code without a failing test that dema
 - Every `DiagramFormat` calls `runDiagramFormatContract` from
   `packages/model/src/diagram/contract.ts` in its spec: round trips for each supported C4 level and
   `DiagramFormatError` on invalid input. A format lacking a level passes `{ levels: [...] }`.
+- The server (`apps/server`) has Go tests that talk to it through HTTP, on a PostgreSQL that
+  `bin/with-postgres` starts for the command: `bin/with-postgres go test ./...` from
+  `apps/server`. Each test gets a database of its own. See [server.md](server.md).
 - `pnpm typecheck` type-checks every package (vue-tsc for `apps/web`, tsc for `packages/*`).
 - Browser end-to-end tests use Playwright (`apps/web/playwright.config.ts`), with three projects:
-  `chromium`, `webkit` and `tablet` (iPad, touch). Playwright builds the app and serves it with
-  `vite preview` itself.
-- The PWA end-to-end tests (`e2e/pwa-*.spec.ts`) run against `vite build` plus `vite preview`,
-  because there is no service worker in dev; Playwright's `webServer` already does this. They run
+  `chromium`, `webkit` and `tablet` (iPad, touch). Playwright starts `e2e/serve` itself: it
+  builds the app and the server and runs the server, which gives out the app, on a PostgreSQL
+  from `bin/with-postgres`.
+- The PWA end-to-end tests (`e2e/pwa-*.spec.ts`) run against the built app, because there is
+  no service worker in dev; Playwright's `webServer` already does this. They run
   in Chromium only (service-worker inspection is reliable only there) and wait on
   `editor.waitForServiceWorker()` and locators, never on sleeps.
 - `pnpm test:e2e` runs every journey on all projects, headless. `pnpm test:e2e:ui` opens the
@@ -89,7 +102,10 @@ Every change is test-driven. No production code without a failing test that dema
 - On failure, the trace, screenshot and video are kept in `test-results/` and the HTML report in
   `playwright-report/` (both git-ignored). Open a trace with
   `pnpm --filter @drillgram/web exec playwright show-trace <trace.zip>`.
-- `bin/ci-check` is the full check CI runs: unit tests, typecheck and every
+- Code that talks to the server is tested without one where it can be: `lib/workspaceLog.ts`
+  is given its server and its storage, and its tests give it fakes that are slow, deaf or busy
+  with somebody else (`lib/__tests__/workspaceLog.spec.ts`).
+- `bin/ci-check` is the full check CI runs: the server's tests, unit tests, typecheck and every
   journey, in the official Playwright image built from `apps/web/e2e/Dockerfile`, without network.
   It needs Docker. Run it before you push. Keep the image tag in the Dockerfile equal to the
   `@playwright/test` version (pinned exactly) when upgrading.

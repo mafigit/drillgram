@@ -6,3 +6,5 @@ playwright-report
 target
 # What the public repository must not say (docs/agents/publishing.md).
 context/private/
+# What compose.yaml is told on this machine: passwords among it.
+.env

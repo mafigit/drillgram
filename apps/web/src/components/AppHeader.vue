@@ -9,11 +9,26 @@ import {
   DropdownMenuRoot,
   DropdownMenuTrigger,
 } from 'reka-ui'
+import { useRoute } from 'vue-router'
 import { Button } from '@/components/ui/button'
+import AccountMenu from './AccountMenu.vue'
+import WorkspaceMenu from './WorkspaceMenu.vue'
+import { useSession } from '../composables/useSession'
 import { THEMES, useTheme } from '../composables/useTheme'
 import type { Theme } from '../composables/useTheme'
 
+defineProps<{
+  /**
+   * The name alone, no menus: for a page that is about to give way to another one (a workspace
+   * that is being opened). A menu opened there would close under the hand a moment later.
+   */
+  plain?: boolean
+}>()
+
 const { theme, set } = useTheme()
+// The workspaces and the account are for somebody who is signed in.
+const { user } = useSession()
+const route = useRoute()
 </script>
 
 <template>
@@ -23,13 +38,18 @@ const { theme, set } = useTheme()
     <h1 class="text-sm font-semibold tracking-tight whitespace-nowrap max-sm:sr-only">
       Drillgram
     </h1>
-    <span class="text-border max-sm:hidden" aria-hidden="true">/</span>
+    <!-- Which workspace is open, where one is. -->
+    <template v-if="user && !plain && route.params.workspace">
+      <span class="text-border max-lg:hidden" aria-hidden="true">/</span>
+      <WorkspaceMenu />
+    </template>
+    <span v-if="$slots.default" class="text-border max-sm:hidden" aria-hidden="true">/</span>
     <div class="min-w-0 flex-1">
       <slot />
     </div>
     <slot name="actions" />
     <!-- The theme: chosen from a menu, in use at once. Each theme shows its ground and an accent. -->
-    <DropdownMenuRoot :modal="false">
+    <DropdownMenuRoot v-if="!plain" :modal="false">
       <DropdownMenuTrigger as-child>
         <Button variant="ghost" size="icon" aria-label="Theme" title="Theme">
           <SunIcon v-if="THEMES.find((known) => known.id === theme)?.dark" aria-hidden="true" />
@@ -65,5 +85,6 @@ const { theme, set } = useTheme()
         </DropdownMenuContent>
       </DropdownMenuPortal>
     </DropdownMenuRoot>
+    <AccountMenu v-if="!plain" />
   </header>
 </template>

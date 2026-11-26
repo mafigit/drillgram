@@ -4,8 +4,8 @@
 
 ```sh
 git submodule update --init   # packages/layout, the layout engine (github.com/mafigit/tidy-layout)
-mise install          # Node and pnpm from mise.toml
-pnpm install
+mise install          # Node, pnpm, Rust and Go from mise.toml
+pnpm install          # `mise run dev` does this, and the first line where the engine is missing
 pnpm --filter @drillgram/web exec playwright install   # browsers, once
 ```
 
@@ -13,22 +13,98 @@ pnpm --filter @drillgram/web exec playwright install   # browsers, once
 
 | Command | What |
 | --- | --- |
-| `pnpm --filter @drillgram/web dev` | Dev server. |
+| `mise run dev` | Work on the app, in one go: the server with its database (`bin/dev`) and the app's dev server, side by side, on `http://localhost:5173`. Fetches the packages first where they are missing or old. Ctrl-C stops both; the database's container stays. `mise run server` and `mise run web` start one of them, `mise run stack` the compose stack; `mise tasks` lists them (`mise.toml`). |
+| `docker compose up --build` | The whole app as it runs for real: one image with the server and the built web app (`Dockerfile`), and a PostgreSQL, on `http://localhost:8080`. See "The stack" below. Needs Docker only. |
+| `bin/dev` | The server for work on the app, on `:8080`, with a PostgreSQL that keeps its data between runs (a container and a volume, both `drillgram-dev-db`; `--forget` throws them away). The first start makes the admin `admin@example.org` with the password `drillgram-dev`. Needs Docker. |
+| `pnpm --filter @drillgram/web dev` | The app's dev server. It sends `/api` to the server on `localhost:8080` (`DRILLGRAM_API` for another address): start `bin/dev` beside it. |
 | `pnpm test` | All unit tests, headless, one run. |
 | `pnpm typecheck` | vue-tsc for `apps/web`, tsc for `packages/*`. |
-| `pnpm test:e2e` | Every journey on all Playwright projects, headless. |
+| `pnpm test:e2e` | Every journey on all Playwright projects, headless, against the server with the built app (`apps/web/e2e/serve`: builds both and starts a PostgreSQL that goes with it). Needs Docker and Go. |
 | `pnpm test:e2e:ui` | Playwright UI for local debugging. |
 | `pnpm build` | Build every package. |
 | `pnpm --filter @drillgram/web generate-pwa-assets` | Regenerate icons after changing `apps/web/public/logo.svg`; commit the PNGs. |
-| `bin/ci-check` | The full check: unit tests, typecheck, the licence gate (`pnpm licences`) and journeys in the pinned Playwright image without network, then the licence of every file (`deploy/licences/reuse`). Needs Docker. Run before pushing. |
+| `bin/with-postgres go test ./...` (in `apps/server`) | The server's tests, on a PostgreSQL that goes with the command (a container; needs Docker). |
+| `bin/ci-check` | The full check: the server's format, `go vet` and tests, unit tests, typecheck, the licence gate (`pnpm licences`) and journeys in the pinned Playwright image without network, then the licence of every file (`deploy/licences/reuse`). Needs Docker. Run before pushing. |
 | `bin/public-check` | Fails when a file names an address of a private network, a local host or a Docker daemon's open port. First step of `bin/ci-check`. |
 | `bin/publish "<message>"` | Puts the files of `main` on the public repository on GitHub as one commit (`--dry-run` to look first). The only way there: see `docs/agents/publishing.md`. |
 | `bin/docker-build` | `docker build` that says nothing unless it fails; then the whole build log, and a hint when the Docker host's disk is full. The checks build with it. |
-| `pnpm licences` | The licence gate alone: npm packages and the engine's crates against `deploy/licences/licences.allow.json` (see `docs/agents/licences.md`). |
+| `pnpm licences` | The licence gate alone: npm packages, the engine's crates and the server's Go modules against `deploy/licences/licences.allow.json` (see `docs/agents/licences.md`). |
 | `deploy/licences/reuse` | `reuse lint` alone: every file against `REUSE.toml`. Needs Docker. |
 
 Failed e2e runs leave traces, screenshots and videos in `test-results/` and the HTML report in
 `playwright-report/` (both gitignored).
+
+At startup, `bin/dev` prints the server address and admin email. It passes the admin password
+to the server through `DRILLGRAM_ADMIN_PASSWORD`.
+
+## The stack
+
+`compose.yaml` runs the app's image and a PostgreSQL. `docker compose up --build` builds the
+image first (a few minutes the first time: the layout engine, the web app, the server);
+`docker compose down` stops it and keeps the database (the volume `drillgram_db`), `down -v`
+throws it away.
+
+- The first start makes the admin `admin@example.org` with the password `drillgram-dev`.
+- It listens on this machine alone (`127.0.0.1:8080`). For anybody else, put a proxy with TLS
+  in front and set `DRILLGRAM_PUBLIC_URL`.
+- Settings go in a file `.env` beside `compose.yaml` (in `.gitignore`: it holds passwords).
+  `POSTGRES_PASSWORD`, `DRILLGRAM_ADMIN_EMAIL`, `DRILLGRAM_ADMIN_PASSWORD` and `DRILLGRAM_PORT`
+  are read by `compose.yaml`; every `DRILLGRAM_*` variable in it reaches the server (the table
+  below), single sign-on and the proxy's header among them.
+- A new database password after the first start does not change the one the database has: the
+  volume keeps it.
+- The image runs as a user who owns nothing and has no shell. Its health check is the program
+  itself: `drillgram health`. The licence texts of what is in it are under `/licences`.
+- `bin/ci-check` does not build this image: after a change to the build of the app or the
+  server, run `docker compose up --build` once.
+
+## The server
+
+```sh
+cd apps/server
+go build -o drillgram ./cmd/drillgram
+DRILLGRAM_DATABASE_URL=postgres://user:password@host:5432/drillgram \
+DRILLGRAM_ADMIN_EMAIL=you@example.org DRILLGRAM_ADMIN_PASSWORD='at least ten characters' \
+./drillgram
+```
+
+It makes its tables itself when it starts, and the admin when there is no user yet. It listens
+on `:8080`; `GET /api/health` says whether it and its database are up, and so does the program
+itself: `drillgram health` asks the server that runs with the same settings (exit status 0: up). A PostgreSQL to try it
+with: `docker run --rm -e POSTGRES_PASSWORD=drillgram -p 5432:5432 postgres:17.2-bookworm`.
+
+Everything it is told is an environment variable, each beginning with `DRILLGRAM_`. A setting
+that cannot work stops the start with the reason.
+
+| Variable | Default | What |
+| --- | --- | --- |
+| `DATABASE_URL` | none, needed | The PostgreSQL. |
+| `LISTEN` | `:8080` | The address it listens on. |
+| `PUBLIC_URL` | none | Where people reach it, behind whatever proxies it. With an `https` address the session cookie is for HTTPS only. Single sign-on needs it. |
+| `WEB_DIR` | none | The folder of the built web app (`apps/web/dist`); without it the server is the API alone. |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | none | The first user, an admin, made when there is no user yet. Of no effect later. |
+| `SESSION_LIFE` | `720h` | How long a sign-in holds. |
+| `LOGIN_TRIES_PER_MINUTE` | `10` | Wrong passwords for one address within a minute before sign-in is refused; `0` for no limit. |
+| `AUTH_PASSWORD_ENABLED` | `true` | Sign-in with e-mail and password. |
+| `AUTH_OIDC_ISSUER`, `_CLIENT_ID`, `_CLIENT_SECRET` | none | Single sign-on through an OpenID Connect provider; on when the issuer is set. The provider must allow the address `<PUBLIC_URL>/api/auth/oidc/callback`. |
+| `AUTH_OIDC_SCOPES` | `openid email profile` | What is asked of the provider. |
+| `AUTH_OIDC_NAME` | `Single sign-on` | What the sign-in page calls the provider. |
+| `AUTH_OIDC_AUTO_SIGN_UP` | `true` | Make a user for somebody the provider knows and the server does not. |
+| `AUTH_OIDC_TRUST_EMAIL` | `false` | Take the provider's word for an address also where it does not say `email_verified`. Only for a provider that gives nobody an address that is not theirs. |
+| `AUTH_PROXY_ENABLED` | `false` | Believe the header of a proxy in front, as Grafana's `auth.proxy`. |
+| `AUTH_PROXY_HEADER` | `X-WEBAUTH-USER` | The header with the user's e-mail address. |
+| `AUTH_PROXY_NAME_HEADER` | none | A header with the user's name. |
+| `AUTH_PROXY_TRUSTED` | none, needed with the switch | The proxy's addresses or ranges, with commas or spaces between. The header counts only from there. |
+| `AUTH_PROXY_AUTO_SIGN_UP` | `true` | Make a user for somebody new. |
+| `AUTH_JWT_ENABLED` | `false` | Believe a signed token (JWT) in a header, as Grafana's `auth.jwt`. |
+| `AUTH_JWT_HEADER` | `X-JWT-Assertion` | The header with the token, with or without `Bearer `. |
+| `AUTH_JWT_JWKS_URL` | none, needed with the switch | Where the keys that sign the tokens are published. |
+| `AUTH_JWT_ISSUER`, `AUTH_JWT_AUDIENCE` | none | What the token's `iss` and `aud` must be, where set. |
+| `AUTH_JWT_EMAIL_CLAIM`, `AUTH_JWT_NAME_CLAIM` | `email`, `name` | The claims that say who the user is. |
+| `AUTH_JWT_AUTO_SIGN_UP` | `true` | Make a user for somebody new. |
+
+Behind a proxy that signs people in: a header that names a user wins over a session cookie, and
+the proxy must take away such a header when a request brings one from outside.
 
 ## CI
 
@@ -45,7 +121,12 @@ what no build used for 6 hours after every check and prints `docker system df`.
 
 - Keep the image tag in `apps/web/e2e/Dockerfile` equal to the exactly pinned `@playwright/test`
   version when upgrading.
-- PWA tests need `vite build` plus `vite preview` (no service worker in dev); they run in Chromium only.
+- PWA tests need the built app (no service worker in dev); they run in Chromium only.
+- A journey run that is killed, not stopped, can leave its database behind: a container named
+  `drillgram-test-db-…`. `docker rm -f` it.
+- The server refuses a request that changes something when the page's origin is not its own.
+  Behind a proxy that gives it another host, set `DRILLGRAM_PUBLIC_URL`, or let the proxy pass
+  the host on (`X-Forwarded-Host`).
 
 ## What is not in the repository
 

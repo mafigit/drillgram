@@ -8,7 +8,7 @@ export interface Package {
   version: string
   /** As its manifest states it: an SPDX expression, usually. */
   licence: string | undefined
-  from: 'npm' | 'crates'
+  from: 'npm' | 'crates' | 'go'
 }
 
 export interface Allowed {
@@ -61,6 +61,23 @@ export function allows(expression: string, licences: readonly string[]): boolean
   }
   const result = either()
   return result === true && at === tokens.length
+}
+
+/**
+ * The Go modules of the server, from the list `go-licenses report` writes with the template of
+ * the gate: a line each, name, version and licence between tabs. A licence it could not find is
+ * "Unknown".
+ */
+export function goModules(listed: string): Package[] {
+  return listed
+    .split('\n')
+    .map((line, index) => ({ line, number: index + 1 }))
+    .filter(({ line }) => line.trim() !== '')
+    .map(({ line, number }) => {
+      const [name, version, licence, ...more] = line.split('\t')
+      if (!name || !version || licence === undefined || more.length > 0) throw new Error(`The list of Go modules is no such list at line ${number}: ${line}`)
+      return { name, version, licence: licence === '' || licence === 'Unknown' ? undefined : licence, from: 'go' as const }
+    })
 }
 
 const named = (pattern: string, name: string) => (pattern.endsWith('*') ? name.startsWith(pattern.slice(0, -1)) : name === pattern)

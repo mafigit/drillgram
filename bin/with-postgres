@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+# Runs a command with a PostgreSQL to test against and says where it is in
+# DRILLGRAM_TEST_DATABASE_URL:
+#
+#   bin/with-postgres go test ./...
+#
+# - The variable is set already: the command runs as it is.
+# - PostgreSQL is installed (the image of the checks): a server of its own, in a folder that
+#   goes when the command is done, reached through a socket there.
+# - Else a container of the image below, which goes with the command. Needs Docker.
+#
+# The server keeps nothing: it is for tests, each of which makes databases of its own.
+set -euo pipefail
+
+IMAGE=postgres:17.2-bookworm
+
+[ $# -gt 0 ] || { echo "with-postgres: give the command to run" >&2; exit 2; }
+# Asked to stop while the command runs: stop as usual, so the database goes too.
+trap 'exit 143' TERM INT
+if [ -n "${DRILLGRAM_TEST_DATABASE_URL:-}" ]; then
+  exec "$@"
+fi
+
+# Debian keeps the server's programs out of the PATH.
+for found in /usr/lib/postgresql/*/bin; do
+  [ -x "$found/initdb" ] && PATH="$found:$PATH"
+done
+
+if command -v initdb >/dev/null 2>&1; then
+  dir=$(mktemp -d)
+  # PostgreSQL does not run as root: there the user postgres runs it.
+  as=()
+  if [ "$(id -u)" = 0 ]; then
+    chown postgres "$dir"
+    as=(runuser -u postgres --)
+  fi
+  stop() {
+    "${as[@]}" pg_ctl -D "$dir/data" -m immediate stop >/dev/null 2>&1 || true
+    rm -rf "$dir"
+  }
+  trap stop EXIT
+  "${as[@]}" initdb -D "$dir/data" --auth=trust --username=postgres >/dev/null
+  "${as[@]}" pg_ctl -D "$dir/data" -l "$dir/log" -w \
+    -o "-c listen_addresses='' -c unix_socket_directories='$dir' -c fsync=off -c max_connections=300" start >/dev/null \
+    || { cat "$dir/log" >&2; exit 1; }
+  export DRILLGRAM_TEST_DATABASE_URL="postgres://postgres@/postgres?host=$dir"
+else
+  command -v docker >/dev/null 2>&1 || { echo "with-postgres: neither PostgreSQL nor Docker is here" >&2; exit 1; }
+  name="drillgram-test-db-$$-$RANDOM"
+  trap 'docker rm -f "$name" >/dev/null 2>&1 || true' EXIT
+  docker run -d --rm --name "$name" -e POSTGRES_PASSWORD=drillgram -p 127.0.0.1::5432 \
+    --tmpfs /var/lib/postgresql/data "$IMAGE" -c fsync=off -c max_connections=300 >/dev/null
+  # The image starts the server twice (once to set it up): wait for the one that listens.
+  for _ in $(seq 1 120); do
+    docker exec "$name" pg_isready -q -h 127.0.0.1 -U postgres 2>/dev/null && break
+    sleep 0.5
+  done
+  docker exec "$name" pg_isready -q -h 127.0.0.1 -U postgres || { docker logs "$name" >&2; echo "with-postgres: the database did not start" >&2; exit 1; }
+  port=$(docker port "$name" 5432/tcp | head -n 1 | sed 's/.*://')
+  export DRILLGRAM_TEST_DATABASE_URL="postgres://postgres:drillgram@127.0.0.1:$port/postgres"
+fi
+
+"$@"

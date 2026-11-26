@@ -8,6 +8,10 @@ file under `apps/web/e2e/`, named after its entry. A journey whose feature is no
 Projects: `chromium` (desktop), `webkit` (desktop, closest to iOS Safari) and `tablet` (iPad,
 touch). Journeys run on all three unless the entry says otherwise.
 
+The journeys run against the server (`apps/server`) with the built app, on a database of its
+own. Every test starts signed in, as a user made for it with an empty workspace; "open the app"
+means that. J57 is about signing in itself.
+
 ## J1 Open the app
 
 Test: `apps/web/e2e/j1-open-the-app.spec.ts`
@@ -699,11 +703,11 @@ Test: `apps/web/e2e/j43-clear-the-workspace.spec.ts`
 4. Reload the page and add the software system "Fresh Start".
 
 Expected: with nothing in the workspace the button is not available. In step 2 the app asks
-first and says that every diagram, object and connection kept in this browser goes, the change
-log too, and that this cannot be undone; "Cancel" changes nothing. After step 3 the app is as on
-the first day: on its first diagram, empty, with "Load an example" offered and nothing to undo.
-It stays empty after a reload, and works on: a new card can be added. Until workspaces are kept
-on a server, this is how a new one is begun.
+first and says that every diagram, object and connection of the workspace goes, the change
+log too, and that this cannot be undone; "Cancel" changes nothing. After step 3 the workspace is
+as on the first day: on its first diagram, empty, with "Load an example" offered and nothing to
+undo. It stays empty after a reload, and works on: a new card can be added. The workspace
+itself stays, with its name; a new one is begun in the workspace menu (J58).
 
 ## J44 Markdown on a card
 
@@ -977,3 +981,111 @@ one change. Another shape has no columns: they go with the shape. The SVG and PN
 the rows; D2 writes an `sql_table` with the columns and their constraints. Not yet: a
 connection from one column to another, and columns on a code element ("SQL table").
 
+
+## J57 Sign in and out
+
+Test: `apps/web/e2e/j57-sign-in.spec.ts`
+
+The app is of no use to somebody who is not signed in: the tests of the other journeys start
+signed in, each as a user of its own (`e2e/fixtures.ts`). These start signed out.
+
+1. Open the app.
+2. Type the e-mail address and a wrong password, and press "Sign in".
+3. Type the right password and press Enter.
+4. Reload the page.
+5. Open "Account" in the top bar and press "Sign out".
+6. Open the app again.
+
+Also: open the address of a diagram inside a box while signed out, and sign in. And: open the
+sign-in page as single sign-on leaves it when it let nobody in (`/login?error=…`). And: sign
+in, choose "Change password" in the account menu, give a wrong current password, then a new one
+that is too short, then a good one; sign out and sign in with the old and with the new one.
+
+Expected: step 1 leads to the sign-in page (`/login`), with no editor. Step 2 says beside the
+form that the address or the password is wrong, and keeps what was typed. Step 3 opens the
+editor on the user's workspace, "My workspace"; step 4 leaves it there. The account menu names
+the user and their address. After step 5 the sign-in page is back, and step 6 leads to it again.
+Somebody who signs in after asking for an address of the app gets to that address. The sign-in
+page shows the reason single sign-on gave, and no button for single sign-on on a server that has
+none. A wrong current password and a new one that is too short are said at the form, which
+stays; after the change the browser is still signed in, the old password is refused and the new
+one lets the user in.
+
+## J58 Several workspaces
+
+Test: `apps/web/e2e/j58-workspaces.spec.ts`
+
+1. Open the app and add a software system "Online Shop".
+2. Open the workspace menu in the top bar, press "New workspace", name it "Bookshop".
+3. Add a person "Reader" and reload the page.
+4. Choose "My workspace" in the menu.
+5. Open the app's own address.
+6. Rename the workspace to "Shop landscape".
+
+Also: make a workspace, delete it ("Cancel" first), then delete the last one too and make one
+on the page that follows. And: open the address of somebody else's workspace.
+
+Expected: the menu's button names the open workspace. A new workspace is empty and open at
+once; its address names it, so a reload opens the same one with "Reader". "My workspace" still
+has "Online Shop" and no "Reader". The app's own address leads to the workspace that was open
+last. The new name is on the button and in the menu. Deleting asks first, names the workspace
+and says that this cannot be undone; afterwards another workspace is open, and after the last
+one a page that offers to make one ("No workspace yet"). The address of a workspace that is not
+shared with the user leads to their own, and a card says that there is no such workspace.
+
+## J59 An admin manages the users
+
+Test: `apps/web/e2e/j59-users.spec.ts`
+
+1. Sign in as the admin and open "Users" in the account menu.
+2. Fill "New user" with an address, the name "Grace Hopper" and the password "short"; press
+   "Create user". Then give a password of ten characters or more and press it again.
+3. In another browser, sign in as Grace. Open the account menu, then the address `/users`.
+4. As the admin, press "Disable" in Grace's row. As Grace, reload and try to sign in.
+5. As the admin, press "Enable". As Grace, sign in.
+6. As the admin, press "Disable" in the admin's own row.
+
+Expected: the page lists the users with their roles. A password that is too short is said at
+the form; then the user is in the list and the form is empty again. Grace gets her own
+"My workspace"; her account menu has no "Users", and the address of the users leads her to her
+diagrams. Disabled, she is out at her next step and the sign-in page refuses her with the same
+words as a wrong password; enabled, she is in again. The last admin cannot be disabled: a card
+says that the server needs one.
+
+## J60 The same workspace in two browsers
+
+Test: `apps/web/e2e/j60-two-browsers.spec.ts`
+
+A workspace is kept on the server, with its change log.
+
+1. Add "Customer" and "Online Shop", connect them, and undo the connection.
+2. Open the app in a second browser as the same user, and redo.
+3. Reload the first browser.
+
+Also: with the workspace open in two browsers, add "Billing" in the second, then "Mail" in the
+first, then "Mail" in the first again.
+
+Expected: the second browser shows the two cards without the connection, and can redo it: the
+change log and the place in it came along. The first browser has the connection after its
+reload. A change made in a browser that has not seen what another one did is not kept: the
+workspace is shown as it is on the server (with "Billing", without "Mail"), and a card says
+that it was changed somewhere else. The next change works as ever. Not yet: seeing each other's
+changes without a reload (J19).
+
+## J61 Bring the diagrams of this browser
+
+Test: `apps/web/e2e/j61-bring-the-browsers-diagrams.spec.ts`
+
+Before the app had a server it kept one workspace in the browser. A browser that ran it then
+still has it, also under the app's earlier names (`ped.`, `drillplan.`).
+
+1. Open the app in a browser that kept a workspace with the card "Online Shop".
+2. Press "Bring the diagrams of this browser" on the empty diagram.
+3. Open the history, undo and redo.
+4. Open the app in a second browser as the same user.
+5. Delete the card and reload.
+
+Expected: a browser that kept nothing is not offered anything. After step 2 the card is there,
+with the change that made it in the change log, which undoes and redoes. The second browser
+has the card: it is on the server. The offer is made once: after step 5 the empty workspace
+offers the example only. What the browser kept stays in it, under the app's name of today.

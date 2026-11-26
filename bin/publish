@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+# Publishes the files of main to the public repository, as one commit on top of what is public:
+#
+#   bin/publish [--dry-run] [--fresh] "<message of the commit>"
+#
+# --fresh starts the public history again: one commit without a parent takes the place of all
+# that was public. For when something went out that should not have: a later commit would leave
+# it readable in the history. It replaces what others may have fetched, so only on the owner's word.
+#
+# The public repository has a history of its own (branch `public` here, `main` there), started
+# fresh on 2026-11-26: it shares no commit with main, so nothing of the earlier history goes out.
+# Each publication is the tree of main as it is now. Never push main or any other branch there;
+# the pre-push hook this installs refuses it. See docs/agents/publishing.md.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+REMOTE=github
+URL=git@github.com:mafigit/drillgram.git
+BRANCH=public
+EMAIL=mafi@inagile.org
+
+fail() {
+  echo "publish: $*" >&2
+  exit 1
+}
+
+dry=false
+fresh=false
+while [ "${1:-}" = --dry-run ] || [ "${1:-}" = --fresh ]; do
+  [ "$1" = --dry-run ] && dry=true || fresh=true
+  shift
+done
+message=${1:-}
+[ -n "$message" ] || fail 'give the message of the commit: bin/publish [--dry-run] [--fresh] "<type: What changed>"'
+
+# Only the public line goes to the public repository, whatever is typed by hand later.
+hook=$(git rev-parse --git-path hooks/pre-push)
+if ! grep -q 'installed by bin/publish' "$hook" 2>/dev/null; then
+  [ ! -e "$hook" ] || fail "there is a pre-push hook already ($hook): add the check of bin/publish to it by hand"
+  cat >"$hook" <<'HOOK'
+#!/bin/sh
+# installed by bin/publish: only the public line (branch public) goes to the public repository.
+case "$2" in
+  *github.com[:/]mafigit/drillgram*) ;;
+  *) exit 0 ;;
+esac
+while read -r local_ref _ _ _; do
+  if [ "$local_ref" != refs/heads/public ]; then
+    echo "pre-push: only bin/publish pushes to the public repository (it pushes the branch public). Refused: $local_ref" >&2
+    exit 1
+  fi
+done
+HOOK
+  chmod +x "$hook"
+fi
+git remote get-url "$REMOTE" >/dev/null 2>&1 || git remote add "$REMOTE" "$URL"
+
+[ "$(git rev-parse --abbrev-ref HEAD)" = main ] || fail "publish from main"
+[ -z "$(git status --porcelain)" ] || fail "commit your changes first: what is published is the last commit of main"
+[ "$(git config user.email)" = "$EMAIL" ] || fail "git's user.email in this repository is not $EMAIL: the public commit would carry another address"
+bin/public-check HEAD
+
+# The engine is a repository of its own: the commit main points at must be public there.
+engine=$(git rev-parse HEAD:packages/layout)
+git -C packages/layout fetch -q origin
+git -C packages/layout merge-base --is-ancestor "$engine" origin/main || fail "the layout engine's commit $engine is not on the main branch of its public repository: push it there first"
+
+git fetch -q "$REMOTE" || fail "the public repository does not answer"
+tree=$(git rev-parse 'HEAD^{tree}')
+public=$(git rev-parse -q --verify "refs/remotes/$REMOTE/main" || true)
+parent=$public
+$fresh && parent=
+if [ -n "$parent" ] && [ "$(git rev-parse "$parent^{tree}")" = "$tree" ]; then
+  echo "publish: nothing new: the public repository has these files already"
+  exit 0
+fi
+commit=$(git commit-tree "$tree" ${parent:+-p "$parent"} -m "$message")
+[ "$(git log -1 --format='%ae %ce' "$commit")" = "$EMAIL $EMAIL" ] || fail "the commit carries another address than $EMAIL"
+
+if [ -n "$parent" ]; then
+  git diff --stat "$parent" "$commit" | tail -n 1
+else
+  echo " the first commit of the public repository: $(git ls-tree -r --name-only "$commit" | wc -l | tr -d ' ') files"
+fi
+if $dry; then
+  echo "publish: dry run: would push $commit to $URL (main)"
+  exit 0
+fi
+git branch -f "$BRANCH" "$commit"
+if $fresh && [ -n "$public" ]; then
+  # In the place of what is public now, and only of that: not of what somebody pushed since.
+  git push --force-with-lease="main:$public" "$REMOTE" "$BRANCH:main"
+else
+  git push "$REMOTE" "$BRANCH:main"
+fi
+[ "$(git ls-remote "$REMOTE" refs/heads/main | cut -f1)" = "$commit" ] || fail "the public repository does not show the commit after the push"
+echo "publish: OK: $commit is the main of the public repository"

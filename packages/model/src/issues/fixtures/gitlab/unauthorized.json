@@ -1,0 +1,26 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://gitlab.com/api/v4/projects/acme%2Fapp/issues/1"
+    },
+    "response": {
+      "status": 401,
+      "body": {
+        "message": "401 Unauthorized"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://gitlab.com/api/v4/projects/acme%2Fapp/issues?state=opened"
+    },
+    "response": {
+      "status": 401,
+      "body": {
+        "message": "401 Unauthorized"
+      }
+    }
+  }
+]

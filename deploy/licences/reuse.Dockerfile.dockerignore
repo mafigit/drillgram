@@ -1,0 +1,11 @@
+# What git ignores (.gitignore), and git's own folder.
+.git
+**/node_modules
+**/dist
+**/coverage
+**/target
+test-results
+playwright-report
+# The layout engine: a submodule, a repository of its own (MPL-2.0, see NOTICE).
+packages/layout
+context/private

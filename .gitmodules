@@ -1,0 +1,3 @@
+[submodule "packages/layout"]
+	path = packages/layout
+	url = https://github.com/mafigit/tidy-layout.git

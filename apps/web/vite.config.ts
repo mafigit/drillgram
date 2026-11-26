@@ -1,0 +1,62 @@
+import { fileURLToPath, URL } from 'node:url'
+
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import tailwindcss from '@tailwindcss/vite'
+import vueDevTools from 'vite-plugin-vue-devtools'
+import { VitePWA } from 'vite-plugin-pwa'
+import { techIcons } from './tech-icons.vite.ts'
+
+// https://vite.dev/config/
+export default defineConfig({
+  plugins: [
+    vue({
+      // GitHub's markdown-toolbar-element (components/MarkdownField.vue): custom elements, not Vue's.
+      template: { compilerOptions: { isCustomElement: (tag) => tag === 'markdown-toolbar' || tag.startsWith('md-') } },
+    }),
+    tailwindcss(),
+    vueDevTools(),
+    techIcons(),
+    VitePWA({
+      registerType: 'prompt',
+      injectRegister: false, // registered by ReloadPrompt.vue via virtual:pwa-register/vue
+      workbox: {
+        // wasm: the layout engine must work offline too.
+        globPatterns: ['**/*.{js,css,html,svg,png,woff2,wasm}'],
+        navigateFallback: 'index.html',
+        // The icon library is thousands of files: only the icons a diagram shows are kept for
+        // offline use, as they are fetched.
+        globIgnores: ['tech-icons/**'],
+        runtimeCaching: [
+          {
+            urlPattern: /\/tech-icons\/[a-z0-9-]+\.svg$/,
+            handler: 'CacheFirst',
+            options: { cacheName: 'tech-icons', expiration: { maxEntries: 600 } },
+          },
+        ],
+      },
+      includeAssets: ['favicon.ico', 'apple-touch-icon-180x180.png', 'logo.svg'],
+      manifest: {
+        name: 'Drillgram',
+        short_name: 'Drillgram',
+        description: 'Architecture diagrams you can drill into',
+        start_url: '/',
+        scope: '/',
+        display: 'standalone',
+        theme_color: '#1e293b',
+        background_color: '#1e293b',
+        icons: [
+          { src: 'pwa-64x64.png', sizes: '64x64', type: 'image/png' },
+          { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+          { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },
+          { src: 'maskable-icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        ],
+      },
+    }),
+  ],
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
+  },
+})

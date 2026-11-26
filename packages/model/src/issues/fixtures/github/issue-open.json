@@ -1,0 +1,30 @@
+{
+  "status": 200,
+  "body": {
+    "number": 1,
+    "title": "Diagram does not render",
+    "body": "The canvas stays blank.",
+    "state": "open",
+    "state_reason": null,
+    "labels": [
+      {
+        "name": "bug",
+        "color": "d73a4a"
+      },
+      {
+        "name": "ui",
+        "color": ""
+      }
+    ],
+    "assignees": [
+      {
+        "login": "alice"
+      }
+    ],
+    "milestone": {
+      "title": "v1"
+    },
+    "html_url": "https://github.com/acme/app/issues/1",
+    "updated_at": "2026-01-02T03:04:05Z"
+  }
+}

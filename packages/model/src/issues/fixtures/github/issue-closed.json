@@ -1,0 +1,20 @@
+{
+  "status": 200,
+  "body": {
+    "number": 2,
+    "title": "Crash on export",
+    "body": "Fixed in the last release.",
+    "state": "closed",
+    "state_reason": "completed",
+    "labels": [
+      {
+        "name": "bug",
+        "color": "d73a4a"
+      }
+    ],
+    "assignees": [],
+    "milestone": null,
+    "html_url": "https://github.com/acme/app/issues/2",
+    "updated_at": "2026-01-03T00:00:00Z"
+  }
+}

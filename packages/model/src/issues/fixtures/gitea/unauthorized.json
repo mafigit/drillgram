@@ -1,0 +1,26 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://git.example.org/api/v1/repos/acme/app/issues/1"
+    },
+    "response": {
+      "status": 401,
+      "body": {
+        "message": "token is invalid"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://git.example.org/api/v1/repos/acme/app/issues?state=open&type=issues"
+    },
+    "response": {
+      "status": 401,
+      "body": {
+        "message": "token is invalid"
+      }
+    }
+  }
+]

@@ -1,0 +1,14 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://git.example.org/api/v1/repos/acme/app/issues/999"
+    },
+    "response": {
+      "status": 404,
+      "body": {
+        "message": "The target couldn't be found."
+      }
+    }
+  }
+]

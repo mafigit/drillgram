@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# `docker build` that says nothing unless it fails: then the whole build log, so a failed check
+# shows why (a quiet build showed only the step, 2026-11-25), and what to do when the Docker
+# host's disk is full. Takes the arguments of `docker build`. bin/ci-check and the scripts it
+# runs build with it.
+set -euo pipefail
+
+log=$(mktemp)
+trap 'rm -f "$log"' EXIT
+docker build --progress=plain "$@" >"$log" 2>&1 && exit 0
+status=$?
+cat "$log" >&2
+if grep -qi 'no space left on device' "$log"; then
+  echo "docker-build: the Docker host's disk is full. Free it there: docker builder prune --all --force" >&2
+fi
+exit "$status"

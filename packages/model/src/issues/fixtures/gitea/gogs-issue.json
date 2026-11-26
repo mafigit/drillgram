@@ -1,0 +1,48 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://git.example.org/api/v1/repos/acme/app/issues/6"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "id": 206,
+        "number": 6,
+        "user": {
+          "id": 11,
+          "login": "bob",
+          "username": "bob"
+        },
+        "title": "Import from Gogs",
+        "body": "Created on a Gogs server.",
+        "labels": [
+          {
+            "id": 4,
+            "name": "help wanted",
+            "color": "#0e8a16"
+          },
+          {
+            "id": 5,
+            "name": "question",
+            "color": "fbca04"
+          }
+        ],
+        "state": "open",
+        "assignee": {
+          "id": 11,
+          "username": "bob",
+          "login": "bob"
+        },
+        "milestone": {
+          "id": 2,
+          "title": "v2"
+        },
+        "comments": 3,
+        "pull_request": null,
+        "created_at": "2026-01-31T10:00:00+01:00",
+        "updated_at": "2026-02-01T10:00:00+01:00"
+      }
+    }
+  }
+]

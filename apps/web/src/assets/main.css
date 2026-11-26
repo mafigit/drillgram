@@ -1,0 +1,1023 @@
+/* The font ships with the app: no request to a font service, and it works offline. */
+@import "@fontsource-variable/geist";
+
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn-vue/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+    --font-sans: 'Geist Variable', sans-serif;
+    --font-heading: var(--font-sans);
+    --color-sidebar-ring: var(--sidebar-ring);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar: var(--sidebar);
+    --color-chart-5: var(--chart-5);
+    --color-chart-4: var(--chart-4);
+    --color-chart-3: var(--chart-3);
+    --color-chart-2: var(--chart-2);
+    --color-chart-1: var(--chart-1);
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+    --radius-2xl: calc(var(--radius) * 1.8);
+    --radius-3xl: calc(var(--radius) * 2.2);
+    --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+    /* Editor: the canvas and one colour per kind of C4 object. */
+    --canvas: oklch(0.985 0 0);
+    --canvas-dot: oklch(0.87 0 0);
+    --kind-box: oklch(0.556 0 0);
+    --kind-person: oklch(0.62 0.17 240);
+    --kind-softwareSystem: oklch(0.55 0.22 275);
+    --kind-container: oklch(0.6 0.12 185);
+    --kind-component: oklch(0.68 0.16 60);
+    --kind-code: oklch(0.55 0.02 260);
+    /* The colours a connection can have (LINE_COLOURS in the model): each theme has its tone. */
+    --line-red: #dc2626;
+    --line-orange: #ea580c;
+    --line-yellow: #ca8a04;
+    --line-green: #16a34a;
+    --line-teal: #0d9488;
+    --line-blue: #2563eb;
+    --line-purple: #9333ea;
+    --line-pink: #db2777;
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.145 0 0);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.145 0 0);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.145 0 0);
+    --primary: oklch(0.205 0 0);
+    --primary-foreground: oklch(0.985 0 0);
+    --secondary: oklch(0.97 0 0);
+    --secondary-foreground: oklch(0.205 0 0);
+    --muted: oklch(0.97 0 0);
+    --muted-foreground: oklch(0.556 0 0);
+    --accent: oklch(0.97 0 0);
+    --accent-foreground: oklch(0.205 0 0);
+    --destructive: oklch(0.577 0.245 27.325);
+    --border: oklch(0.922 0 0);
+    --input: oklch(0.922 0 0);
+    --ring: oklch(0.708 0 0);
+    --chart-1: oklch(0.87 0 0);
+    --chart-2: oklch(0.556 0 0);
+    --chart-3: oklch(0.439 0 0);
+    --chart-4: oklch(0.371 0 0);
+    --chart-5: oklch(0.269 0 0);
+    --radius: 0.625rem;
+    --sidebar: oklch(0.985 0 0);
+    --sidebar-foreground: oklch(0.145 0 0);
+    --sidebar-primary: oklch(0.205 0 0);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.97 0 0);
+    --sidebar-accent-foreground: oklch(0.205 0 0);
+    --sidebar-border: oklch(0.922 0 0);
+    --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+    --canvas: oklch(0.17 0 0);
+    --canvas-dot: oklch(0.3 0 0);
+    --kind-box: oklch(0.708 0 0);
+    --kind-person: oklch(0.72 0.14 240);
+    --kind-softwareSystem: oklch(0.72 0.16 280);
+    --kind-container: oklch(0.75 0.12 185);
+    --kind-component: oklch(0.8 0.14 70);
+    --kind-code: oklch(0.75 0.02 260);
+    --line-red: #f87171;
+    --line-orange: #fb923c;
+    --line-yellow: #facc15;
+    --line-green: #4ade80;
+    --line-teal: #2dd4bf;
+    --line-blue: #60a5fa;
+    --line-purple: #c084fc;
+    --line-pink: #f472b6;
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.205 0 0);
+    --card-foreground: oklch(0.985 0 0);
+    --popover: oklch(0.205 0 0);
+    --popover-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.922 0 0);
+    --primary-foreground: oklch(0.205 0 0);
+    --secondary: oklch(0.269 0 0);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --accent: oklch(0.269 0 0);
+    --accent-foreground: oklch(0.985 0 0);
+    --destructive: oklch(0.704 0.191 22.216);
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 15%);
+    --ring: oklch(0.556 0 0);
+    --chart-1: oklch(0.87 0 0);
+    --chart-2: oklch(0.556 0 0);
+    --chart-3: oklch(0.439 0 0);
+    --chart-4: oklch(0.371 0 0);
+    --chart-5: oklch(0.269 0 0);
+    --sidebar: oklch(0.205 0 0);
+    --sidebar-foreground: oklch(0.985 0 0);
+    --sidebar-primary: oklch(0.488 0.243 264.376);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.269 0 0);
+    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar-border: oklch(1 0 0 / 10%);
+    --sidebar-ring: oklch(0.556 0 0);
+}
+
+/* Solarized (Ethan Schoonover's palette, MIT): the two grounds and the eight accents as they
+   are, shades between them where a token needs one. `.solarized` alone is the light theme;
+   with `.dark` (set for every theme on a dark ground) it is the dark one. */
+.solarized {
+    --canvas: #f6f0dd;
+    --canvas-dot: #cdc6b1;
+    --kind-box: #586e75;
+    --kind-person: #268bd2;
+    --kind-softwareSystem: #6c71c4;
+    --kind-container: #2aa198;
+    --kind-component: #b58900;
+    --kind-code: #657b83;
+    --line-red: #dc322f;
+    --line-orange: #cb4b16;
+    --line-yellow: #b58900;
+    --line-green: #859900;
+    --line-teal: #2aa198;
+    --line-blue: #268bd2;
+    --line-purple: #6c71c4;
+    --line-pink: #d33682;
+    --background: #fdf6e3;
+    --foreground: #073642;
+    --card: #fdf6e3;
+    --card-foreground: #073642;
+    --popover: #fdf6e3;
+    --popover-foreground: #073642;
+    --primary: #073642;
+    --primary-foreground: #fdf6e3;
+    --secondary: #eee8d5;
+    --secondary-foreground: #073642;
+    --muted: #eee8d5;
+    --muted-foreground: #586e75;
+    --accent: #eee8d5;
+    --accent-foreground: #073642;
+    --destructive: #dc322f;
+    --border: #ddd6c1;
+    --input: #ddd6c1;
+    --ring: #268bd2;
+    --chart-1: #268bd2;
+    --chart-2: #2aa198;
+    --chart-3: #859900;
+    --chart-4: #b58900;
+    --chart-5: #cb4b16;
+    --sidebar: #eee8d5;
+    --sidebar-foreground: #073642;
+    --sidebar-primary: #268bd2;
+    --sidebar-primary-foreground: #fdf6e3;
+    --sidebar-accent: #e4ddc8;
+    --sidebar-accent-foreground: #073642;
+    --sidebar-border: #ddd6c1;
+    --sidebar-ring: #268bd2;
+}
+
+.solarized.dark {
+    --canvas: #00252f;
+    --canvas-dot: #1a4a56;
+    --kind-box: #93a1a1;
+    --kind-code: #839496;
+    --background: #002b36;
+    --foreground: #eee8d5;
+    --card: #073642;
+    --card-foreground: #eee8d5;
+    --popover: #073642;
+    --popover-foreground: #eee8d5;
+    --primary: #eee8d5;
+    --primary-foreground: #002b36;
+    --secondary: #0f4a58;
+    --secondary-foreground: #eee8d5;
+    --muted: #0f4a58;
+    --muted-foreground: #93a1a1;
+    --accent: #0f4a58;
+    --accent-foreground: #eee8d5;
+    --destructive: #e5534f;
+    --border: rgb(147 161 161 / 22%);
+    --input: rgb(147 161 161 / 28%);
+    --ring: #268bd2;
+    --sidebar: #073642;
+    --sidebar-foreground: #eee8d5;
+    --sidebar-primary: #268bd2;
+    --sidebar-primary-foreground: #fdf6e3;
+    --sidebar-accent: #0f4a58;
+    --sidebar-accent-foreground: #eee8d5;
+    --sidebar-border: rgb(147 161 161 / 22%);
+    --sidebar-ring: #268bd2;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    }
+  html, body, #app {
+    height: 100%;
+    }
+  body {
+    overflow: clip;
+    -webkit-font-smoothing: antialiased;
+    }
+  body {
+    @apply bg-background text-foreground;
+    @apply font-sans;
+    }
+  button:not(:disabled), [role="button"]:not(:disabled) {
+    cursor: pointer;
+    }
+}
+
+/* A tinted square in the colour of an object's kind (`--kind` is set on the element). */
+.kind-chip {
+  color: var(--kind);
+  background: color-mix(in oklch, var(--kind) 14%, transparent);
+}
+
+/* Vue Flow, in our tokens. */
+.vue-flow {
+  --xy-background-color: var(--canvas);
+  --xy-background-pattern-color: var(--canvas-dot);
+  --xy-edge-stroke: var(--muted-foreground);
+  --xy-edge-stroke-width: 1.5;
+  --xy-edge-label-color: var(--foreground);
+  --xy-edge-label-background-color: var(--canvas);
+  --xy-connectionline-stroke: var(--primary);
+  --xy-attribution-background-color: transparent;
+  /* `clip`, not `hidden`: a hidden box can still be scrolled by the browser (focus, scrolling a
+     half-visible card into view), and Vue Flow's coordinates assume it never is. */
+  overflow: clip;
+}
+
+/* The colours of a connection, in its form (canvas/ConnectionEdge.vue): round swatches, the one
+   in use with a ring; "no colour" is an empty one with a stroke through it. */
+.line-swatch {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  border-radius: 9999px;
+  outline-offset: 2px;
+}
+
+.line-swatch.is-none {
+  border: 1.5px solid var(--muted-foreground);
+  background: linear-gradient(to top right, transparent calc(50% - 1px), var(--muted-foreground) calc(50% - 1px), var(--muted-foreground) calc(50% + 1px), transparent calc(50% + 1px));
+}
+
+.line-swatch[aria-checked='true'] {
+  outline: 2px solid var(--foreground);
+}
+
+.line-swatch:hover {
+  transform: scale(1.15);
+}
+
+/* Focus on one card: what is not directly connected to it steps back. The card marks itself
+   (`is-faded`); the opacity goes on Vue Flow's wrapper so the whole card fades as one. */
+.vue-flow__node,
+.vue-flow__edge {
+  transition: opacity 120ms;
+}
+
+.vue-flow__node:has(.is-faded) {
+  opacity: 0.25;
+}
+
+.vue-flow__edge.faded {
+  opacity: 0.15;
+}
+
+/* Arrange. While the engine works ("thinking") the cards shuffle on the spot and the connectors
+   step back; then ("gliding") every card moves to its new place, one a little after the other,
+   and the connectors come back when the cards are there. */
+.vue-flow__edges,
+.vue-flow__edgelabel-renderer {
+  transition: opacity 250ms;
+}
+
+.is-thinking,
+.is-gliding {
+  .vue-flow__node {
+    pointer-events: none;
+  }
+
+  .vue-flow__edges,
+  .vue-flow__edgelabel-renderer {
+    opacity: 0;
+    transition-duration: 150ms;
+  }
+
+  /* All cards, or with `is-partial` only the selected ones. */
+  &:not(.is-partial, .is-travelling) .object-card,
+  &.is-partial .vue-flow__node.selected .object-card {
+    box-shadow:
+      0 0 0 2px color-mix(in oklch, var(--kind) 45%, transparent),
+      0 14px 28px -12px color-mix(in oklch, var(--kind) 55%, transparent);
+  }
+}
+
+/* A step in the history: the connectors are gone at once, their new routes would jump. No glow:
+   nothing is being worked on. */
+.is-travelling {
+  .vue-flow__edges,
+  .vue-flow__edgelabel-renderer {
+    transition-duration: 0ms;
+  }
+
+}
+
+@keyframes card-shuffle {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0) scale(1);
+  }
+  25% {
+    transform: translate(3px, -5px) rotate(-1.2deg) scale(1.03);
+  }
+  50% {
+    transform: translate(-3px, 3px) rotate(0.9deg) scale(0.99);
+  }
+  75% {
+    transform: translate(-4px, -3px) rotate(-0.6deg) scale(1.02);
+  }
+}
+
+/* Only where motion is welcome: with less motion asked for, the button still spins and the
+   connectors still step back, but the cards neither shuffle nor glide. */
+@media (prefers-reduced-motion: no-preference) {
+  .is-thinking:not(.is-partial) .object-card,
+  .is-thinking.is-partial .vue-flow__node.selected .object-card {
+    animation: card-shuffle 900ms ease-in-out infinite;
+  }
+
+  .is-thinking .vue-flow__node:nth-child(3n + 2) .object-card {
+    animation-delay: -300ms;
+  }
+
+  .is-thinking .vue-flow__node:nth-child(3n) .object-card {
+    animation-delay: -600ms;
+  }
+
+  .is-gliding .vue-flow__node {
+    transition:
+      transform 600ms cubic-bezier(0.22, 1, 0.36, 1),
+      width 600ms cubic-bezier(0.22, 1, 0.36, 1),
+      height 600ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .is-gliding .vue-flow__node:nth-child(4n + 2) {
+    transition-delay: 50ms;
+  }
+
+  .is-gliding .vue-flow__node:nth-child(4n + 3) {
+    transition-delay: 100ms;
+  }
+
+  .is-gliding .vue-flow__node:nth-child(4n) {
+    transition-delay: 150ms;
+  }
+}
+
+/* The fields for a new relationship's label sit on the line: keep them above the cards. */
+.vue-flow__edgelabel-renderer {
+  z-index: 1001;
+}
+
+.vue-flow__edge-text {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.vue-flow__attribution a {
+  color: var(--muted-foreground);
+}
+
+/* The quick menu (canvas/CanvasQuickMenu.vue): round buttons on a ring around the pointer. Each
+   sits at its place on the ring (`--x`, `--y`) and comes out from the middle, one after the
+   other (`--i`). */
+.quick-menu-hub {
+  position: absolute;
+  left: -4px;
+  top: -4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: var(--primary);
+  box-shadow: 0 0 0 6px color-mix(in oklch, var(--primary) 18%, transparent);
+}
+
+.quick-menu-item {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  width: 96px;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transform: translate(calc(var(--x) - 50%), calc(var(--y) - 24px));
+  outline: none;
+}
+
+.quick-menu-icon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  color: var(--tint);
+  background: color-mix(in oklch, var(--tint) 12%, var(--popover));
+  box-shadow: 0 6px 16px -6px rgb(0 0 0 / 0.3);
+  transition:
+    transform 120ms,
+    box-shadow 120ms,
+    background-color 120ms;
+}
+
+.quick-menu-label {
+  max-width: 96px;
+  border-radius: 6px;
+  padding: 1px 6px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.3;
+  text-align: center;
+  color: var(--popover-foreground);
+  background: color-mix(in oklch, var(--popover) 88%, transparent);
+}
+
+.quick-menu-item:not(:disabled):is(:hover, :focus-visible) .quick-menu-icon {
+  transform: scale(1.12);
+  background: color-mix(in oklch, var(--tint) 24%, var(--popover));
+  box-shadow:
+    0 0 0 3px color-mix(in oklch, var(--tint) 35%, transparent),
+    0 8px 20px -6px rgb(0 0 0 / 0.35);
+}
+
+.quick-menu-item:disabled {
+  opacity: 0.45;
+}
+
+@keyframes quick-menu-pop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -24px) scale(0.4);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .quick-menu-item {
+    animation: quick-menu-pop 180ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+    animation-delay: calc(var(--i) * 35ms);
+  }
+}
+
+/* The form or list the quick menu started: it grows out of the point the ring was at. */
+@keyframes float-panel-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .float-panel {
+    transform-origin: 50% 28px;
+    animation: float-panel-in 160ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
+/* Icons on a card (canvas/ObjectNode.vue): left of the name, each a little over the one before.
+   They are shown as they are, without a chip; in the dark theme a white ground keeps the icons
+   drawn for a light page readable. */
+.card-icon {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  object-fit: contain;
+}
+
+.card-icon + .card-icon {
+  margin-left: -8px;
+}
+
+.dark .card-icon {
+  border-radius: 6px;
+  padding: 2px;
+  background: #fff;
+}
+
+/* The buttons of a card (edit, icons): only with the card selected or under the pointer. */
+.card-tools {
+  display: none;
+}
+
+.vue-flow__node.selected .card-tools,
+.object-card:hover .card-tools,
+.card-tools:focus-within {
+  display: flex;
+}
+
+/* The frame around the parts of the object a diagram is about: quiet, a shade of the canvas
+   with a grey border. Only the chip beside its name has the colour of its kind. */
+.boundary {
+  border-color: color-mix(in oklch, var(--muted-foreground) 45%, transparent);
+  background: color-mix(in oklch, var(--foreground) 2%, transparent);
+}
+
+/* A frame around some cards of a view (a group): quieter than the frame of the opened box. */
+.card-group {
+  border-color: color-mix(in oklch, var(--muted-foreground) 55%, transparent);
+  background: color-mix(in oklch, var(--foreground) 2.5%, transparent);
+}
+
+/* The label of a connector that runs to the frame: on the canvas's own colour, as the others. */
+.boundary-label {
+  background: var(--canvas);
+}
+
+/* The text of a card: Markdown, small (canvas/ObjectNode.vue; measured by canvas/cardRoom.ts
+   with the same class). Sentences stand in the middle, as the name does; lists, code, quotes
+   and tables start at the left. */
+.card-text {
+  overflow-wrap: anywhere;
+
+  > * + * {
+    margin-top: 0.45em;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    color: var(--card-foreground);
+    font-weight: 600;
+    line-height: 1.25;
+  }
+
+  h1 {
+    font-size: 14px;
+  }
+
+  h2 {
+    font-size: 13px;
+  }
+
+  h3 {
+    font-size: 12px;
+  }
+
+  strong {
+    color: var(--card-foreground);
+    font-weight: 700;
+  }
+
+  em {
+    font-style: italic;
+  }
+
+  a {
+    color: var(--primary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  ul,
+  ol,
+  blockquote,
+  pre,
+  table {
+    text-align: left;
+  }
+
+  ul {
+    list-style: disc;
+    padding-left: 1.3em;
+  }
+
+  ol {
+    list-style: decimal;
+    padding-left: 1.6em;
+  }
+
+  li.task {
+    list-style: none;
+    margin-left: -1.3em;
+  }
+
+  li input[type='checkbox'] {
+    width: 10px;
+    height: 10px;
+    margin-right: 2px;
+    vertical-align: -1px;
+    accent-color: var(--primary);
+  }
+
+  blockquote {
+    border-left: 2px solid var(--border);
+    padding-left: 0.6em;
+    font-style: italic;
+  }
+
+  code {
+    border-radius: 3px;
+    padding: 0 3px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 10px;
+    background: var(--muted);
+  }
+
+  pre {
+    overflow-x: auto;
+    border-radius: 6px;
+    padding: 5px 6px;
+    background: var(--muted);
+  }
+
+  pre code {
+    padding: 0;
+    background: none;
+  }
+
+  hr {
+    border: 0;
+    border-top: 1px solid var(--border);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10px;
+  }
+
+  th,
+  td {
+    border: 1px solid var(--border);
+    padding: 1px 4px;
+  }
+
+  th {
+    color: var(--card-foreground);
+    font-weight: 600;
+    background: var(--muted);
+  }
+
+  img {
+    display: inline-block;
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* The minimap, in our tokens: a small panel like the controls, cards as grey boxes (the selected
+   ones in the primary colour), the part on screen left clear. */
+.vue-flow__minimap.canvas-minimap {
+  --xy-minimap-background-color: var(--popover);
+  --xy-minimap-mask-background-color: color-mix(in oklch, var(--foreground) 9%, transparent);
+  --xy-minimap-mask-stroke-color: color-mix(in oklch, var(--foreground) 30%, transparent);
+  --xy-minimap-node-background-color: color-mix(in oklch, var(--muted-foreground) 40%, var(--popover));
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px -4px rgb(0 0 0 / 0.2);
+}
+
+.canvas-minimap .vue-flow__minimap-node.is-selected {
+  fill: var(--primary);
+}
+
+/* The frame of an opened box in the minimap: a line of one screen pixel whatever the scale. */
+.canvas-minimap .minimap-frame {
+  fill: color-mix(in oklch, var(--foreground) 5%, transparent);
+  stroke: color-mix(in oklch, var(--muted-foreground) 70%, transparent);
+  stroke-width: 1;
+  stroke-dasharray: 3 2;
+  vector-effect: non-scaling-stroke;
+}
+
+/* The buttons of a Markdown field (components/MarkdownField.vue): GitHub's markdown-toolbar
+   elements, which bring no look of their own. */
+.markdown-field markdown-toolbar > * {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border-radius: 5px;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+
+.markdown-field markdown-toolbar > *:is(:hover, :focus-visible) {
+  color: var(--foreground);
+  background: var(--accent);
+  outline: none;
+}
+
+.markdown-field markdown-toolbar svg {
+  width: 13px;
+  height: 13px;
+}
+
+.markdown-field:focus-within {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 30%, transparent);
+}
+
+/* A select of a form (components/AddObjectForm.vue), as high as the fields beside it. */
+.form-select {
+  height: 2.25rem;
+  border: 1px solid var(--input);
+  border-radius: 0.5rem;
+  padding: 0 0.5rem;
+  font-size: 0.875rem;
+  color: var(--foreground);
+  background: var(--background);
+  outline: none;
+}
+
+.form-select:focus-visible {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 30%, transparent);
+}
+
+/* A box with a shape: the outline is drawn (canvas/shapes.ts), the card keeps no border, ground
+   or shadow of its own. Selected, the outline is the ring; under the pointer it lifts. */
+.object-card.is-shaped {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.card-shape-outline {
+  fill: var(--card);
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.object-card.is-external .card-shape-outline {
+  fill: var(--muted);
+}
+
+/* A shape whose outline is not a line around a ground (canvas/shapes.ts): the ground alone, or
+   nothing. A selected card still shows its extent (the rule below is the stronger one). */
+.card-shape-outline.is-ground {
+  stroke: none;
+}
+
+.card-shape-outline.is-none,
+.object-card.is-external .card-shape-outline.is-none {
+  fill: none;
+  stroke: none;
+}
+
+.card-shape-line {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.vue-flow__node.selected .card-shape-outline {
+  stroke: color-mix(in oklch, var(--ring) 60%, transparent);
+  stroke-width: 2;
+}
+
+.object-card.is-shaped:hover .card-shape {
+  filter: drop-shadow(0 4px 6px rgb(0 0 0 / 0.1));
+}
+
+/* A table (the shape `table`, canvas/ObjectNode.vue; canvas/cardRoom.ts measures with the same
+   classes): its name over a line on a tinted ground, then a row per column with its key, its
+   name and, at the right, its type. */
+.object-card.is-table {
+  align-items: stretch;
+  border-radius: 6px;
+  padding: 0;
+}
+
+.object-card.is-table .card-body {
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 0;
+}
+
+.object-card.is-table .card-name-row {
+  flex: none;
+  padding-block: 9px 8px;
+  border-bottom: 1px solid var(--border);
+  border-radius: 5px 5px 0 0;
+  background: color-mix(in oklch, var(--kind) 9%, transparent);
+}
+
+.object-card.is-table .card-name {
+  padding-inline: 12px;
+}
+
+.object-card.is-table .card-icons {
+  left: 8px;
+}
+
+.card-columns {
+  display: flex;
+  min-height: 0;
+  flex: 0 1 auto;
+  flex-direction: column;
+  width: 100%;
+}
+
+.card-column {
+  display: grid;
+  height: 20px;
+  flex: none;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 5px;
+  padding: 0 10px 0 6px;
+  border-bottom: 1px solid color-mix(in oklch, var(--border) 55%, transparent);
+  font-size: 11px;
+  text-align: left;
+}
+
+.card-column:last-child {
+  border-bottom: 0;
+}
+
+.card-column-key {
+  color: var(--muted-foreground);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 8.5px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.card-column.is-primary .card-column-key {
+  color: var(--line-yellow);
+}
+
+.card-column.is-foreign .card-column-key {
+  color: var(--line-blue);
+}
+
+.card-column-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-column.is-primary .card-column-name {
+  font-weight: 600;
+}
+
+.card-column-type {
+  max-width: 96px;
+  overflow: hidden;
+  color: var(--muted-foreground);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-columns-none {
+  padding: 10px 12px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+
+.object-card.is-table .card-text {
+  flex: none;
+  padding: 6px 12px;
+  border-top: 1px solid var(--border);
+  text-align: left;
+}
+
+.object-card.is-table .card-type {
+  flex: none;
+  padding: 2px 12px 4px;
+  text-align: center;
+}
+
+/* A code element is a class box, as c4model.com/diagrams/code and UML draw one: square corners;
+   what it is in guillemets over its name; beside the name a round badge with its letter and the
+   language's icon; under a line its members. The parts are those of any card
+   (canvas/ObjectNode.vue; canvas/cardRoom.ts measures with the same classes). */
+.object-card.is-code {
+  align-items: stretch;
+  border-radius: 4px;
+  padding: 0;
+}
+
+.object-card.is-code .card-type {
+  order: -1;
+  flex: none;
+  padding: 8px 12px 0;
+  text-align: center;
+}
+
+.object-card.is-code .card-type::before {
+  content: '«';
+}
+
+.object-card.is-code .card-type::after {
+  content: '»';
+}
+
+.object-card.is-code .card-body {
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 0;
+}
+
+.object-card.is-code .card-name-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 3px 12px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.object-card.is-code .card-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Room for the lean of the last slanted letter, which the clamp would cut. */
+.object-card.is-code .card-name.italic {
+  padding-inline: 2px;
+}
+
+.object-card.is-code .card-name-row > input {
+  min-width: 0;
+  flex: 1;
+}
+
+/* As high as the badge; a wide logo (Go's is a word) keeps its width so it can be read. */
+.object-card.is-code .card-icon {
+  width: auto;
+  max-width: 44px;
+  height: 18px;
+}
+
+.code-badge {
+  display: grid;
+  width: 18px;
+  height: 18px;
+  flex: none;
+  place-items: center;
+  border: 1px solid color-mix(in oklch, var(--kind) 55%, transparent);
+  border-radius: 9999px;
+  background: color-mix(in oklch, var(--kind) 14%, transparent);
+  color: var(--card-foreground);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+/* Its members: fixed-width, from the left, and a rule (--- in the text) is the line between its
+   fields and its methods, from border to border. */
+.card-text.is-code {
+  padding: 6px 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10.5px;
+  text-align: left;
+}
+
+.card-text.is-code hr {
+  margin-inline: -12px;
+  border-color: var(--border);
+}

@@ -1,0 +1,766 @@
+{
+ "repository": "https://github.com/cloudflare/cloudflare-docs",
+ "path": "src/icons",
+ "commit": "92950fe0c6e9bf0e8ac6838484f1a165085ff0f0",
+ "licence": "CC-BY-4.0",
+ "credit": "(c) Cloudflare, Inc. and contributors",
+ "leftOut": {
+  "cf": "Cloudflare's own logo: a logo, not a product's drawing; theSVG has it",
+  "devin": "Another owner's mark (Cognition)",
+  "google-tag-gateway": "Carries another owner's mark (Google)",
+  "pulumi": "Another owner's mark (Pulumi)",
+  "terraform": "Another owner's mark (HashiCorp)"
+ },
+ "icons": [
+  {
+   "name": "cf-1-1-1-1",
+   "title": "Cloudflare 1.1.1.1",
+   "file": "1.1.1.1.svg",
+   "blob": "a8ba8d3e96dc7bff88217c9db2b9ce3276d58294"
+  },
+  {
+   "name": "cf-access",
+   "title": "Cloudflare Access",
+   "file": "access.svg",
+   "blob": "16609099719d71d3d64c1c3b6e4c6ffe997d4aa0"
+  },
+  {
+   "name": "cf-aegis",
+   "title": "Cloudflare Aegis",
+   "file": "aegis.svg",
+   "blob": "936d9c37a92d43780ec2e8f219c00ded138cf7fe"
+  },
+  {
+   "name": "cf-agent-lee",
+   "title": "Cloudflare Agent Lee",
+   "file": "agent-lee.svg",
+   "blob": "9cb48ec8928630caacc415ea87f7e9acbbdd3129"
+  },
+  {
+   "name": "cf-agent-memory",
+   "title": "Cloudflare Agent Memory",
+   "file": "agent-memory.svg",
+   "blob": "a27d847ac912cf21732a3bcc8fe1fc2f511b4262"
+  },
+  {
+   "name": "cf-agents",
+   "title": "Cloudflare Agents",
+   "file": "agents.svg",
+   "blob": "1427cd594016afd9b4f6c8c1f55dd568db297006"
+  },
+  {
+   "name": "cf-ai-crawl-control",
+   "title": "Cloudflare AI Crawl Control",
+   "file": "ai-crawl-control.svg",
+   "blob": "9a9e9af3e00a270623b53e8e90ac5418c2d7e254"
+  },
+  {
+   "name": "cf-ai-gateway",
+   "title": "Cloudflare AI Gateway",
+   "file": "ai-gateway.svg",
+   "blob": "1427cd594016afd9b4f6c8c1f55dd568db297006"
+  },
+  {
+   "name": "cf-ai-search",
+   "title": "Cloudflare AI Search",
+   "file": "ai-search.svg",
+   "blob": "6bde54acc1fffd4a456641904173431868da7fac"
+  },
+  {
+   "name": "cf-ai",
+   "title": "Cloudflare AI",
+   "file": "ai.svg",
+   "blob": "fb5b462d62db304162cad8d05f9b2745e0a52597"
+  },
+  {
+   "name": "cf-analytics",
+   "title": "Cloudflare Analytics",
+   "file": "analytics.svg",
+   "blob": "124fe9243ca5471cc7e6343c96c4d21aea96957a"
+  },
+  {
+   "name": "cf-api-shield",
+   "title": "Cloudflare API Shield",
+   "file": "api-shield.svg",
+   "blob": "628803b13342556de51bf652b32d65aa405d3ba4"
+  },
+  {
+   "name": "cf-api",
+   "title": "Cloudflare API",
+   "file": "api.svg",
+   "blob": "7795edbaa15e1dca1972bc45e927f947bdf68e3b"
+  },
+  {
+   "name": "cf-argo-smart-routing",
+   "title": "Cloudflare Argo Smart Routing",
+   "file": "argo-smart-routing.svg",
+   "blob": "7ba607e366ee6965d4c574191b3f5a29f1ca77f8"
+  },
+  {
+   "name": "cf-artifacts",
+   "title": "Cloudflare Artifacts",
+   "file": "artifacts.svg",
+   "blob": "85c98390200f2b9a99bacd6e346d48043a92a110"
+  },
+  {
+   "name": "cf-automatic-platform-optimization",
+   "title": "Cloudflare Automatic Platform Optimization",
+   "file": "automatic-platform-optimization.svg",
+   "blob": "fad42ff7bce87dcd10e16b4aa92d2bfeae0d77d6"
+  },
+  {
+   "name": "cf-billing",
+   "title": "Cloudflare Billing",
+   "file": "billing.svg",
+   "blob": "05a3d4d2f2cad0b0cef9417490e42b549735a6a8"
+  },
+  {
+   "name": "cf-bots",
+   "title": "Cloudflare Bots",
+   "file": "bots.svg",
+   "blob": "685bfb5afb6d6f527d55d98f775748297175bd2c"
+  },
+  {
+   "name": "cf-browser-isolation",
+   "title": "Cloudflare Browser Isolation",
+   "file": "browser-isolation.svg",
+   "blob": "d2b7425c8872f8221f8d309d8d517bf7dac51acd"
+  },
+  {
+   "name": "cf-browser-run",
+   "title": "Cloudflare Browser Run",
+   "file": "browser-run.svg",
+   "blob": "b6363edff7a4665ce0923f0d9c990ed8ee74441f"
+  },
+  {
+   "name": "cf-byoip",
+   "title": "Cloudflare BYOIP",
+   "file": "byoip.svg",
+   "blob": "bc7b0fd33cf87b822918c500b4cacc2a7b5e39d9"
+  },
+  {
+   "name": "cf-cache",
+   "title": "Cloudflare Cache",
+   "file": "cache.svg",
+   "blob": "f7d132a612add49c697b77c8b3f4798b3153fe34"
+  },
+  {
+   "name": "cf-casb",
+   "title": "Cloudflare CASB",
+   "file": "casb.svg",
+   "blob": "2834bb5c93cddd868e2b222ca4978ca9c67eafa2"
+  },
+  {
+   "name": "cf-china-network",
+   "title": "Cloudflare China Network",
+   "file": "china-network.svg",
+   "blob": "39d07644083740dff75f84ce33ddbd48a4ff19dd"
+  },
+  {
+   "name": "cf-client-ip-geolocation",
+   "title": "Cloudflare Client Ip Geolocation",
+   "file": "client-ip-geolocation.svg",
+   "blob": "282c974e7727285b4ae0927fc131ff45015eead7"
+  },
+  {
+   "name": "cf-client-side-security",
+   "title": "Cloudflare Client Side Security",
+   "file": "client-side-security.svg",
+   "blob": "c2e52f58b05938717d5a7ab6828c713e88b8e674"
+  },
+  {
+   "name": "cf-cloud-workload-security",
+   "title": "Cloudflare Cloud Workload Security",
+   "file": "cloud-workload-security.svg",
+   "blob": "22e8f31abe84fef8e96a5f4500e117ad725368b5"
+  },
+  {
+   "name": "cf-cloudflare-challenges",
+   "title": "Cloudflare Challenges",
+   "file": "cloudflare-challenges.svg",
+   "blob": "7c2a20b63151a8da5fe8ac90761aed92515792a9"
+  },
+  {
+   "name": "cf-cloudflare-for-platforms",
+   "title": "Cloudflare for Platforms",
+   "file": "cloudflare-for-platforms.svg",
+   "blob": "26d9daafa2848f6454700b013a9bc65293863748"
+  },
+  {
+   "name": "cf-cloudflare-mesh",
+   "title": "Cloudflare Mesh",
+   "file": "cloudflare-mesh.svg",
+   "blob": "8d3b5be29b2bae615192a88b1afe0218dd584850"
+  },
+  {
+   "name": "cf-cloudflare-network-firewall",
+   "title": "Cloudflare Network Firewall",
+   "file": "cloudflare-network-firewall.svg",
+   "blob": "4fbe1193a4387e0ebfb969e814c3d5a06955a3ec"
+  },
+  {
+   "name": "cf-cloudflare-one",
+   "title": "Cloudflare One",
+   "file": "cloudflare-one.svg",
+   "blob": "a16bdd9887d2659fa4f8118864ce4d41e1ea49a3"
+  },
+  {
+   "name": "cf-cloudflare-tunnel-sase",
+   "title": "Cloudflare Tunnel SASE",
+   "file": "cloudflare-tunnel-sase.svg",
+   "blob": "a16bdd9887d2659fa4f8118864ce4d41e1ea49a3"
+  },
+  {
+   "name": "cf-cloudflare-wan",
+   "title": "Cloudflare WAN",
+   "file": "cloudflare-wan.svg",
+   "blob": "2480dc8bfebbd1cc61ac624420679a3aea58f4e7"
+  },
+  {
+   "name": "cf-constellation",
+   "title": "Cloudflare Constellation",
+   "file": "constellation.svg",
+   "blob": "a27d847ac912cf21732a3bcc8fe1fc2f511b4262"
+  },
+  {
+   "name": "cf-containers",
+   "title": "Cloudflare Containers",
+   "file": "containers.svg",
+   "blob": "cf8f7779bc25819648332fe3fa99de5baef94b19"
+  },
+  {
+   "name": "cf-d1",
+   "title": "Cloudflare D1",
+   "file": "d1.svg",
+   "blob": "feb3202c376619bc29ee665fa668609f98431799"
+  },
+  {
+   "name": "cf-data-localization",
+   "title": "Cloudflare Data Localization",
+   "file": "data-localization.svg",
+   "blob": "30d58a01c1ed2526847026025c5af254e4fdc5b9"
+  },
+  {
+   "name": "cf-data-loss-prevention",
+   "title": "Cloudflare Data Loss Prevention",
+   "file": "data-loss-prevention.svg",
+   "blob": "b0c48036e152de6e77d058f541842e4260e5c411"
+  },
+  {
+   "name": "cf-ddos-protection",
+   "title": "Cloudflare DDoS Protection",
+   "file": "ddos-protection.svg",
+   "blob": "89f1c96b59391c8e813a349ed275982837b0059b"
+  },
+  {
+   "name": "cf-dex",
+   "title": "Cloudflare DEX",
+   "file": "dex.svg",
+   "blob": "37857993ddc70eaaf6b3da813d03666a20c9b8d6"
+  },
+  {
+   "name": "cf-dmarc-management",
+   "title": "Cloudflare DMARC Management",
+   "file": "dmarc-management.svg",
+   "blob": "ed3101693bda242e7bef7f0584f7331aba37cd08"
+  },
+  {
+   "name": "cf-dns",
+   "title": "Cloudflare DNS",
+   "file": "dns.svg",
+   "blob": "bdf2cb53ef5a9045d3eabe140f923a84a8e5f0a7"
+  },
+  {
+   "name": "cf-docs-for-agents",
+   "title": "Cloudflare Docs for Agents",
+   "file": "docs-for-agents.svg",
+   "blob": "d44cc033cd380490adfa4a720b25f1bd685f3828"
+  },
+  {
+   "name": "cf-docs-guide",
+   "title": "Cloudflare Docs Guide",
+   "file": "docs-guide.svg",
+   "blob": "382183224a2475230d2deaf734060b8a6b95ff0d"
+  },
+  {
+   "name": "cf-durable-objects",
+   "title": "Cloudflare Durable Objects",
+   "file": "durable-objects.svg",
+   "blob": "c41058248985221188377cbd0c39fcb4d2cdf38b"
+  },
+  {
+   "name": "cf-dynamic-workers",
+   "title": "Cloudflare Dynamic Workers",
+   "file": "dynamic-workers.svg",
+   "blob": "49d7a0cb34271641d32d01598244aebac35f2fc6"
+  },
+  {
+   "name": "cf-email-routing",
+   "title": "Cloudflare Email Routing",
+   "file": "email-routing.svg",
+   "blob": "6a71a92f46eebcddde5a86a542a196628514e739"
+  },
+  {
+   "name": "cf-email-security",
+   "title": "Cloudflare Email Security",
+   "file": "email-security.svg",
+   "blob": "b4a41a3e9d988cb5ed395757fc1fdcb348e3c6a0"
+  },
+  {
+   "name": "cf-email-service",
+   "title": "Cloudflare Email Service",
+   "file": "email-service.svg",
+   "blob": "6a71a92f46eebcddde5a86a542a196628514e739"
+  },
+  {
+   "name": "cf-firewall",
+   "title": "Cloudflare Firewall",
+   "file": "firewall.svg",
+   "blob": "9f93f58fe3aa79a154e04b6f3b55c00580e9f0f8"
+  },
+  {
+   "name": "cf-flagship",
+   "title": "Cloudflare Flagship",
+   "file": "flagship.svg",
+   "blob": "5d97b44b2864ba55a420f6bb98c22d80937ae45f"
+  },
+  {
+   "name": "cf-fundamentals",
+   "title": "Cloudflare Fundamentals",
+   "file": "fundamentals.svg",
+   "blob": "aaeaba290bc02662c4d61f918607380e32637cc8"
+  },
+  {
+   "name": "cf-gateway",
+   "title": "Cloudflare Gateway",
+   "file": "gateway.svg",
+   "blob": "9ed3d4061c2fd4ec8909f6d372957162f4dfed6b"
+  },
+  {
+   "name": "cf-health-checks",
+   "title": "Cloudflare Health Checks",
+   "file": "health-checks.svg",
+   "blob": "8a6bbff3736e79d5b9e496ac529676abec8020fe"
+  },
+  {
+   "name": "cf-hyperdrive",
+   "title": "Cloudflare Hyperdrive",
+   "file": "hyperdrive.svg",
+   "blob": "d47a059b8a6c89e952a30c91a1793f97080b67f2"
+  },
+  {
+   "name": "cf-images",
+   "title": "Cloudflare Images",
+   "file": "images.svg",
+   "blob": "4c24b14f6cdb494d9673c0c1fa46ce1f298eb302"
+  },
+  {
+   "name": "cf-key-transparency",
+   "title": "Cloudflare Key Transparency",
+   "file": "key-transparency.svg",
+   "blob": "2ad799c3016d64a5f7f59bc3350c8816ac173d7c"
+  },
+  {
+   "name": "cf-kv",
+   "title": "Cloudflare KV",
+   "file": "kv.svg",
+   "blob": "df28e6e6729607386f6ff8dbd34c87f55373aafb"
+  },
+  {
+   "name": "cf-learning-paths",
+   "title": "Cloudflare Learning Paths",
+   "file": "learning-paths.svg",
+   "blob": "b2f019025339969eaa65b4e8e817709189a0078f"
+  },
+  {
+   "name": "cf-load-balancing",
+   "title": "Cloudflare Load Balancing",
+   "file": "load-balancing.svg",
+   "blob": "9da9db65099d1af02e92948ae60f3a3b7beb4b04"
+  },
+  {
+   "name": "cf-log-explorer",
+   "title": "Cloudflare Log Explorer",
+   "file": "log-explorer.svg",
+   "blob": "f70dcde0505ede3aab085f5f4565e46947cd2ec5"
+  },
+  {
+   "name": "cf-logs",
+   "title": "Cloudflare Logs",
+   "file": "logs.svg",
+   "blob": "6333468ded2a158e384a88c3f401aee9d13dff23"
+  },
+  {
+   "name": "cf-magic-transit",
+   "title": "Cloudflare Magic Transit",
+   "file": "magic-transit.svg",
+   "blob": "d877adf3fa090a4cf5bc5896be69a569c50467e1"
+  },
+  {
+   "name": "cf-migration-guides",
+   "title": "Cloudflare Migration Guides",
+   "file": "migration-guides.svg",
+   "blob": "343aebe9688799bcb001127f32445e87b5b2f6b0"
+  },
+  {
+   "name": "cf-monetization-gateway",
+   "title": "Cloudflare Monetization Gateway",
+   "file": "monetization-gateway.svg",
+   "blob": "7aa587484dd6b8a64436d565787cbd05856a2bc5"
+  },
+  {
+   "name": "cf-moq",
+   "title": "Cloudflare MoQ",
+   "file": "moq.svg",
+   "blob": "bf3b476c3a2b6eb8022daa1600f7d182eba0df90"
+  },
+  {
+   "name": "cf-multi-cloud-networking",
+   "title": "Cloudflare Multi Cloud Networking",
+   "file": "multi-cloud-networking.svg",
+   "blob": "6ca491091d902c195cd5c972f7608ae985116384"
+  },
+  {
+   "name": "cf-network-error-logging",
+   "title": "Cloudflare Network Error Logging",
+   "file": "network-error-logging.svg",
+   "blob": "ac3369ec2591a7d474ac9d710ec04a455cb72ffa"
+  },
+  {
+   "name": "cf-network-flow",
+   "title": "Cloudflare Network Flow",
+   "file": "network-flow.svg",
+   "blob": "310eab0deca753c11be121c90d1e2b88f0637592"
+  },
+  {
+   "name": "cf-network-interconnect",
+   "title": "Cloudflare Network Interconnect",
+   "file": "network-interconnect.svg",
+   "blob": "40de83e504d5dbe7561bcb4ad5d3a8b62873e51e"
+  },
+  {
+   "name": "cf-network",
+   "title": "Cloudflare Network",
+   "file": "network.svg",
+   "blob": "39d07644083740dff75f84ce33ddbd48a4ff19dd"
+  },
+  {
+   "name": "cf-notifications",
+   "title": "Cloudflare Notifications",
+   "file": "notifications.svg",
+   "blob": "c4dcb41c69848b0cc80368b6f7aff11329012eee"
+  },
+  {
+   "name": "cf-pages",
+   "title": "Cloudflare Pages",
+   "file": "pages.svg",
+   "blob": "867a8d7792ff683fa2ad27dfd5fd5f2dfe771ea6"
+  },
+  {
+   "name": "cf-pipelines",
+   "title": "Cloudflare Pipelines",
+   "file": "pipelines.svg",
+   "blob": "04e02306c4f224a2f05191fa4aeb2298de3d4cbc"
+  },
+  {
+   "name": "cf-privacy-gateway",
+   "title": "Cloudflare Privacy Gateway",
+   "file": "privacy-gateway.svg",
+   "blob": "e3066f743467303e906a2037867c91f4ac35424e"
+  },
+  {
+   "name": "cf-privacy-pass",
+   "title": "Cloudflare Privacy Pass",
+   "file": "privacy-pass.svg",
+   "blob": "e3066f743467303e906a2037867c91f4ac35424e"
+  },
+  {
+   "name": "cf-privacy-proxy",
+   "title": "Cloudflare Privacy Proxy",
+   "file": "privacy-proxy.svg",
+   "blob": "e3066f743467303e906a2037867c91f4ac35424e"
+  },
+  {
+   "name": "cf-pub-sub",
+   "title": "Cloudflare Pub Sub",
+   "file": "pub-sub.svg",
+   "blob": "8c34d65fecb4055a897656f40c633d1163fc8964"
+  },
+  {
+   "name": "cf-queues",
+   "title": "Cloudflare Queues",
+   "file": "queues.svg",
+   "blob": "165ff6c00e6917d9ee028f78c75ec0852cf81a4c"
+  },
+  {
+   "name": "cf-r2-data-catalog",
+   "title": "Cloudflare R2 Data Catalog",
+   "file": "r2-data-catalog.svg",
+   "blob": "3d391a2de4036ae758d7c74d2582aea4972a8726"
+  },
+  {
+   "name": "cf-r2-sql",
+   "title": "Cloudflare R2 SQL",
+   "file": "r2-sql.svg",
+   "blob": "dc8f13c8a516955cec2405fa41cfa0751cb9e4eb"
+  },
+  {
+   "name": "cf-r2",
+   "title": "Cloudflare R2",
+   "file": "r2.svg",
+   "blob": "3d391a2de4036ae758d7c74d2582aea4972a8726"
+  },
+  {
+   "name": "cf-radar",
+   "title": "Cloudflare Radar",
+   "file": "radar.svg",
+   "blob": "99e00f5febe850bae278305685b191516485a626"
+  },
+  {
+   "name": "cf-randomness-beacon",
+   "title": "Cloudflare Randomness Beacon",
+   "file": "randomness-beacon.svg",
+   "blob": "bf3b476c3a2b6eb8022daa1600f7d182eba0df90"
+  },
+  {
+   "name": "cf-realtime-kit",
+   "title": "Cloudflare Realtime Kit",
+   "file": "realtime-kit.svg",
+   "blob": "8105e95727e1e7fa3c16e95f52e04c346aa5eb5e"
+  },
+  {
+   "name": "cf-realtime-sfu",
+   "title": "Cloudflare Realtime SFU",
+   "file": "realtime-sfu.svg",
+   "blob": "8105e95727e1e7fa3c16e95f52e04c346aa5eb5e"
+  },
+  {
+   "name": "cf-realtime-turn",
+   "title": "Cloudflare Realtime TURN",
+   "file": "realtime-turn.svg",
+   "blob": "8105e95727e1e7fa3c16e95f52e04c346aa5eb5e"
+  },
+  {
+   "name": "cf-realtime",
+   "title": "Cloudflare Realtime",
+   "file": "realtime.svg",
+   "blob": "8105e95727e1e7fa3c16e95f52e04c346aa5eb5e"
+  },
+  {
+   "name": "cf-reference-architecture",
+   "title": "Cloudflare Reference Architecture",
+   "file": "reference-architecture.svg",
+   "blob": "c67458a4ce484b7181bc96ba585f4a4ea2003884"
+  },
+  {
+   "name": "cf-registrar",
+   "title": "Cloudflare Registrar",
+   "file": "registrar.svg",
+   "blob": "4390a8cd10b09c7ea617b6cf93796d7bacfeb3b4"
+  },
+  {
+   "name": "cf-release-notes",
+   "title": "Cloudflare Release Notes",
+   "file": "release-notes.svg",
+   "blob": "8bd10c77fe52bcfce566ec2111c66592626fcca2"
+  },
+  {
+   "name": "cf-resource-tagging",
+   "title": "Cloudflare Resource Tagging",
+   "file": "resource-tagging.svg",
+   "blob": "5f766ec775c3523033a2e758cf5da53c286c3d95"
+  },
+  {
+   "name": "cf-rules",
+   "title": "Cloudflare Rules",
+   "file": "rules.svg",
+   "blob": "5b0c1827adf1afc42fba5c753168586560e46bc6"
+  },
+  {
+   "name": "cf-ruleset-engine",
+   "title": "Cloudflare Ruleset Engine",
+   "file": "ruleset-engine.svg",
+   "blob": "91b2383ec8a1e96b6b905a62e77645953aff024a"
+  },
+  {
+   "name": "cf-sandbox",
+   "title": "Cloudflare Sandbox",
+   "file": "sandbox.svg",
+   "blob": "cf8f7779bc25819648332fe3fa99de5baef94b19"
+  },
+  {
+   "name": "cf-secrets-store",
+   "title": "Cloudflare Secrets Store",
+   "file": "secrets-store.svg",
+   "blob": "89314e5a3a3e512e656fccb3c380cb371a31aa3e"
+  },
+  {
+   "name": "cf-security-center",
+   "title": "Cloudflare Security Center",
+   "file": "security-center.svg",
+   "blob": "4e06899c52699de3ad838798ec24edae0257c01b"
+  },
+  {
+   "name": "cf-security",
+   "title": "Cloudflare Security",
+   "file": "security.svg",
+   "blob": "d08d767fd91387446a847a1e10d37e37a9643cb1"
+  },
+  {
+   "name": "cf-smart-shield",
+   "title": "Cloudflare Smart Shield",
+   "file": "smart-shield.svg",
+   "blob": "b42f03555a37c80b22d9d945832362ff6b77eca3"
+  },
+  {
+   "name": "cf-spectrum",
+   "title": "Cloudflare Spectrum",
+   "file": "spectrum.svg",
+   "blob": "d16419c48b153525ce407418efec79388763bc1f"
+  },
+  {
+   "name": "cf-speed",
+   "title": "Cloudflare Speed",
+   "file": "speed.svg",
+   "blob": "e19c6b594b8578a806699ea83ef7eefeb51c9eb4"
+  },
+  {
+   "name": "cf-ssl",
+   "title": "Cloudflare SSL",
+   "file": "ssl.svg",
+   "blob": "1ed2890f4b3b0c58af85995244115938f2dc8407"
+  },
+  {
+   "name": "cf-stream",
+   "title": "Cloudflare Stream",
+   "file": "stream.svg",
+   "blob": "61607efbacc7390965c82529b699d2fc5773f580"
+  },
+  {
+   "name": "cf-style-guide",
+   "title": "Cloudflare Style Guide",
+   "file": "style-guide.svg",
+   "blob": "382183224a2475230d2deaf734060b8a6b95ff0d"
+  },
+  {
+   "name": "cf-support",
+   "title": "Cloudflare Support",
+   "file": "support.svg",
+   "blob": "8be9e62b4324b72efbbf6b8b1958d9b69eca5271"
+  },
+  {
+   "name": "cf-tenant",
+   "title": "Cloudflare Tenant",
+   "file": "tenant.svg",
+   "blob": "9a7daeceecbdf9da137d48bde8bf918b4db89876"
+  },
+  {
+   "name": "cf-time-services",
+   "title": "Cloudflare Time Services",
+   "file": "time-services.svg",
+   "blob": "3bb57ea9394ed55e5f041e8595c8b97c76b0c60e"
+  },
+  {
+   "name": "cf-tunnel",
+   "title": "Cloudflare Tunnel",
+   "file": "tunnel.svg",
+   "blob": "6e4e6479c7cf24a4166a83cba5727932c1895cb2"
+  },
+  {
+   "name": "cf-turnstile",
+   "title": "Cloudflare Turnstile",
+   "file": "turnstile.svg",
+   "blob": "116f8425fc5f28f38dc202869d0e4cf13121ef68"
+  },
+  {
+   "name": "cf-use-cases",
+   "title": "Cloudflare Use Cases",
+   "file": "use-cases.svg",
+   "blob": "bee11a585b4ddb484dc0e5f8654e82d2de009560"
+  },
+  {
+   "name": "cf-vectorize",
+   "title": "Cloudflare Vectorize",
+   "file": "vectorize.svg",
+   "blob": "1bb9f300fb7647c2e667a8f5b2e32f4ea78b1e91"
+  },
+  {
+   "name": "cf-version-management",
+   "title": "Cloudflare Version Management",
+   "file": "version-management.svg",
+   "blob": "36f1a2f285c61468ae1ff2dfaeaae3e1e141fb6d"
+  },
+  {
+   "name": "cf-waf",
+   "title": "Cloudflare WAF",
+   "file": "waf.svg",
+   "blob": "2b1f20d7ba7d5aeba81b9216cbfd4e28c4dc4042"
+  },
+  {
+   "name": "cf-waiting-room",
+   "title": "Cloudflare Waiting Room",
+   "file": "waiting-room.svg",
+   "blob": "b52667a0fbe1445a99b9f09d5c74772f0814e029"
+  },
+  {
+   "name": "cf-warp-client",
+   "title": "Cloudflare WARP Client",
+   "file": "warp-client.svg",
+   "blob": "41be3efc1c6cd1b5d31fd8aecd01d366611d66ec"
+  },
+  {
+   "name": "cf-web-analytics",
+   "title": "Cloudflare Web Analytics",
+   "file": "web-analytics.svg",
+   "blob": "c1b78b20f3c3596f47cf91f5b15c8179c9e3e6c8"
+  },
+  {
+   "name": "cf-web-search",
+   "title": "Cloudflare Web Search",
+   "file": "web-search.svg",
+   "blob": "d4bf538ce26cad9ebacdec282b3c967475aa1572"
+  },
+  {
+   "name": "cf-web3",
+   "title": "Cloudflare Web3",
+   "file": "web3.svg",
+   "blob": "2115d4487f556628605e8cebed3cf52f8f973553"
+  },
+  {
+   "name": "cf-workers-ai",
+   "title": "Cloudflare Workers AI",
+   "file": "workers-ai.svg",
+   "blob": "fb5b462d62db304162cad8d05f9b2745e0a52597"
+  },
+  {
+   "name": "cf-workers-vpc",
+   "title": "Cloudflare Workers VPC",
+   "file": "workers-vpc.svg",
+   "blob": "8bd10c77fe52bcfce566ec2111c66592626fcca2"
+  },
+  {
+   "name": "cf-workers",
+   "title": "Cloudflare Workers",
+   "file": "workers.svg",
+   "blob": "8bd10c77fe52bcfce566ec2111c66592626fcca2"
+  },
+  {
+   "name": "cf-workflows",
+   "title": "Cloudflare Workflows",
+   "file": "workflows.svg",
+   "blob": "8bd10c77fe52bcfce566ec2111c66592626fcca2"
+  },
+  {
+   "name": "cf-zaraz",
+   "title": "Cloudflare Zaraz",
+   "file": "zaraz.svg",
+   "blob": "ea77fb866acd0261945aefc886fc38f429f26570"
+  },
+  {
+   "name": "cf-zero-trust-networks",
+   "title": "Cloudflare Zero Trust Networks",
+   "file": "zero-trust-networks.svg",
+   "blob": "befc0313ec61f3b2f377fb9abbaabddb93aa6305"
+  }
+ ]
+}

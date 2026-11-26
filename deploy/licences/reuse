@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Checks the licence of every file of the repository with `reuse lint` (REUSE.toml), in the pinned
+# image of the tool. Needs Docker; bin/ci-check runs it. Run from anywhere.
+set -euo pipefail
+cd "$(dirname "$0")/../.."
+
+# The check is the build; the image it leaves is of no use afterwards.
+img="drillgram-reuse-$$-$RANDOM"
+trap 'docker rmi -f "$img" >/dev/null 2>&1 || true' EXIT
+
+if ! bin/docker-build --network none -f deploy/licences/reuse.Dockerfile -t "$img" .; then
+  echo "reuse: FAIL: a file does not say whose it is or under which licence (or the build did not run: see above). Say it in REUSE.toml; see docs/agents/licences.md." >&2
+  exit 1
+fi
+echo "reuse: OK"

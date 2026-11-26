@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# The full check, as CI runs it: no private address in a file (bin/public-check), then unit
+# tests, typecheck, the licence gate and the e2e journeys in the pinned Playwright image
+# (apps/web/e2e/Dockerfile), without network, then the licence of every file
+# (deploy/licences/reuse). Needs Docker; run from anywhere.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+# First, and at once: nothing in the files that the public repository must not say.
+bin/public-check
+
+img="drillgram-ci-$$-$RANDOM"
+trap 'docker rmi -f "$img" >/dev/null 2>&1 || true' EXIT
+
+bin/docker-build --network host -f apps/web/e2e/Dockerfile -t "$img" .
+docker run --rm --init --ipc=host --network none "$img" sh -ec 'pnpm test && pnpm typecheck && pnpm licences && pnpm test:e2e'
+deploy/licences/reuse

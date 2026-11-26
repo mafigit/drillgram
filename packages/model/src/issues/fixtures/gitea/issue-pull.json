@@ -1,0 +1,35 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://git.example.org/api/v1/repos/acme/app/issues/4"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "id": 104,
+        "number": 4,
+        "html_url": "https://git.example.org/acme/app/issues/4",
+        "title": "Fix the render bug",
+        "body": "Pull request for #1.",
+        "state": "open",
+        "labels": [
+          {
+            "id": 1,
+            "name": "bug",
+            "color": ""
+          }
+        ],
+        "assignees": null,
+        "milestone": null,
+        "comments": 0,
+        "created_at": "2026-01-01T00:00:00Z",
+        "updated_at": "2026-01-05T00:00:00Z",
+        "closed_at": null,
+        "pull_request": {
+          "merged": false
+        }
+      }
+    }
+  }
+]

@@ -1,0 +1,104 @@
+{
+  "status": 200,
+  "body": [
+    {
+      "number": 1,
+      "title": "Diagram does not render",
+      "body": "The canvas stays blank.",
+      "state": "open",
+      "state_reason": null,
+      "labels": [
+        {
+          "name": "bug",
+          "color": "d73a4a"
+        },
+        {
+          "name": "ui",
+          "color": ""
+        }
+      ],
+      "assignees": [
+        {
+          "login": "alice"
+        }
+      ],
+      "milestone": {
+        "title": "v1"
+      },
+      "html_url": "https://github.com/acme/app/issues/1",
+      "updated_at": "2026-01-02T03:04:05Z"
+    },
+    {
+      "number": 2,
+      "title": "Crash on export",
+      "body": "Fixed in the last release.",
+      "state": "closed",
+      "state_reason": "completed",
+      "labels": [
+        {
+          "name": "bug",
+          "color": "d73a4a"
+        }
+      ],
+      "assignees": [],
+      "milestone": null,
+      "html_url": "https://github.com/acme/app/issues/2",
+      "updated_at": "2026-01-03T00:00:00Z"
+    },
+    {
+      "number": 3,
+      "title": "Support dark mode",
+      "body": null,
+      "state": "open",
+      "state_reason": null,
+      "labels": [
+        {
+          "name": "enhancement",
+          "color": "a2eeef"
+        }
+      ],
+      "assignees": [],
+      "milestone": null,
+      "html_url": "https://github.com/acme/app/issues/3",
+      "updated_at": "2026-01-04T00:00:00Z"
+    },
+    {
+      "number": 4,
+      "title": "Fix the render bug",
+      "body": "Pull request for #1.",
+      "state": "open",
+      "state_reason": null,
+      "labels": [
+        {
+          "name": "bug",
+          "color": "d73a4a"
+        }
+      ],
+      "assignees": [],
+      "milestone": null,
+      "html_url": "https://github.com/acme/app/pull/4",
+      "updated_at": "2026-01-05T00:00:00Z",
+      "pull_request": {
+        "url": "https://api.github.com/repos/acme/app/pulls/4",
+        "html_url": "https://github.com/acme/app/pull/4"
+      }
+    },
+    {
+      "number": 5,
+      "title": "Undo loses connections",
+      "body": "Steps to reproduce follow.",
+      "state": "open",
+      "state_reason": null,
+      "labels": [
+        {
+          "name": "bug",
+          "color": "d73a4a"
+        }
+      ],
+      "assignees": [],
+      "milestone": null,
+      "html_url": "https://github.com/acme/app/issues/5",
+      "updated_at": "2026-01-06T00:00:00Z"
+    }
+  ]
+}

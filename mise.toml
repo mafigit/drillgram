@@ -1,0 +1,9 @@
+# Toolchain for local work and for agents: `mise install`, then `pnpm install`.
+# Node matches the Playwright image bin/ci-check runs in and stays within the engines range;
+# pnpm matches packageManager in package.json.
+[tools]
+node = "26.13.0"
+pnpm = "10.34.9"
+# The layout engine (packages/layout) is Rust, compiled to WebAssembly. The Docker image of the checks uses
+# the same version (apps/web/e2e/Dockerfile).
+rust = { version = "1.99.1", targets = "wasm32-unknown-unknown" }

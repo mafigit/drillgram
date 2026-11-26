@@ -1,0 +1,36 @@
+name: CI
+
+# All logic lives in bin/ci-check (no private address in a file, unit tests, typecheck, the licence
+# gate, the e2e journeys in the pinned Playwright image, the licence of every file), so the job
+# only checks out and calls it. It needs Docker.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A newer commit supersedes older PR validation; keep main pushes independent.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  ci-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: true # packages/layout is the engine's own repository
+      - run: bin/ci-check
+      # A runner that is not thrown away after the job keeps its Docker build cache, and nothing
+      # else takes it away: every build adds layers until the disk is full and no job can start.
+      # So what no build used for 6 hours goes after every check, and the log says what uses the
+      # disk. GitHub's own runners start fresh each time.
+      - name: Free the build cache nothing used for 6 hours
+        if: always() && github.server_url != 'https://github.com'
+        run: |
+          docker builder prune --all --force --filter until=6h | tail -n 1
+          docker system df

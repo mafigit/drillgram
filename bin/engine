@@ -1,0 +1,9 @@
+#!/bin/sh
+# The layout engine (packages/layout, tidy-layout): `bin/engine build` compiles it to WebAssembly
+# into packages/layout/pkg/, `bin/engine test` runs its Rust tests and then builds it. The work
+# is done by the engine's own script; in the Docker images an earlier stage has done both, and
+# TIDY_LAYOUT_PREBUILT=1 says so.
+set -eu
+build="$(dirname "$0")/../packages/layout/bin/build"
+[ -x "$build" ] || { echo "bin/engine: packages/layout is empty; run 'git submodule update --init'" >&2; exit 1; }
+exec "$build" "$@"

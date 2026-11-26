@@ -1,0 +1,182 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://gitlab.com/api/v4/projects/acme%2Fapp/issues?labels=bug"
+    },
+    "response": {
+      "status": 200,
+      "body": [
+        {
+          "id": 5001,
+          "iid": 1,
+          "project_id": 42,
+          "title": "Diagram does not render",
+          "description": "The canvas stays blank.",
+          "state": "opened",
+          "created_at": "2026-01-01T00:00:00.000Z",
+          "updated_at": "2026-01-02T03:04:05.000Z",
+          "closed_at": null,
+          "closed_by": null,
+          "labels": [
+            "bug",
+            "ui"
+          ],
+          "milestone": {
+            "id": 1,
+            "iid": 1,
+            "project_id": 42,
+            "title": "v1",
+            "state": "active"
+          },
+          "assignees": [
+            {
+              "id": 10,
+              "username": "alice",
+              "name": "Alice",
+              "state": "active",
+              "web_url": "https://gitlab.com/alice"
+            }
+          ],
+          "assignee": {
+            "id": 10,
+            "username": "alice",
+            "name": "Alice",
+            "state": "active",
+            "web_url": "https://gitlab.com/alice"
+          },
+          "author": {
+            "id": 11,
+            "username": "bob",
+            "name": "Bob",
+            "state": "active"
+          },
+          "type": "ISSUE",
+          "user_notes_count": 0,
+          "confidential": false,
+          "web_url": "https://gitlab.com/acme/app/-/issues/1"
+        },
+        {
+          "id": 5002,
+          "iid": 2,
+          "project_id": 42,
+          "title": "Crash on export",
+          "description": "Fixed in the last release.",
+          "state": "closed",
+          "created_at": "2026-01-01T00:00:00.000Z",
+          "updated_at": "2026-01-03T00:00:00.000Z",
+          "closed_at": "2026-01-03T00:00:00.000Z",
+          "closed_by": {
+            "id": 11,
+            "username": "bob",
+            "name": "Bob"
+          },
+          "labels": [
+            "bug"
+          ],
+          "milestone": null,
+          "assignees": [],
+          "assignee": null,
+          "author": {
+            "id": 11,
+            "username": "bob",
+            "name": "Bob",
+            "state": "active"
+          },
+          "type": "ISSUE",
+          "user_notes_count": 0,
+          "confidential": false,
+          "web_url": "https://gitlab.com/acme/app/-/issues/2"
+        },
+        {
+          "id": 5005,
+          "iid": 5,
+          "project_id": 42,
+          "title": "Undo loses connections",
+          "description": "Steps to reproduce follow.",
+          "state": "opened",
+          "created_at": "2026-01-01T00:00:00.000Z",
+          "updated_at": "2026-01-06T00:00:00.000Z",
+          "closed_at": null,
+          "closed_by": null,
+          "labels": [
+            "bug"
+          ],
+          "milestone": null,
+          "assignees": [],
+          "assignee": null,
+          "author": {
+            "id": 11,
+            "username": "bob",
+            "name": "Bob",
+            "state": "active"
+          },
+          "type": "ISSUE",
+          "user_notes_count": 0,
+          "confidential": false,
+          "web_url": "https://gitlab.com/acme/app/-/issues/5"
+        }
+      ]
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://gitlab.com/api/v4/projects/acme%2Fapp/issues?state=opened&labels=bug%2Cui"
+    },
+    "response": {
+      "status": 200,
+      "body": [
+        {
+          "id": 5001,
+          "iid": 1,
+          "project_id": 42,
+          "title": "Diagram does not render",
+          "description": "The canvas stays blank.",
+          "state": "opened",
+          "created_at": "2026-01-01T00:00:00.000Z",
+          "updated_at": "2026-01-02T03:04:05.000Z",
+          "closed_at": null,
+          "closed_by": null,
+          "labels": [
+            "bug",
+            "ui"
+          ],
+          "milestone": {
+            "id": 1,
+            "iid": 1,
+            "project_id": 42,
+            "title": "v1",
+            "state": "active"
+          },
+          "assignees": [
+            {
+              "id": 10,
+              "username": "alice",
+              "name": "Alice",
+              "state": "active",
+              "web_url": "https://gitlab.com/alice"
+            }
+          ],
+          "assignee": {
+            "id": 10,
+            "username": "alice",
+            "name": "Alice",
+            "state": "active",
+            "web_url": "https://gitlab.com/alice"
+          },
+          "author": {
+            "id": 11,
+            "username": "bob",
+            "name": "Bob",
+            "state": "active"
+          },
+          "type": "ISSUE",
+          "user_notes_count": 0,
+          "confidential": false,
+          "web_url": "https://gitlab.com/acme/app/-/issues/1"
+        }
+      ]
+    }
+  }
+]

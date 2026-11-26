@@ -1,0 +1,36 @@
+{
+  "about": "The licences a package the app is built with may be under (SPDX ids), and the packages let through under another, each with the reason. Checked by `pnpm licences` (deploy/licences), in bin/ci-check. See docs/agents/licences.md.",
+  "licences": ["MIT", "MIT-0", "ISC", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause", "0BSD", "BlueOak-1.0.0", "CC0-1.0", "Unlicense", "Unicode-3.0", "PSF-2.0"],
+  "exceptions": [
+    {
+      "package": "tidy-layout",
+      "licence": "MPL-2.0",
+      "why": "The layout engine itself (packages/layout). Ships as WebAssembly; MPL asks for its source, which is public in its own repository."
+    },
+    {
+      "package": "@fontsource-variable/geist",
+      "licence": "OFL-1.1",
+      "why": "The app's font. Ships in every build; the Open Font License allows that with its notice, which NOTICE carries."
+    },
+    {
+      "package": "lightningcss*",
+      "licence": "MPL-2.0",
+      "why": "The CSS compiler of Vite and Tailwind. Runs while building; none of it is in the app."
+    },
+    {
+      "package": "ico-endec",
+      "licence": "MPL-2.0",
+      "why": "Writes the favicon while building (@vite-pwa/assets-generator); none of it is in the app."
+    },
+    {
+      "package": "@img/sharp-libvips-*",
+      "licence": "LGPL-3.0-or-later",
+      "why": "The image library behind sharp, which draws the app's icons while building (@vite-pwa/assets-generator); none of it is in the app."
+    },
+    {
+      "package": "caniuse-lite",
+      "licence": "CC-BY-4.0",
+      "why": "Browser data that build tools read (browserslist); none of it is in the app."
+    }
+  ]
+}

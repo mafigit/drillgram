@@ -1,0 +1,43 @@
+# Who holds the copyright of each file and under which licence it is, for `reuse lint`
+# (https://reuse.software), which bin/ci-check runs: every file of the repository must be covered
+# here or say it in its own header, and every licence named must have its text in LICENSES/.
+# A later table wins over an earlier one for the same file. NOTICE says the same in words;
+# docs/agents/licences.md says how the checks work.
+version = 1
+
+# Ours, unless a table below says otherwise: the places files of ours stand in. No `**` on
+# purpose: a new folder at the top or beside the app's sources (a new set of icons, say) is in
+# none of these, so the lint fails until somebody says here whose its files are.
+[[annotations]]
+path = [
+  "*",
+  ".claude/**",
+  ".github/**",
+  "LICENSES/**",
+  "bin/**",
+  "context/**",
+  "deploy/**",
+  "docs/**",
+  "packages/model/**",
+  "apps/web/*",
+  "apps/web/.vscode/**",
+  "apps/web/e2e/**",
+  "apps/web/public/**",
+  "apps/web/scripts/**",
+  "apps/web/src/**",
+  "apps/web/tech-icons-cloudflare/SOURCE.json",
+]
+SPDX-FileCopyrightText = "2026 Maximilian Fischer"
+SPDX-License-Identifier = "Apache-2.0"
+
+# The components shadcn-vue generated into the repository, changed since: MIT as their source.
+[[annotations]]
+path = "apps/web/src/components/ui/**"
+SPDX-FileCopyrightText = ["2023 unovue (shadcn-vue, https://www.shadcn-vue.com)", "2026 Maximilian Fischer"]
+SPDX-License-Identifier = "MIT"
+
+# Cloudflare's product icons, unchanged (docs/icon-licences.md). SOURCE.json beside them is ours.
+[[annotations]]
+path = "apps/web/tech-icons-cloudflare/*.svg"
+SPDX-FileCopyrightText = "Cloudflare, Inc. and contributors (https://github.com/cloudflare/cloudflare-docs)"
+SPDX-License-Identifier = "CC-BY-4.0"

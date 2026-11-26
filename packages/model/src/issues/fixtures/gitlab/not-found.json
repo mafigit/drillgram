@@ -1,0 +1,26 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://gitlab.com/api/v4/projects/acme%2Fapp/issues/999"
+    },
+    "response": {
+      "status": 404,
+      "body": {
+        "message": "404 Not found"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://gitlab.com/api/v4/projects/acme%2Fapp/issues/4"
+    },
+    "response": {
+      "status": 404,
+      "body": {
+        "message": "404 Not found"
+      }
+    }
+  }
+]

@@ -291,6 +291,8 @@ the proxy must take away such a header when a request brings one from outside.
 
 `.github/workflows/ci.yml` only checks out and calls `bin/ci-check`, on every push to `main` and
 every pull request. It runs on GitHub Actions and on any server that runs the same workflows.
+The check is cut off after 30 minutes; it takes 17 to 20 on a runner of GitHub (2026-11-26). A
+run that is cut off shows as cancelled, has no result and deploys nothing.
 
 After a green check of a commit on `main`, its job `deploy` puts the app without a server on
 Cloudflare: `mise run cloudflare`, with the tools of `mise.toml` (see "On Cloudflare" above).

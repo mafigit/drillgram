@@ -54,7 +54,10 @@ type Fixtures = Options & {
   account: Account
   /** Makes one more user. */
   newAccount: (name?: string) => Promise<Account>
-  /** Opens one more browser, signed in as the account given: another device, or another person. */
+  /**
+   * Opens one more browser, signed in as the account given: another device, or another person.
+   * Without a server nobody signs in: it is a browser that never ran the app.
+   */
   browserOf: (account: Account) => Promise<Browser>
   /** Console errors and uncaught page errors seen during the test. */
   consoleErrors: string[]
@@ -143,14 +146,15 @@ export const test = base.extend<Fixtures>({
     { auto: true },
   ],
 
-  browserOf: async ({ browser }, use) => {
+  browserOf: async ({ browser, server, permissions }, use) => {
     const opened: BrowserContext[] = []
     await use(async (account) => {
-      const context = await browser.newContext()
+      // With what the project allows its browsers (playwright.config.ts).
+      const context = await browser.newContext({ permissions })
       opened.push(context)
       const page = await context.newPage()
       await makeDeterministic(context, page)
-      await signIn(context.request, account)
+      if (server) await signIn(context.request, account)
       return { page, editor: new DiagramEditor(page), context }
     })
     for (const context of opened) await context.close()

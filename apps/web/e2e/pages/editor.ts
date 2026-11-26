@@ -704,10 +704,43 @@ export class DiagramEditor {
     await this.page.keyboard.press('ControlOrMeta+Enter')
   }
 
-  /** The link that lets someone else open this workspace. */
+  /** What "Share" in the top bar opens. */
+  get shareDialog(): Locator {
+    return this.page.getByRole('dialog', { name: 'Share' })
+  }
+
+  /** Share the open workspace under a name; gives the link that lets others in. */
+  async share(name: string): Promise<string> {
+    await this.page.getByRole('button', { name: 'Share', exact: true }).click()
+    await this.shareDialog.getByRole('textbox', { name: 'Your name' }).fill(name)
+    await this.shareDialog.getByRole('button', { name: 'Start sharing' }).click()
+    const link = await this.shareLink()
+    await this.page.keyboard.press('Escape')
+    return link
+  }
+
+  /** The link that lets someone else open this workspace, from the open "Share". */
   async shareLink(): Promise<string> {
-    await this.page.getByRole('button', { name: 'Share' }).click()
-    return this.page.getByRole('textbox', { name: 'Share link' }).inputValue()
+    const field = this.shareDialog.getByRole('textbox', { name: 'Share link' })
+    await expect(field).toHaveValue(/\/s\//)
+    return field.inputValue()
+  }
+
+  /** On the page a share link leads to: say who you are and join. */
+  async join(name: string): Promise<void> {
+    const form = this.page.getByRole('form', { name: 'Join' })
+    await form.getByRole('textbox', { name: 'Your name' }).fill(name)
+    await form.getByRole('button', { name: 'Join' }).click()
+  }
+
+  /** Everybody in the shared session, as the top bar shows them: the one who shares first. */
+  get people(): Locator {
+    return this.page.getByRole('list', { name: 'People here' }).getByRole('listitem')
+  }
+
+  /** The pointer of somebody else in the session, on the canvas. */
+  pointerOf(name: string): Locator {
+    return this.canvas.getByRole('img', { name: `${name}'s pointer` })
   }
 
   // Touch gestures, for the tablet project.

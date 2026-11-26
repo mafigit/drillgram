@@ -303,6 +303,78 @@ describe('WorkspaceLog', () => {
     expect(server.entries.map((kept) => kept.entry.id)).toEqual(['local-1', 'theirs', 'local-3'])
   })
 
+  it('takes what somebody else wrote when it is told to, without a word', async () => {
+    const { log, server, problems, names } = await open()
+    log.dispatch(add('Shop'), AT)
+    await log.settled()
+    let seen = 0
+    log.onHistory = () => seen++
+
+    server.write([{ id: 'theirs', type: 'change', at: AT, event: add('Bank') }])
+    await log.pull()
+    expect(names()).toEqual(['Shop', 'Bank'])
+    expect(seen).toBe(1)
+    expect(problems).toEqual([])
+
+    // From there on: the next change of this browser comes after theirs, and is kept.
+    log.dispatch(add('Mail'), AT)
+    await log.settled()
+    expect(server.appends.at(-1)!.after).toBe(2)
+    expect(names()).toEqual(['Shop', 'Bank', 'Mail'])
+    expect(problems).toEqual([])
+  })
+
+  it('takes an undo of somebody else, and a cleared workspace', async () => {
+    const { log, server, names } = await open()
+    log.dispatch(add('Shop'), AT)
+    await log.settled()
+
+    server.write([{ id: 'undo', type: 'wentTo', position: 0 }])
+    await log.pull()
+    expect(names()).toEqual([])
+    expect(log.history.log).toHaveLength(1)
+
+    await server.clear()
+    await log.pull()
+    expect(log.history.log).toEqual([])
+  })
+
+  it('does nothing when it is told to look and nothing is new', async () => {
+    const { log, server } = await open()
+    let seen = 0
+    log.onHistory = () => seen++
+    await log.pull()
+    await log.pull()
+    expect(seen).toBe(0)
+    expect(server.head).toBe(0)
+  })
+
+  it('leaves it to the answer when a change of its own is on its way', async () => {
+    const { log, server, problems, names } = await open()
+    let open_: () => void = () => {}
+    server.gate = new Promise((resolve) => (open_ = resolve))
+    log.dispatch(add('Mail'), AT)
+    // Somebody else was first, and the server says so while the change of this browser waits.
+    server.write([{ id: 'theirs', type: 'change', at: AT, event: add('Bank') }])
+    await log.pull()
+    expect(names()).toEqual(['Mail'])
+
+    open_()
+    await log.settled()
+    // As ever between two writers: the later one is not kept, and is told.
+    expect(names()).toEqual(['Bank'])
+    expect(problems).toEqual(['conflict'])
+  })
+
+  it('looks once more when it is told again while it looks', async () => {
+    const { log, server, names } = await open()
+    server.write([{ id: 'one', type: 'change', at: AT, event: add('Shop') }])
+    const first = log.pull()
+    server.write([{ id: 'two', type: 'change', at: AT, event: add('Bank') }])
+    await Promise.all([first, log.pull()])
+    expect(names()).toEqual(['Shop', 'Bank'])
+  })
+
   it('stops writing when the session is over, and keeps what is not written for after the sign-in', async () => {
     const { log, server, problems, outbox } = await open()
     server.failures = [{ status: 401 }]

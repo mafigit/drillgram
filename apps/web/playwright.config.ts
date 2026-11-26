@@ -33,11 +33,23 @@ export default defineConfig<Options>({
     { name: 'tablet', testIgnore: WITHOUT_A_SERVER, use: { ...devices['iPad Pro 11'], hasTouch: true } },
     // The same app without a server: its own journey, and those of the others that are about
     // what a workspace keeps (the cards, the change log, clearing, several workspaces), and the
-    // tour (J63): the site without a server is where most first visits are.
+    // tour (J63): the site without a server is where most first visits are. And working
+    // together (J19), which only this build has so far.
     {
       name: 'browser-only',
-      testMatch: [WITHOUT_A_SERVER, /j(2-first-diagram|4-edit-safely|31-timeline|43-clear-the-workspace|58-workspaces|63-tour)\.spec\.ts$/],
-      use: { ...devices['Desktop Chrome'], baseURL: browserOnlyURL, server: false },
+      testMatch: [WITHOUT_A_SERVER, /j(2-first-diagram|4-edit-safely|31-timeline|43-clear-the-workspace|58-workspaces|63-tour|19-work-together)\.spec\.ts$/],
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: browserOnlyURL,
+        server: false,
+        // J19: two browsers of this machine connect to each other (WebRTC). The check runs
+        // without a network, where a machine has only its own loopback address. Chromium
+        // offers that one only when told to, and any address of the machine only to a page
+        // that may use the microphone (to others it offers the way to the internet alone,
+        // and there is none).
+        launchOptions: { args: ['--allow-loopback-in-peer-connection'] },
+        permissions: ['microphone'],
+      },
     },
   ],
   // Build once; the server gives out the production bundle and answers the API, on a database

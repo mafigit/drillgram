@@ -15,7 +15,7 @@ which else starts over every empty workspace; J63 is about a browser that has no
 
 A fourth project, `browser-only`, runs against the app built to run without a server (J62), in
 desktop Chromium: J62 itself and, of the journeys above it, those about what a workspace keeps
-(J2, J4, J31, J43, J58), and the tour (J63). There "open the app" means a browser that never
+(J2, J4, J31, J43, J58), the tour (J63) and working together (J19). There "open the app" means a browser that never
 ran it.
 
 ## J1 Open the app
@@ -290,15 +290,48 @@ that takes a connection of its box makes no second line between the boxes.
 
 ## J19 Work together on one diagram
 
-Test: `apps/web/e2e/j19-work-together.spec.ts`
+Test: `apps/web/e2e/j19-work-together.spec.ts`. Project `browser-only` only: so far the app
+without a server alone shares a workspace.
 
-1. Ada opens the app, adds a software system "Online Shop" and copies the share link.
-2. Ben opens the share link in his own browser.
-3. Ben adds a person "Customer".
-4. Ada renames "Online Shop" to "Web Shop".
+1. Ada opens the app, adds a software system "Online Shop", presses "Share", enters her name
+   and presses "Start sharing". She gives the share link to Ben.
+2. Ben opens the link in his own browser, enters his name and presses "Join".
+3. Ben adds a person "Customer". Ada renames "Online Shop" to "Web Shop".
+4. Ben moves his mouse over "Customer". Then he opens "Web Shop", moves his mouse and adds a
+   container "Web App". Ada opens "Web Shop".
+5. Ada presses "Stop sharing" under "Share", and reloads. Ben presses "Try again".
 
-Expected: without a reload, Ada sees "Customer" and Ben sees "Web Shop", and each sees that the
-other is there.
+Also: Ben presses "Leave" under "Share", opens the link again and joins; Cleo joins too and
+adds "Customer"; Ada goes to another workspace. Also: open a link nobody shares. Also: Ben's
+browser connects to no other one directly (WebRTC is switched off in it); he joins, changes,
+points, opens a box and reloads; Dana, whose browser is the same, opens the link without what
+is after its "#".
+
+Expected: the link is an address of the app, `/s/<a name of 22 letters>#<a key of 22
+letters>`. It leads to a page
+that asks who is there before it shows anything; the name is asked once and kept in the
+browser. Then Ben has Ada's workspace before him. Without a reload each sees what the other
+does, and each sees who is there: a dot for everybody in the top bar, in a colour of their
+own. A change of one made after the other's is no conflict: nobody is told that something was
+not kept. Ada sees Ben's pointer with his name where he points, on the same card whatever
+part of the diagram she has on screen, and only while he is on the diagram she has open and
+has his mouse on its canvas; nobody sees a pointer of their own. Ben's address stays the
+session's when he opens a box (`/s/<name>/view/<view>`). Only Ada can empty the workspace.
+When Ada stops sharing, or leaves the workspace, the guests are told that the session is over;
+the workspace stays in her browser with everything that was done together, and the link leads
+to nobody ("Nobody is sharing here right now"), as a link nobody ever shared. A guest who
+leaves is back at his own diagrams, and is gone for the others with his pointer. What one
+guest does, the other guests see too.
+
+Two browsers that find no direct way to each other work together all the same, through the
+site: everything is as with a direct way, and of what passes the site nothing can be read
+there (no name of a card, no kind of a shape). Every address inside the session keeps the
+key after its "#", so a reload joins again. Without the key such a browser is told that
+there is no way to the other one.
+
+Not yet: two changes made in the same moment (the later one is not kept, and its maker is
+told), undo of one's own changes only, a session that outlives the tab of who shares, and
+sharing in the app with a server.
 
 ## J20 A diagram that explains itself
 
@@ -1091,7 +1124,7 @@ change log and the place in it came along. The first browser has the connection 
 reload. A change made in a browser that has not seen what another one did is not kept: the
 workspace is shown as it is on the server (with "Billing", without "Mail"), and a card says
 that it was changed somewhere else. The next change works as ever. Not yet: seeing each other's
-changes without a reload (J19).
+changes without a reload (J19 has it for the app without a server).
 
 ## J61 Bring the diagrams of this browser
 

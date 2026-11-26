@@ -40,6 +40,16 @@ Every change is test-driven. No production code without a failing test that dema
 - A first visit starts the tour (J63) over the empty workspace. The browser of a test has
   seen it (the fixtures note that in its storage before the app starts);
   `test.use({ tour: true })` is a browser that has not.
+- Working together (J19) is two browsers of one test that connect to each other (WebRTC):
+  `browserOf(account)` opens the second one, which without a server is a browser that never
+  ran the app. The project `browser-only` starts Chromium with a flag and a permission for it
+  (`playwright.config.ts`): the check runs without a network, where a machine has only its own
+  loopback address. Chromium offers that address only with `--allow-loopback-in-peer-connection`,
+  and any address of the machine only to a page that may use the microphone; without both no
+  connection is ever tried (found with a probe in the check's image, 2026-11-26). The meeting point is
+  the Worker itself in wrangler's local runtime (`e2e/serve-browser`), told to name no STUN
+  server. What is said between the browsers is tested without any
+  (`src/collab/__tests__/`): rooms, sessions over a connection in memory, frames.
 - A fourth project, `browser-only`, runs against the app built without a server
   (`e2e/serve-browser`): J7, J62 and the journeys named in `playwright.config.ts`. Wrangler runs
   the Cloudflare worker locally. There the option

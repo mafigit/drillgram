@@ -4,7 +4,9 @@ import { test, expect } from './fixtures.ts'
 // A browser the tour was never shown to: every other journey starts after it.
 test.use({ tour: true })
 
-test('J63 The first visit starts a tour that leads through the app on the example', async ({ page, editor, consoleErrors }) => {
+test('J63 The first visit starts a tour that leads through the app on the example', async ({ page, editor, server, consoleErrors }) => {
+  // Without a server the app can share a workspace: one step more.
+  const steps = server ? 17 : 18
   await editor.open()
   await expect(editor.tourStep).toHaveText('Welcome to Drillgram')
   await expect(editor.tour).toContainText('about three minutes')
@@ -13,7 +15,7 @@ test('J63 The first visit starts a tour that leads through the app on the exampl
   // The tour is about the example: starting it loads the bookshop.
   await editor.tourPress('Start the tour')
   await expect(editor.tourStep).toHaveText('Boxes that open')
-  await expect(editor.tour).toContainText('Step 1 of 17')
+  await expect(editor.tour).toContainText(`Step 1 of ${steps}`)
   await expect(editor.element('Web Shop')).toBeVisible()
   await editor.expectTourPointsAt(editor.element('Web Shop'))
 
@@ -90,8 +92,13 @@ test('J63 The first visit starts a tour that leads through the app on the exampl
   await expect(editor.tourStep).toHaveText('Themes')
   await editor.expectTourPointsAt(page.getByRole('button', { name: 'Theme' }))
   await editor.tourPress('Next')
+  if (!server) {
+    await expect(editor.tourStep).toHaveText('Work together')
+    await editor.expectTourPointsAt(page.getByRole('button', { name: 'Share', exact: true }))
+    await editor.tourPress('Next')
+  }
   await expect(editor.tourStep).toHaveText('Where your diagrams are')
-  await expect(editor.tour).toContainText('Step 17 of 17')
+  await expect(editor.tour).toContainText(`Step ${steps} of ${steps}`)
   await editor.expectTourPointsAt(editor.workspace)
   await editor.tourPress('Next')
 

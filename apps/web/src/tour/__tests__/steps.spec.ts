@@ -86,6 +86,12 @@ describe('tourSteps', () => {
     expect(done('history', { historyOpen: true }, { historyOpen: true })).toBe(false)
   })
 
+  it('has a step on working together where the app can: without a server', () => {
+    const ids = (browserOnly: boolean) => tourSteps(browserOnly).map((known) => known.id)
+    expect(ids(false)).not.toContain('share')
+    expect(ids(true).slice(-3)).toEqual(['share', 'keep', 'done'])
+  })
+
   it('says where the diagrams are kept: on the server, or in the browser', () => {
     const keep = (browserOnly: boolean) => tourSteps(browserOnly).find((known) => known.id === 'keep')!.text
     expect(keep(false)).toContain('server')

@@ -35,7 +35,9 @@ Project started 2026-11-03.
   plain Box) and "C4". Every shape goes on every diagram; a shape added inside a box is a part
   of that box and stands in its frame. The tab last used is kept in the browser. The quick menu
   offers the last six shapes picked there or in "Add shape" (kept in the browser), the plain
-  Box before any. Mermaid has no plain box: its export writes one as a software system;
+  Box before any. Dragged onto the canvas, "Add shape" and "Sticky note" put a plain Box or a
+  note where they are let go, the form floating there (`useToolDrag`, `CanvasToolDrop`); a note
+  let go on a card sticks on it. Mermaid has no plain box: its export writes one as a software system;
   D2 writes it as is.
 - Several views of one box (J51): a box, and the Overview, has a first view ("Structure") and
   any number of added ones with a name ("Deployment", a flow), on tabs beside the diagram's

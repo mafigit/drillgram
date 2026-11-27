@@ -12,6 +12,7 @@ import type { FoundShape } from './canvas/kinds'
 import { rememberShape } from './canvas/recentShapes'
 import ShapeGlyph from './canvas/ShapeGlyph.vue'
 import { useTouch } from '../composables/useTouch'
+import { startToolDrag } from '../composables/useToolDrag'
 
 // "Add shape": the shapes of every library, one tab per library, and a search over all of them.
 // Every shape goes on every diagram.
@@ -72,7 +73,8 @@ function pickFirst() {
 <template>
   <Popover v-model:open="open">
     <PopoverTrigger as-child>
-      <Button variant="ghost" size="lg">
+      <!-- Dragged onto the canvas instead, it puts a plain box where it is let go. -->
+      <Button variant="ghost" size="lg" title="Add a shape, or drag a box where it goes" @pointerdown="(event: PointerEvent) => startToolDrag('box', event)">
         <ShapesIcon aria-hidden="true" />
         Add shape
       </Button>

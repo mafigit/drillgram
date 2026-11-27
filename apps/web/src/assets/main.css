@@ -363,6 +363,11 @@
   button:not(:disabled), [role="button"]:not(:disabled) {
     cursor: pointer;
     }
+  /* A button of the toolbar dragged onto the canvas (useToolDrag). */
+  html.tool-dragging, html.tool-dragging * {
+    user-select: none;
+    cursor: grabbing !important;
+    }
 }
 
 /* A tinted square in the colour of an object's kind (`--kind` is set on the element). */

@@ -79,6 +79,7 @@ import CanvasControls from './canvas/CanvasControls.vue'
 import CanvasKey from './canvas/CanvasKey.vue'
 import CanvasPointers from './canvas/CanvasPointers.vue'
 import CanvasQuickMenu from './canvas/CanvasQuickMenu.vue'
+import CanvasToolDrop from './canvas/CanvasToolDrop.vue'
 import type { QuickMenuItem } from './canvas/CanvasQuickMenu.vue'
 import ConnectionEdgeView from './canvas/ConnectionEdge.vue'
 import ObjectNodeView from './canvas/ObjectNode.vue'
@@ -97,6 +98,8 @@ import { languageIcon } from './canvas/codeLanguages'
 import { clearErrors, showError } from '../composables/useErrors'
 import { useLock } from '../composables/useLock'
 import { useNotesHidden } from '../composables/useNotesHidden'
+import { startToolDrag } from '../composables/useToolDrag'
+import type { DragTool } from '../composables/useToolDrag'
 import { useTouch } from '../composables/useTouch'
 import { KIND_ICON, KIND_LABEL, SHAPE_LIBRARIES } from './canvas/kinds'
 import { recentShapes, rememberShape } from './canvas/recentShapes'
@@ -194,11 +197,14 @@ const newDetails = ref<{ description: string; technology: string; external: bool
 
 /** Where the next card is wanted: the point the quick menu was opened at. The usual place without. */
 const addingAt = ref<Point>()
+/** The point of the diagram a button of the toolbar was dragged to: the new card's middle. */
+const droppedAt = ref<Point>()
 
 function startAdding(kind: ElementKind, at?: Point, technology = '', shape: BoxShape | '' = '') {
   if (!at) floatAt.value = undefined
   addingKind.value = kind
   addingAt.value = at
+  droppedAt.value = undefined
   newName.value = ''
   // Code starts as Go's most usual thing unless a language was picked: the form says which.
   newDetails.value = { description: '', technology: technology || (kind === 'code' ? 'Go struct' : ''), external: false, shape, columns: [] }
@@ -210,10 +216,10 @@ const added = ref<{ id: string; whole?: boolean }>()
 let selectNext: string[] | undefined
 
 /** Make a change that puts one more object on the view, and remember which one. */
-function addToView(event: WorkspaceEvent) {
+function addToView(event: WorkspaceEvent): string | undefined {
   const before = new Set(Object.keys(view.value.positions))
   dispatch(event)
-  showAdded(before)
+  return showAdded(before)
 }
 
 function showAdded(before: Set<string>): string | undefined {
@@ -342,6 +348,7 @@ function stopAdding() {
   addingKind.value = null
   pickingExisting.value = false
   addingAt.value = undefined
+  droppedAt.value = undefined
   floatAt.value = undefined
 }
 
@@ -377,13 +384,13 @@ function bringKept() {
   kept.value = undefined
 }
 
-function addBoxEvent(kind: ElementKind, given: string, details: ObjectDetails, wanted?: Point): WorkspaceEvent {
+function addBoxEvent(kind: ElementKind, given: string, details: ObjectDetails, wanted?: Point, middle?: Point): WorkspaceEvent {
   // A sticky note is its text alone, named by its first line (J69).
   const name = details.shape === 'stickyNote' ? noteTitle(details.description ?? '') : given
   // The card is as tall as its text needs (Markdown): measured here, kept with the change.
   const room = cardRoom({ name, kind, ...details, icons: 0 })
   const size = room === CARD ? undefined : room
-  const at = wanted && size ? freePlaceNear(wanted, size) : wanted
+  const at = middle ? droppedPlace(middle, room, details.shape === 'stickyNote') : wanted && size ? freePlaceNear(wanted, size) : wanted
   return { type: 'objectAdded', view: viewId.value, kind, name, details, at, ...(size && { size }) }
 }
 
@@ -393,9 +400,39 @@ function startAddingNote() {
   startAdding('box', undefined, '', 'stickyNote')
 }
 
+/**
+ * Where a card dragged from the toolbar lands: its middle on the point. A note right there, on
+ * anything; another card at the free place nearest to it.
+ */
+function droppedPlace(middle: Point, size: Size, note: boolean): Point {
+  const corner = { x: middle.x - size.width / 2, y: middle.y - size.height / 2 }
+  return note ? onTheGrid(corner) : freePlaceNear(corner, size)
+}
+
+/** A button of the toolbar let go on the canvas: its form floats there, and the card lands there. */
+function onToolDropped(tool: DragTool, screen: Point, at: Point) {
+  if (locked.value) return
+  if (tool === 'note') notesHidden.value = false
+  floatAt.value = screen
+  startAdding('box', { x: at.x - CARD.width / 2, y: at.y - CARD.height / 2 }, '', tool === 'note' ? 'stickyNote' : '')
+  droppedAt.value = at
+}
+
 function commitAdding() {
   const kind = addingKind.value
-  if (kind) addToView(addBoxEvent(kind, newName.value, { ...newDetails.value }, addingAt.value))
+  if (kind) {
+    const event = addBoxEvent(kind, newName.value, { ...newDetails.value }, addingAt.value, droppedAt.value)
+    const id = addToView(event)
+    // A note let go on a card sticks on it (J69), as one dragged there does.
+    const to = event.type === 'objectAdded' ? event.at : undefined
+    if (id && to && droppedAt.value && isNoteCard(id)) {
+      const on = cardUnderNote(id, to)
+      if (on !== undefined) {
+        dispatch({ type: 'noteAttached', view: viewId.value, note: id, object: on, to })
+        rebuildNodes()
+      }
+    }
+  }
   stopAdding()
 }
 
@@ -2114,6 +2151,7 @@ const keyKinds = computed(() =>
           />
           <CanvasControls :reveal="added" :centre="found" :diagram="viewId" :corner="minimapShown ? MINIMAP_ROOM : undefined" :framed="boundary !== undefined" :near="tourNear" />
           <CanvasPointers v-if="sharing" :sharing="sharing" :view="viewId" />
+          <CanvasToolDrop @drop="onToolDropped" />
           <CanvasQuickMenu
             :items="quickMenuItems"
             :open-at="quickMenuAt"
@@ -2423,7 +2461,14 @@ const keyKinds = computed(() =>
         <template v-else>
           <ShapePicker :kinds="kinds" @pick="(kind: ElementKind, technology?: string, shape?: BoxShape) => startAdding(kind, undefined, technology, shape)" />
           <!-- Sticky notes (J69): a button of their own, and a way to hide them all. -->
-          <Button variant="ghost" size="lg" aria-label="Add sticky note" title="Add a sticky note: let go on a shape, it sticks there" @click="startAddingNote">
+          <Button
+            variant="ghost"
+            size="lg"
+            aria-label="Add sticky note"
+            title="Add a sticky note, or drag it where it goes: let go on a shape, it sticks there"
+            @click="startAddingNote"
+            @pointerdown="(event: PointerEvent) => startToolDrag('note', event)"
+          >
             <StickyNoteIcon aria-hidden="true" />
             <span class="max-lg:sr-only">Sticky note</span>
           </Button>

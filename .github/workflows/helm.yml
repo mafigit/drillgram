@@ -94,10 +94,25 @@ jobs:
           as=()
           if [ -n "$VERSION" ]; then as=(--version "$VERSION" --app-version "$VERSION"); fi
           mise exec "helm@$HELM_VERSION" -- helm package "$staging/drillgram" --destination dist "${as[@]}"
+      # The image is built with a builder that keeps its layers in GitHub's cache, as in CI
+      # (ci.yml): the job `publish` takes them from there. Its stages build on the runner's
+      # platform for every target (Dockerfile), so for the release only arm64's `go build` is left.
+      - name: Let the build reach GitHub's cache
+        uses: actions/github-script@v9
+        with:
+          script: |
+            for (const [name, value] of Object.entries(process.env)) {
+              if (name.startsWith('ACTIONS_')) core.exportVariable(name, value)
+            }
+      - uses: docker/setup-buildx-action@v4
+      - name: Build the image
+        run: |
+          docker buildx build --provenance=false --load -t drillgram:helm-test \
+            --cache-from type=gha,scope=image \
+            --cache-to type=gha,scope=image,mode=max,ignore-error=true .
       # The chart's Chainsaw tests (deploy/helm/tests) on kind: rendering, both database modes.
       - name: Test the chart on Kubernetes
         run: |
-          docker build --provenance=false -t drillgram:helm-test .
           mise exec "helm@$HELM_VERSION" "kind@$KIND_VERSION" "kubectl@$KUBECTL_VERSION" "aqua:kyverno/chainsaw@$CHAINSAW_VERSION" -- bash -c '
             set -euo pipefail
             kind create cluster --wait 2m
@@ -132,16 +147,21 @@ jobs:
         with:
           name: helm-chart
           path: dist
-      - uses: docker/setup-qemu-action@v4
+      - name: Let the build reach GitHub's cache
+        uses: actions/github-script@v9
         with:
-          platforms: arm64
+          script: |
+            for (const [name, value] of Object.entries(process.env)) {
+              if (name.startsWith('ACTIONS_')) core.exportVariable(name, value)
+            }
+      # No emulation: every stage that builds runs on amd64, arm64's server is cross-compiled.
       - uses: docker/setup-buildx-action@v4
       - name: Publish the hosted image
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           printf '%s' "$GH_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
-          docker buildx build --platform linux/amd64,linux/arm64 \
+          docker buildx build --platform linux/amd64,linux/arm64 --cache-from type=gha,scope=image \
             --label "org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
             --label "org.opencontainers.image.revision=$GITHUB_SHA" \
             --tag "$IMAGE:$VERSION" --push .

@@ -87,6 +87,11 @@ Releases (also as `drillgram.tgz`, which `releases/latest/download/` finds), and
 commit. One release runs at a time. The commit messages decide: a change users notice needs
 `feat` or `fix`. A `helm-v<version>` tag pushed by hand still releases that version.
 
+The image is for amd64 and arm64, built without emulation: the Dockerfile's build stages run on
+the runner's platform for both, and Go cross-compiles the server (emulated, arm64 took 15 of the
+release's 16 minutes, 2026-11-27). The test of the chart puts its image's layers in GitHub's
+cache (scope `image`), and the release takes them from there.
+
 ## Without a server
 
 `pnpm --filter @drillgram/web build:browser` builds the app to run in the browser alone and

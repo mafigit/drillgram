@@ -269,6 +269,18 @@ export class DiagramEditor {
     await press(this.page.getByRole('button', { name: `Add ${kind}`, exact: true }))
   }
 
+  /** Press a button of the toolbar ("Add shape", "Add sticky note") and drag it to a point of the screen. */
+  async dragFromToolbar(button: string, to: { x: number; y: number }): Promise<void> {
+    const from = await this.page.getByRole('toolbar', { name: 'Diagram tools' }).getByRole('button', { name: button, exact: true }).boundingBox()
+    if (!from) throw new Error(`"${button}" is not visible`)
+    const grab = { x: from.x + from.width / 2, y: from.y + from.height / 2 }
+    await this.page.mouse.move(grab.x, grab.y)
+    await this.page.mouse.down()
+    await this.page.mouse.move(grab.x, grab.y - 6)
+    await this.page.mouse.move(to.x, to.y, { steps: 10 })
+    await this.page.mouse.up()
+  }
+
   async addElement(kind: ElementKind, name: string, details: ElementDetails = {}): Promise<Locator> {
     await this.pickShape(kind)
     if (details.technology !== undefined) {

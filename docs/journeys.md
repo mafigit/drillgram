@@ -728,6 +728,8 @@ Test: `apps/web/e2e/j41-add-a-shape.spec.ts`
 4. From "C4", add a software system "Online Shop" and connect "Idea" to it ("Shapes").
 5. Open "Online Shop" and look at the "C4" tab there.
 6. Add a "Box" "Notes" there, then go back to the Overview.
+7. Drag "Add shape" onto the canvas, let go, name it "Idea"; drag it once more and let go back on
+   the toolbar.
 
 Expected: the start diagram is titled "Overview". The tabs are "Basic", "C4" and "Code" (J46); C4 offers
 "Add Person", "Add Software System", "Add Container" and "Add Component", on every diagram
@@ -739,6 +741,10 @@ The picker has a search over every library: a part of a shape's name, of what it
 its library finds it, names first ("contain" finds "Container"); a language is found by what it
 has, as that ("trait" finds "Rust trait", and the form opens for a Rust trait). Enter takes the
 first shape found; "No shape found." says so; the search emptied, the libraries are back.
+
+Dragged onto the canvas, "Add shape" opens no library: an outline of a card follows the pointer,
+and let go, the title of a plain Box is asked right there; the box lands with its middle where
+it was let go (the free place nearest). Let go back on the toolbar, nothing is added.
 
 ## J42 Around its frame, the opened object is a card of its own
 
@@ -1406,6 +1412,7 @@ Test: `apps/web/e2e/j69-sticky-notes.spec.ts`
    again.
 8. Import a Miro board through its access token, with a sticky note lying over a shape's corner
    and one lying by itself.
+9. Drag "Sticky note" onto the empty canvas and let go; drag it onto "Checkout" and let go.
 
 Expected: a sticky note is a square of yellow paper with its text alone, Markdown, no title,
 no "Open" and no "Icons"; "Colour" gives it other paper (J70). A double-click opens its text in
@@ -1424,7 +1431,9 @@ one is moved clear of the cards and loose notes. From Miro every sticky note is 
 all its text the note's, and one that lies on a shape (not a frame, not a shape drawn round
 other items, not another note) comes in stuck on the shape it covers most, over its top right
 corner; from a paste or a token, not from a PDF. A sticky note is stuck per view:
-on another view the same note may be loose.
+on another view the same note may be loose. Dragged from the toolbar, a note's text is asked where it is
+let go and the note lands with its middle there: on the empty canvas loose, on "Checkout" right
+there, stuck on it.
 
 ## J70 Colour a card
 

@@ -264,3 +264,29 @@ test('J69 A sticky note takes no icons, and another colour of paper', async ({ e
   await expect(editor.element('Ask legal').locator('[data-fill="green"]')).toHaveCount(1)
   expect(consoleErrors).toEqual([])
 })
+
+test('J69 A sticky note dragged from the toolbar lands where it is let go; on a shape it sticks there', async ({ editor, page, consoleErrors }) => {
+  await editor.open()
+  const checkout = await editor.addElement('Box', 'Checkout')
+  await editor.pan({ x: 120, y: 260 })
+  const canvas = (await editor.canvas.boundingBox())!
+
+  // On the empty canvas: its middle on the point, loose.
+  const to = { x: Math.round(canvas.x + canvas.width * 0.7), y: Math.round(canvas.y + canvas.height * 0.3) }
+  await editor.dragFromToolbar('Add sticky note', to)
+  await page.getByRole('textbox', { name: 'Note' }).fill('Loose idea')
+  await page.getByRole('button', { name: 'Add', exact: true }).click()
+  const loose = (await boxOf(editor.element('Loose idea')))
+  expect(Math.abs(loose.x + loose.width / 2 - to.x)).toBeLessThan(30)
+  expect(Math.abs(loose.y + loose.height / 2 - to.y)).toBeLessThan(30)
+  await expect(editor.pinOf('Loose idea')).toHaveCount(0)
+
+  // On the shape: it stays on it, stuck.
+  const on = await boxOf(checkout)
+  await editor.dragFromToolbar('Add sticky note', { x: on.x + on.width * 0.7, y: on.y + on.height * 0.6 })
+  await page.getByRole('textbox', { name: 'Note' }).fill('Ask legal')
+  await page.getByRole('button', { name: 'Add', exact: true }).click()
+  await expect(editor.pinOf('Ask legal')).toHaveAccessibleName('Stuck on Checkout')
+  expect(overlap(await boxOf(editor.element('Ask legal')), await boxOf(checkout))).toBe(true)
+  expect(consoleErrors).toEqual([])
+})

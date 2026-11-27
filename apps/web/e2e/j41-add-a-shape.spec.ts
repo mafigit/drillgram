@@ -78,3 +78,37 @@ test('J41 The shapes of every library are found by a search', async ({ editor, p
   await page.getByRole('button', { name: 'Add shape' }).click()
   await expect(search).toHaveValue('')
 })
+
+test('J41 "Add shape" dragged onto the canvas puts a box where it is let go', async ({ editor, page, consoleErrors }) => {
+  await editor.open()
+  const canvas = (await editor.canvas.boundingBox())!
+  const to = { x: Math.round(canvas.x + canvas.width * 0.6), y: Math.round(canvas.y + canvas.height * 0.45) }
+  await editor.dragFromToolbar('Add shape', to)
+
+  // No library to pick from: a drag is a plain box. Its name is asked where it was let go.
+  await expect(page.getByRole('tablist', { name: 'Shape libraries' })).toHaveCount(0)
+  await page.getByRole('textbox', { name: 'Title' }).fill('Idea')
+  await page.keyboard.press('Enter')
+  const idea = editor.element('Idea')
+  await expect(idea).toBeVisible()
+  await expect(idea.getByTestId('card-type')).toHaveCount(0)
+  await expect(editor.key).toContainText('Box')
+  // Its middle on the point, give or take the grid.
+  const box = (await idea.boundingBox())!
+  expect(Math.abs(box.x + box.width / 2 - to.x)).toBeLessThan(30)
+  expect(Math.abs(box.y + box.height / 2 - to.y)).toBeLessThan(30)
+
+  // While dragged, an outline of the card follows the pointer. Let go back on the toolbar, nothing is added.
+  const button = (await page.getByRole('button', { name: 'Add shape' }).boundingBox())!
+  await page.mouse.move(button.x + button.width / 2, button.y + button.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(to.x, to.y - 120, { steps: 5 })
+  await expect(page.getByTestId('tool-drag-ghost')).toBeVisible()
+  const toolbar = (await page.getByRole('toolbar', { name: 'Diagram tools' }).boundingBox())!
+  await page.mouse.move(toolbar.x + toolbar.width - 10, toolbar.y + toolbar.height / 2, { steps: 5 })
+  await page.mouse.up()
+  await expect(page.getByTestId('tool-drag-ghost')).toHaveCount(0)
+  await expect(page.getByRole('textbox', { name: 'Title' })).toHaveCount(0)
+  await expect(page.getByRole('tablist', { name: 'Shape libraries' })).toHaveCount(0)
+  expect(consoleErrors).toEqual([])
+})

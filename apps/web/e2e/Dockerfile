@@ -53,6 +53,7 @@ COPY apps/web/package.json apps/web/
 COPY packages/model/package.json packages/model/
 COPY packages/layout/package.json packages/layout/
 COPY deploy/licences/package.json deploy/licences/
+COPY deploy/release/package.json deploy/release/
 # The image has no corepack: install the pnpm version pinned in packageManager.
 RUN npm install -g "$(node -p 'require("./package.json").packageManager')" \
   && pnpm install --frozen-lockfile

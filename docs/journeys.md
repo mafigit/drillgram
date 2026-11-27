@@ -17,7 +17,7 @@ which else starts over every empty workspace; J63 is about a browser that has no
 A fourth project, `browser-only`, runs against the app built to run without a server (J62), in
 desktop Chromium: J62 itself and, of the journeys above it, those about what a workspace keeps
 (J2, J4, J31, J43, J58), the tour (J63), working together (J19) and a workspace as a file
-(J64). There "open the app" means a browser that never
+(J64). J71 is about this build alone. There "open the app" means a browser that never
 ran it.
 
 ## J1 Open the app
@@ -1433,3 +1433,35 @@ sticky note has no "No colour": it is yellow paper without one). The card, or a 
 outline, is filled with the colour, its ink dark in every theme; the SVG and PNG export draw
 it so. Each colour is one change ("Coloured "Checkout" blue", "Took the colour off
 "Checkout""), kept after a reload. A locked workspace offers no colours.
+
+## J71 Keep the workspaces in a folder
+
+Test: `apps/web/e2e/j71-folder.spec.ts`. Project `browser-only` only.
+
+Without a server, Chrome and Edge can keep the workspaces in a folder of the device instead of
+the browser's own storage: the folder is then the truth, and what changes there (a `git pull`,
+a sync tool, another machine) is what the app shows.
+
+1. Add "Customer". Open "About this site", press "Keep in a folder" and choose the folder
+   "diagrams".
+2. Add "Online Shop" and reload.
+3. Put a workspace file "billing.drillgram.json" into the folder from outside the app, and
+   open the workspace menu.
+4. Change "my-workspace.drillgram.json" from outside: add a card "Mail" to its log; then
+   write it again with the first change alone.
+5. Open the app in a browser that has to be asked again for the folder, and press "Open the
+   folder".
+6. Open "About this site" and press "Keep in this browser instead".
+
+Also: a browser that cannot open folders (Safari, Firefox).
+
+Expected: the folder holds a file a workspace, in the format of J64
+(`my-workspace.drillgram.json`), with every change in its log as soon as it is made; what the
+browser kept before is copied in. "About this site" says "Kept in the folder diagrams". A
+file put into the folder is a workspace in the menu and opens with its cards. A change made
+to a file from outside shows within seconds, without a reload; a file written anew (shorter,
+or with other changes) is the workspace from then on, as after "Start over". Where the
+browser asks again, the app says that the diagrams are in "diagrams" and opens them after
+"Open the folder". "Keep in this browser instead" brings back what the browser kept, as it
+was; the folder's files stay. A browser that cannot open folders offers no "Keep in a
+folder".

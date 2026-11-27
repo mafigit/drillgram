@@ -7,7 +7,7 @@ const baseURL = `http://localhost:${port}`
 const browserOnlyPort = 4174
 const browserOnlyURL = `http://127.0.0.1:${browserOnlyPort}`
 /** Journeys that only run in the browser-only build. */
-const WITHOUT_A_SERVER = /j(7-agent-changes-the-diagram|62-without-a-server)\.spec\.ts$/
+const WITHOUT_A_SERVER = /j(7-agent-changes-the-diagram|62-without-a-server|71-folder)\.spec\.ts$/
 
 /**
  * The projects asked for on the command line (`--project=webkit`); none means all of them.

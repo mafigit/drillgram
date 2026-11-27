@@ -1003,6 +1003,8 @@ Test: `apps/web/e2e/j53-box-shapes.spec.ts`
 6. Look at the Flowchart library; add "Documents" by search and "Text" from Basic; change the
    text to "Comment" in its form; reload.
 7. Import a flowchart that names shapes (`a@{ shape: lin-cyl }`, `c[/Priority\]`).
+8. Add a "Speech bubble", a box below it and a "Triangle" to its right; connect the box and the
+   triangle to the bubble.
 
 Expected: the Basic library offers the plain box and the shapes that say what a box is:
 Database (a cylinder), Queue (a lying cylinder), Document, Hexagon, Decision (a diamond), Circle,
@@ -1021,7 +1023,9 @@ name nobody knows give a plain box, a `person` a person. The card is drawn
 as that outline, without a border or ground of its own, and its text keeps clear of the outline.
 Any box says its shape in its form, a C4 container too, and stays what it is ("Container");
 "Rectangle" gives the plain card back. A person and a piece of code have no shape to choose. A
-box with a shape connects, is copied and is kept like any other. The SVG and PNG export draw the
+box with a shape connects, is copied and is kept like any other. A connector reaches the outline itself,
+not the rectangle around it: the arrow from below ends on the bubble's round side, the line
+from the triangle starts on its slanted side, and both stay upright or level. The SVG and PNG export draw the
 outline; D2 writes it where D2 has the shape; a Mermaid flowchart's node shapes are kept on
 import (`[(orders DB)]` is a cylinder).
 

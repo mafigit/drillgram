@@ -126,3 +126,30 @@ test('J53 The Flowchart library has the rest of the shapes; a text has no outlin
   await expect(editor.element('Priority').getByTestId('card-shape')).toHaveAttribute('data-shape', 'trapezoid')
   expect(consoleErrors).toEqual([])
 })
+
+test('J53 A connector reaches the outline of a shape, not the rectangle around it', async ({ editor, page, consoleErrors }) => {
+  await editor.open()
+  // A speech bubble, a box below it and a triangle to its right, each connected to it.
+  const said = await editor.addShape('Flowchart', 'Speech bubble', 'Said')
+  await editor.addElement('Box', 'Speaker')
+  await editor.addShape('Flowchart', 'Triangle', 'Extract')
+  const at = async (name: string) => (await editor.element(name).boundingBox())!
+  const bubble = await at('Said')
+  const below = await at('Speaker')
+  await editor.move('Speaker', { x: bubble.x - below.x, y: bubble.y + bubble.height + 160 - below.y })
+  const right = await at('Extract')
+  await editor.move('Extract', { x: bubble.x + bubble.width + 200 - right.x, y: bubble.y + (bubble.height - right.height) / 2 - right.y })
+  await editor.connect('Speaker', 'Said', 'Asks')
+  await editor.connect('Extract', 'Said', 'Quotes')
+  await expect(said.getByTestId('card-shape')).toHaveAttribute('data-shape', 'speechBubble')
+
+  // The arrow from below ends at the bubble's round lower side, not at the corner of its tail's
+  // box; the line from the triangle starts at its slanted side.
+  await expect.poll(() => editor.gapToOutline(editor.relationship('Asks'), 'end', 'Said')).toBeLessThan(2)
+  await expect.poll(() => editor.gapToOutline(editor.relationship('Quotes'), 'start', 'Extract')).toBeLessThan(2)
+  // Still upright and level only (J30).
+  expect(await editor.slantedPieces(editor.relationship('Asks'))).toBe(0)
+  expect(await editor.slantedPieces(editor.relationship('Quotes'))).toBe(0)
+  await page.screenshot({ path: test.info().outputPath('outlines.png') })
+  expect(consoleErrors).toEqual([])
+})

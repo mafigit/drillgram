@@ -208,6 +208,19 @@ export class DiagramEditor {
   }
 
   /**
+   * How far an end of a connector's line is from the outline a card is drawn as (a diamond, a
+   * bubble), in pixels of the screen: 0 when the line reaches the outline.
+   */
+  async gapToOutline(connector: Locator, end: 'start' | 'end', card: string): Promise<number> {
+    const tip = await connector.locator('path.vue-flow__edge-path').evaluate((path: SVGPathElement, end) => {
+      const p = path.getPointAtLength(end === 'start' ? 0 : path.getTotalLength()).matrixTransform(path.getScreenCTM()!)
+      return { x: p.x, y: p.y }
+    }, end)
+    const outline = await this.pointsOfPath(this.element(card).locator('.card-shape-outline'))
+    return Math.min(...outline.map((p) => Math.hypot(p.x - tip.x, p.y - tip.y)))
+  }
+
+  /**
    * How many pieces of a connector's line are neither upright nor level. A bend is drawn round:
    * there the two pieces count as they run into the corner.
    */

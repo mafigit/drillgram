@@ -100,6 +100,39 @@ describe('miroDiagram', () => {
     expect(Object.values(inside.attached ?? {})).toHaveLength(1)
   })
 
+  it('puts what a shape wholly holds inside it, as a frame holds', () => {
+    const at = (x: number, y: number) => ({ x, y, origin: 'center', relativeTo: 'canvas_center' })
+    const box = (id: string, content: string, x: number, y: number, width: number, height: number, type = 'shape'): MiroItem => ({
+      id,
+      type,
+      data: { content },
+      position: at(x, y),
+      geometry: { width, height },
+    })
+    const board = miroDiagram(
+      [
+        box('1', 'Payments', 0, 0, 600, 400),
+        box('2', 'Ledger', -100, 0, 150, 100),
+        box('3', 'Rates', 100, 0, 150, 100),
+        box('4', 'Bank', 600, 0, 150, 100),
+        // Half on "Payments": not in it.
+        box('5', 'Audit', 300, 0, 150, 100),
+        // On "Ledger": stuck on it, and in "Payments" with it.
+        box('6', 'Ask legal', -40, -40, 80, 80, 'sticky_note'),
+        // A note alone on a shape is stuck on it; the shape holds nothing (J69).
+        box('7', 'Fraud check', 0, 800, 300, 200),
+        box('8', 'Too slow', 0, 800, 80, 80, 'sticky_note'),
+      ],
+      [],
+    )
+    validateDiagram(board)
+    const named = (name: string) => board.elements.find((element) => element.name === name)!
+    for (const held of ['Ledger', 'Rates', 'Ask legal']) expect(named(held).inside).toBe(named('Payments').id)
+    for (const loose of ['Payments', 'Bank', 'Audit', 'Fraud check', 'Too slow']) expect(named(loose).inside).toBeUndefined()
+    expect(named('Ask legal').attachedTo).toBe(named('Ledger').id)
+    expect(named('Too slow').attachedTo).toBe(named('Fraud check').id)
+  })
+
   it('names a box without text by what it is', () => {
     expect(named('Shape')).toMatchObject({ shape: 'diamond' })
   })
@@ -280,6 +313,48 @@ describe('a copy from Miro', () => {
       { from: named('Cart')!.id, to: named('Payment')!.id, colour: 'red' },
       { from: named('Cart')!.id, to: named('Pay')!.id, label: 'Goes to' },
     ])
+  })
+
+  it('puts what a shape drawn round items holds inside it', () => {
+    // A copy says where each item's middle is, from the middle of the copy, and its size.
+    const shape = (id: number, text: string, x: number, y: number, width: number, height: number) => ({
+      id,
+      type: 14,
+      widgetData: {
+        type: 'shape',
+        json: { _position: { offsetPx: { x, y }, schema: 'canvasOffsetPx' }, scale: { scale: 1 }, size: { width, height }, _parent: null, text, shape: '7' },
+      },
+    })
+    const line = (id: number, from: number, to: number) => ({
+      id,
+      type: 14,
+      widgetData: { type: 'line', json: { primary: { widgetIndex: from }, secondary: { widgetIndex: to }, _parent: null } },
+    })
+    const sticker = {
+      id: 5,
+      type: 14,
+      widgetData: { type: 'sticker', json: { _position: { offsetPx: { x: -60, y: -40 }, schema: 'canvasOffsetPx' }, scale: { scale: 0.5 }, size: { width: 160, height: 160 }, text: '<p>Ask legal</p>' } },
+    }
+    const copy = {
+      data: {
+        objects: [
+          shape(0, '<p>Payments</p>', 0, 0, 600, 500),
+          shape(1, '<p>Bank</p>', -600, 0, 180, 200),
+          shape(2, '<p>Ledger</p>', -150, 0, 180, 200),
+          shape(3, '<p>Rates</p>', 150, 0, 180, 200),
+          line(4, 1, 2),
+          sticker,
+        ],
+      },
+    }
+    const diagram = miroPastedDiagram(clipboardOf(copy))
+    validateDiagram(diagram)
+    const named = (name: string) => diagram.elements.find((element) => element.name === name)!
+    expect(named('Ledger').inside).toBe(named('Payments').id)
+    expect(named('Rates').inside).toBe(named('Payments').id)
+    expect(named('Bank').inside).toBeUndefined()
+    expect(named('Ask legal')).toMatchObject({ inside: named('Payments').id, attachedTo: named('Ledger').id })
+    expect(diagram.relationships).toEqual([{ from: named('Bank').id, to: named('Ledger').id }])
   })
 
   it('says what is wrong with what was pasted', () => {

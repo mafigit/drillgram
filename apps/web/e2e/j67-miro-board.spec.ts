@@ -68,6 +68,51 @@ test('J67 Items copied on a Miro board are pasted in: no token', async ({ editor
   expect(consoleErrors).toEqual([])
 })
 
+/** A copied rounded box, with where its middle lies from the middle of the copy, and its size. */
+const copiedShape = (id: number, text: string, x: number, y: number, width: number, height: number) => ({
+  id,
+  type: 14,
+  widgetData: {
+    type: 'shape',
+    json: { _position: { offsetPx: { x, y }, schema: 'canvasOffsetPx' }, scale: { scale: 1 }, size: { width, height }, _parent: null, text: `<p>${text}</p>`, shape: '7' },
+  },
+})
+
+/** A shape drawn round two others, a third outside connected to one in it. */
+const DRAWN_ROUND = {
+  boardId: 'uXjVMadeUp0=',
+  data: {
+    objects: [
+      copiedShape(0, 'Payments', 0, 0, 600, 500),
+      copiedShape(1, 'Bank', -600, 0, 180, 200),
+      copiedShape(2, 'Ledger', -150, 0, 180, 200),
+      copiedShape(3, 'Rates', 150, 0, 180, 200),
+      { id: 4, type: 14, widgetData: { type: 'line', json: { primary: { widgetIndex: 1 }, secondary: { widgetIndex: 2 }, _parent: null } } },
+    ],
+  },
+  version: 2,
+  host: 'miro.com',
+}
+
+test('J67 A shape drawn round items copied on a Miro board holds them', async ({ editor, page, consoleErrors }) => {
+  await editor.open()
+  await page.getByRole('button', { name: 'Import', exact: true }).click()
+  await page.getByRole('menuitem', { name: 'Miro' }).click()
+  const field = page.getByRole('textbox', { name: 'Miro items' })
+  await field.focus()
+  await paste(page, clipboardOf(DRAWN_ROUND), 'Payments\nBank\nLedger\nRates')
+  await expect(field).toHaveValue('4 boxes and 1 connection from Miro')
+  await page.getByRole('button', { name: 'Import from Miro' }).click()
+
+  await expect(editor.element('Payments')).toBeVisible()
+  await expect(editor.element('Bank')).toBeVisible()
+  await expect(editor.element('Ledger')).toHaveCount(0)
+  await editor.drillDown('Payments')
+  await expect(editor.element('Ledger')).toBeVisible()
+  await expect(editor.element('Rates')).toBeVisible()
+  expect(consoleErrors).toEqual([])
+})
+
 test('J67 A board exported as a vector PDF comes in', async ({ editor, page, consoleErrors }) => {
   await editor.open()
   await page.getByRole('button', { name: 'Import', exact: true }).click()

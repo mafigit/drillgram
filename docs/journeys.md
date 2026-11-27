@@ -1353,7 +1353,8 @@ Every shape of Miro's Basic, Flowchart and Callouts libraries comes as one of ou
 from a paste or a token; from a PDF by its outline and what is drawn on it (the bars of a
 subroutine, the rim of a database), all but the Callouts bracket, which the PDF leaves out. The
 board comes onto the open diagram as one change, laid out by the layout engine: a frame is a
-box with what stands in it inside; a sticky note, a shape, a text and a card are boxes named
+box with what stands in it inside, and so is a shape drawn round other items (from a paste or a
+token: what it wholly covers is inside it, sticky notes alone stay stuck on it); a sticky note, a shape, a text and a card are boxes named
 by their first line, the rest of their text is the description; a shape keeps its outline
 where we have it (a can is a cylinder, a rhombus a diamond); a connector is a connection with
 its captions as the label and its colour. Images, documents and embeds come only where a
@@ -1412,8 +1413,9 @@ was. Focus on either keeps both clear. Hidden, no note and no line is drawn, als
 (kept in the browser); shown, they are back. "Arrange" lays the cards out as if there were no
 notes ("Payment" lies where it did without them); a stuck note goes along with its card, a loose
 one is moved clear of the cards and loose notes. From Miro every sticky note is one of ours,
-all its text the note's, and one that lies on a shape (not a frame, not another note) comes in
-stuck on the shape it covers most, over its top right corner. A sticky note is stuck per view:
+all its text the note's, and one that lies on a shape (not a frame, not a shape drawn round
+other items, not another note) comes in stuck on the shape it covers most, over its top right
+corner; from a paste or a token, not from a PDF. A sticky note is stuck per view:
 on another view the same note may be loose.
 
 ## J70 Colour a card

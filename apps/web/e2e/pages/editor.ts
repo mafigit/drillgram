@@ -590,7 +590,12 @@ export class DiagramEditor {
    * Container diagram; a container opens its Component diagram.
    */
   async drillDown(name: string): Promise<void> {
-    await this.element(name).getByRole('button', { name: 'Open' }).click()
+    await this.openButton(name).click()
+  }
+
+  /** The magnifier on an element's card that opens it. */
+  openButton(name: string): Locator {
+    return this.element(name).getByRole('button', { name: 'Open' })
   }
 
   /** Go back up by clicking a breadcrumb entry: "Overview", a system's name or "Containers". */

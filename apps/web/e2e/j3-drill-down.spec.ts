@@ -5,6 +5,9 @@ test('J3 Any box opens to the diagram inside it, and the breadcrumb leads back',
   await editor.open()
   await expect(editor.title).toHaveText('Overview')
   await editor.addElement('Software System', 'Online Shop')
+  // The magnifier is grey while nothing is inside a box, green once something is.
+  const GREEN = 'rgb(22, 163, 74)'
+  await expect(editor.openButton('Online Shop')).not.toHaveCSS('color', GREEN)
 
   // Straight inside: the box is the frame there, not a card.
   await editor.drillDown('Online Shop')
@@ -31,5 +34,6 @@ test('J3 Any box opens to the diagram inside it, and the breadcrumb leads back',
   await editor.backTo('Overview')
   await expect(editor.title).toHaveText('Overview')
   await expect(editor.element('Online Shop')).toBeVisible()
+  await expect(editor.openButton('Online Shop')).toHaveCSS('color', GREEN)
   await expect(editor.element('Web App')).toHaveCount(0)
 })

@@ -59,6 +59,7 @@ Expected: opening a box leads straight to the diagram inside it, titled with the
 box is the frame there, not a card. Any kind goes inside any kind, as deep as wanted. The
 breadcrumb lists the boxes on the way down ("Overview", "Online Shop", "Web App", "Operator").
 "Web App" is on the diagram inside "Online Shop" only; "Online Shop" is a card on the Overview.
+A box's magnifier is grey while nothing is inside it and green once something is.
 
 ## J4 Edit safely
 

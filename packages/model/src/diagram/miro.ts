@@ -1,5 +1,5 @@
 import { nearestLineColour } from './model'
-import type { BoxShape, Diagram, DiagramElement, Relationship } from './model'
+import type { BoxShape, Diagram, DiagramElement, FillColour, Relationship } from './model'
 
 // A Miro board, read as boxes through Miro's REST API (v2), the one documented way to its
 // content: Miro's own exports are pictures, a CSV of text and a backup only Miro reads.
@@ -12,6 +12,11 @@ export interface MiroItem {
   data?: { content?: unknown; title?: unknown; description?: unknown; shape?: unknown; url?: unknown }
   /** The frame it stands in. */
   parent?: { id?: unknown }
+  /** Its middle (`origin: 'center'`): on the board, or from the top left corner of its frame (`relativeTo: 'parent_top_left'`). */
+  position?: { x?: unknown; y?: unknown; relativeTo?: unknown }
+  geometry?: { width?: unknown; height?: unknown }
+  /** A sticky note's paper: `fillColor`, one of Miro's names (`light_yellow`, `cyan`). */
+  style?: { fillColor?: unknown }
 }
 
 /** A connector as `GET /v2/boards/{board}/connectors` gives it; a loose end has no item. */
@@ -179,6 +184,24 @@ const SHAPE_CODES = new Map([
   ['33', 'pentagon_arrow'],
 ])
 
+/** Miro's colours of a sticky note (developers.miro.com, sticky note style) as ours; yellow is ours by itself. */
+const FILL_COLOURS = new Map<string, FillColour>([
+  ['orange', 'orange'],
+  ['red', 'red'],
+  ['light_pink', 'pink'],
+  ['pink', 'pink'],
+  ['violet', 'purple'],
+  ['light_blue', 'blue'],
+  ['blue', 'blue'],
+  ['dark_blue', 'blue'],
+  ['cyan', 'teal'],
+  ['light_green', 'green'],
+  ['green', 'green'],
+  ['dark_green', 'green'],
+  ['gray', 'grey'],
+  ['black', 'grey'],
+])
+
 const ENTITIES = new Map([
   ['amp', '&'],
   ['lt', '<'],
@@ -222,15 +245,31 @@ export function miroDiagram(items: readonly MiroItem[], connectors: readonly Mir
     const data = item.data ?? {}
     const text = [...lines(data.title), ...lines(data.content)]
     const [name = lines(data.url)[0] ?? fallback, ...rest] = text
-    const description = [...rest, ...lines(data.description)].join('\n')
-    const shape = item.type === 'text' ? 'text' : item.type === 'shape' && typeof data.shape === 'string' ? SHAPES.get(data.shape) : undefined
+    // A sticky note shows its text alone, all of it; its name is only its first line (J69).
+    const description = (item.type === 'sticky_note' ? text : [...rest, ...lines(data.description)]).join('\n')
+    const shape =
+      item.type === 'text'
+        ? 'text'
+        : item.type === 'sticky_note'
+          ? 'stickyNote'
+          : item.type === 'shape' && typeof data.shape === 'string'
+            ? SHAPES.get(data.shape)
+            : undefined
     let id = `m${miroId.replace(/[^A-Za-z0-9_]/g, '_')}`
     while (taken.has(id)) id += '_'
     taken.add(id)
     ids.set(miroId, id)
     const parent = idOf(item.parent?.id)
     if (parent !== undefined) parents.set(id, parent)
-    elements.push({ id, kind: 'box', name, ...(description !== '' && { description }), ...(shape !== undefined && { shape }) })
+    const fill = item.type === 'sticky_note' && typeof item.style?.fillColor === 'string' ? FILL_COLOURS.get(item.style.fillColor) : undefined
+    elements.push({
+      id,
+      kind: 'box',
+      name,
+      ...(description !== '' && { description }),
+      ...(shape !== undefined && { shape }),
+      ...(fill !== undefined && { fill: fill }),
+    })
   }
   // A frame holds what it says it holds, as long as that holds nothing round: a board never does.
   const inside = new Map<string, string>()
@@ -245,6 +284,7 @@ export function miroDiagram(items: readonly MiroItem[], connectors: readonly Mir
     const parent = inside.get(element.id)
     if (parent !== undefined) element.inside = parent
   }
+  stickNotes(items, elements, ids)
   const relationships: Relationship[] = connectors.flatMap((connector) => {
     const from = ids.get(idOf(connector.startItem?.id) ?? '')
     const to = ids.get(idOf(connector.endItem?.id) ?? '')
@@ -255,6 +295,49 @@ export function miroDiagram(items: readonly MiroItem[], connectors: readonly Mir
     return [{ from, to, ...(label !== '' && { label }), ...(colour !== undefined && { colour }) }]
   })
   return { level: 'context', elements, relationships }
+}
+
+type Rect = { x: number; y: number; width: number; height: number }
+
+/**
+ * Each sticky note that lies on another item, a frame or a note aside, is stuck on it (J69): on
+ * the one it covers most. Miro has no such link of its own; a note put on a shape lies over it.
+ * Only where the board says where items are (its API), not a copy (which is read without).
+ */
+function stickNotes(items: readonly MiroItem[], elements: DiagramElement[], ids: ReadonlyMap<string, string>) {
+  const byId = new Map(items.map((item) => [idOf(item.id), item]))
+  const rects = new Map<string, Rect | undefined>()
+  const rectOf = (miroId: string, seen = new Set<string>()): Rect | undefined => {
+    if (rects.has(miroId)) return rects.get(miroId)
+    const item = byId.get(miroId)
+    const [x, y, width, height] = [item?.position?.x, item?.position?.y, item?.geometry?.width, item?.geometry?.height]
+    if (typeof x !== 'number' || typeof y !== 'number' || typeof width !== 'number' || typeof height !== 'number' || seen.has(miroId)) return undefined
+    let middle = { x, y }
+    if (item?.position?.relativeTo === 'parent_top_left') {
+      const parent = rectOf(idOf(item.parent?.id) ?? '', new Set([...seen, miroId]))
+      if (!parent) return undefined
+      middle = { x: parent.x + x, y: parent.y + y }
+    }
+    const rect = { x: middle.x - width / 2, y: middle.y - height / 2, width, height }
+    rects.set(miroId, rect)
+    return rect
+  }
+  const shared = (a: Rect, b: Rect) =>
+    Math.max(0, Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x)) * Math.max(0, Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y))
+  const element = new Map(elements.map((made) => [made.id, made]))
+  const takers = [...ids].filter(([miroId, id]) => byId.get(miroId)?.type !== 'frame' && element.get(id)?.shape !== 'stickyNote')
+  for (const [miroId, id] of ids) {
+    const note = element.get(id)
+    const rect = note?.shape === 'stickyNote' ? rectOf(miroId) : undefined
+    if (!note || !rect) continue
+    let best: { id: string; area: number } | undefined
+    for (const [otherMiro, other] of takers) {
+      const under = rectOf(otherMiro)
+      const area = under ? shared(rect, under) : 0
+      if (area > 0 && (!best || area > best.area)) best = { id: other, area }
+    }
+    if (best) note.attachedTo = best.id
+  }
 }
 
 /** The board's id in its link (`https://miro.com/app/board/uXjVO…=/`); nothing for another link. */

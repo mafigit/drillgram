@@ -59,7 +59,9 @@ watch(
   { deep: true, immediate: true },
 )
 
-const title = computed(() => `${props.edit ? 'Edit' : 'New'} ${KIND_LABEL[props.kind].toLowerCase()}`)
+/** A sticky note is its text alone (J69): no title, no shape to pick. */
+const isNote = computed(() => details.value.shape === 'stickyNote')
+const title = computed(() => `${props.edit ? 'Edit' : 'New'} ${isNote.value ? 'sticky note' : KIND_LABEL[props.kind].toLowerCase()}`)
 const vFocus = { mounted: (el: HTMLInputElement) => (el.focus(), el.select()) }
 </script>
 
@@ -78,7 +80,7 @@ const vFocus = { mounted: (el: HTMLInputElement) => (el.focus(), el.select()) }
     </p>
     <!-- "Title", not "Name": iOS Safari offers a contact for any field called "Name", whatever its
          autocomplete says, and the name of a box is no person's. -->
-    <Input v-model="name" v-focus aria-label="Title" placeholder="Title" autocomplete="off" class="h-9" />
+    <Input v-if="!isNote" v-model="name" v-focus aria-label="Title" placeholder="Title" autocomplete="off" class="h-9" />
     <div v-if="isCode" class="flex gap-2">
       <select v-model="code.language" aria-label="Language" class="form-select w-28 shrink-0">
         <option v-for="language in CODE_LANGUAGES" :key="language.name">{{ language.name }}</option>
@@ -89,7 +91,7 @@ const vFocus = { mounted: (el: HTMLInputElement) => (el.focus(), el.select()) }
       </select>
       <Input v-else v-model="code.construct" aria-label="What it is" placeholder="What it is, e.g. Zig struct" class="h-9 min-w-0 flex-1" />
     </div>
-    <select v-if="hasShape" v-model="details.shape" aria-label="Shape" class="form-select">
+    <select v-if="hasShape && !isNote" v-model="details.shape" aria-label="Shape" class="form-select">
       <option value="">Rectangle</option>
       <optgroup label="Basic">
         <option v-for="shape in BASIC_SHAPES" :key="shape" :value="shape">{{ SHAPE_ABOUT[shape].label }}</option>
@@ -109,8 +111,9 @@ const vFocus = { mounted: (el: HTMLInputElement) => (el.focus(), el.select()) }
     <!-- Markdown; Enter makes a new line here, so Ctrl or Cmd with Enter saves. -->
     <MarkdownField
       v-model="details.description"
-      label="Description"
-      :placeholder="isCode ? 'Fields, then --- on a line of its own, then methods. Markdown works.' : 'What it does. Markdown works.'"
+      :label="isNote ? 'Note' : 'Description'"
+      :autofocus="isNote"
+      :placeholder="isNote ? 'What to remember. Markdown works; Ctrl or Cmd with Enter adds it.' : isCode ? 'Fields, then --- on a line of its own, then methods. Markdown works.' : 'What it does. Markdown works.'"
       :class="isTable ? 'h-20 text-sm' : 'h-32 text-sm'"
       @save="emit('add')"
       @cancel="emit('cancel')"

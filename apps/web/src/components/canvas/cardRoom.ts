@@ -1,4 +1,4 @@
-import { CARD } from '@drillgram/model'
+import { CARD, STICKY_NOTE } from '@drillgram/model'
 import type { BoxShape, ElementKind, Size, TableColumn } from '@drillgram/model'
 import { renderMarkdown } from '@/lib/markdown'
 import { languageIcon } from './codeLanguages'
@@ -31,6 +31,8 @@ export interface CardText {
  * measured (no page, as in unit tests) it is `CARD`.
  */
 export function cardRoom(card: CardText): Size {
+  // A sticky note keeps its size; longer text scrolls in it (J69).
+  if (card.shape === 'stickyNote') return STICKY_NOTE
   if (typeof document === 'undefined') return CARD
   if (card.shape === 'table') return tableCardRoom(card)
   if (!card.description) return CARD

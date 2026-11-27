@@ -82,6 +82,8 @@ export const BOX_SHAPES = [
   'speechBubble',
   // A table of a database: its columns stand in it, one to a row (`columns`).
   'table',
+  // A note to stick on another shape: it then goes where that shape goes (`View.attached`).
+  'stickyNote',
 ] as const
 export type BoxShape = (typeof BOX_SHAPES)[number]
 
@@ -139,6 +141,27 @@ export function nearestLineColour(colour: string): LineColour | undefined {
   return [...LINE_COLOURS].sort((a, b) => apart(hueOf(LINE_COLOUR_HEX[a])!.hue, found.hue) - apart(hueOf(LINE_COLOUR_HEX[b])!.hue, found.hue))[0]
 }
 
+/** The colours a card can be filled with: light, for dark ink on them. A sticky note is yellow without one. */
+export const FILL_COLOURS = ['yellow', 'orange', 'red', 'pink', 'purple', 'blue', 'teal', 'green', 'grey'] as const
+export type FillColour = (typeof FILL_COLOURS)[number]
+
+export function isFillColour(value: unknown): value is FillColour {
+  return typeof value === 'string' && (FILL_COLOURS as readonly string[]).includes(value)
+}
+
+/** Each colour of paper as a value, for a file (the SVG export) and the canvas: light, for dark ink on it. */
+export const FILL_COLOUR_HEX: Record<FillColour, string> = {
+  yellow: '#fee685',
+  orange: '#fed7aa',
+  red: '#fecaca',
+  pink: '#fbcfe8',
+  purple: '#e9d5ff',
+  blue: '#bfdbfe',
+  teal: '#99f6e4',
+  green: '#bbf7d0',
+  grey: '#e5e7eb',
+}
+
 /** What a column of a table is for its table: its key, a pointer to another table, or unique. */
 export const COLUMN_KEYS = ['primary', 'foreign', 'unique'] as const
 export type ColumnKey = (typeof COLUMN_KEYS)[number]
@@ -190,6 +213,13 @@ export interface DiagramElement {
    * (Mermaid C4, D2) have one frame only, the `boundary`, and never set it.
    */
   inside?: string
+  /**
+   * The id of the element a sticky note is stuck on, which it goes along with. Only on a sticky
+   * note, and never on one: a note is not stuck on a note.
+   */
+  attachedTo?: string
+  /** The colour its card is filled with; the theme's card without (a sticky note: yellow). */
+  fill?: FillColour
 }
 
 export interface Relationship {
@@ -273,6 +303,17 @@ export function validateDiagram(diagram: Diagram): void {
       if (above.has(at)) throw new DiagramFormatError(`Element ${element.id} stands inside itself`)
       above.add(at)
     }
+  }
+  for (const element of diagram.elements) {
+    if (element.fill === undefined) continue
+    if (!isFillColour(element.fill)) throw new DiagramFormatError(`Element ${element.id} has an unknown fill: ${String(element.fill)}`)
+  }
+  for (const element of diagram.elements) {
+    if (element.attachedTo === undefined) continue
+    const on = diagram.elements.find((other) => other.id === element.attachedTo)
+    if (element.shape !== 'stickyNote') throw new DiagramFormatError(`Element ${element.id} is stuck on another but is no sticky note`)
+    if (!on || on === element) throw new DiagramFormatError(`Sticky note ${element.id} is stuck on an unknown element: ${String(element.attachedTo)}`)
+    if (on.shape === 'stickyNote') throw new DiagramFormatError(`Sticky note ${element.id} is stuck on another sticky note`)
   }
   const boundary = diagram.boundary
   if (boundary) {

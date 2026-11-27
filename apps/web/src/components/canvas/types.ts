@@ -1,6 +1,6 @@
 import type { ComputedRef, InjectionKey, Ref } from 'vue'
 import type { Edge, Node } from '@xyflow/vue'
-import type { BoxShape, ElementKind, LineColour, TableColumn } from '@drillgram/model'
+import type { BoxShape, ElementKind, LineColour, FillColour, TableColumn } from '@drillgram/model'
 
 /** A model object as Vue Flow draws it. */
 export type ObjectNode = Node<
@@ -18,6 +18,10 @@ export type ObjectNode = Node<
     opens: boolean
     /** Names of the icons on the card's corner, in their order. */
     icons: string[]
+    /** The name of the card a sticky note is stuck on, which it goes along with. */
+    stuckOn?: string
+    /** The colour the card is filled with; none: the theme's card (a sticky note: yellow). */
+    fill?: FillColour
   },
   'object'
 >
@@ -52,6 +56,10 @@ export interface CanvasActions {
   resize: (objectId: string, box: { x: number; y: number; width: number; height: number }) => void
   /** Make a copy of an object, beside it. */
   copy: (objectId: string) => void
+  /** Take a sticky note off the card it is stuck on. */
+  detach: (noteId: string) => void
+  /** Fill an object's card with a colour; none: the theme's card again. */
+  fillObject: (objectId: string, colour: FillColour | undefined) => void
   /** Delete the connection whose label is being typed. */
   removeLabelled: () => void
   /** Open the icons of an object, at a point of the screen. */
@@ -71,6 +79,9 @@ export const CANVAS_ACTIONS: InjectionKey<CanvasActions> = Symbol('canvas action
 /** The card being dragged and the place it would land on now, while one card is dragged. */
 export const CANVAS_DRAG: InjectionKey<Ref<{ id: string; place: { x: number; y: number } } | undefined>> =
   Symbol('canvas drag')
+
+/** The card a sticky note being dragged would be stuck on, were it let go now. */
+export const CANVAS_NOTE_TARGET: InjectionKey<Ref<string | undefined>> = Symbol('canvas note target')
 
 /** Ids of the cards that are faded because another card has the focus. */
 export const CANVAS_FADED: InjectionKey<ComputedRef<ReadonlySet<string>>> = Symbol('canvas faded')

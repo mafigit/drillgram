@@ -98,7 +98,8 @@ export const SHAPE_LIBRARIES: ShapeLibrary[] = [
   {
     name: 'Flowchart',
     about: 'The shapes of a flowchart: steps, stores, documents, comments',
-    shapes: BOX_SHAPES.filter((shape) => !BASIC_SHAPES.includes(shape)).map(shaped),
+    // A sticky note has a button of its own in the toolbar (J69).
+    shapes: BOX_SHAPES.filter((shape) => !BASIC_SHAPES.includes(shape) && shape !== 'stickyNote').map(shaped),
   },
   {
     name: 'C4',

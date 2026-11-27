@@ -19,6 +19,9 @@ export const LIGHT = {
   'kind-container': 'oklch(0.6 0.12 185)',
   'kind-component': 'oklch(0.68 0.16 60)',
   'kind-code': 'oklch(0.55 0.02 260)',
+  note: 'oklch(0.924 0.12 95.746)',
+  'note-ink': 'oklch(0.268 0.007 34.298)',
+  'note-pin': 'oklch(0.577 0.245 27.325)',
 } as const
 
 export type Colour = keyof typeof LIGHT

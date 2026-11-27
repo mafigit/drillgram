@@ -4,6 +4,9 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useEventListener } from '@vueuse/core'
 import {
   CopyPlusIcon,
+  EyeIcon,
+  EyeOffIcon,
+  StickyNoteIcon,
   HistoryIcon,
   LayoutDashboardIcon,
   ListChecksIcon,
@@ -25,6 +28,10 @@ import {
   FRAME,
   GROUP_FRAME,
   ROOT_VIEW_ID,
+  STICKY_NOTE,
+  isStickyNote,
+  noteTitle,
+  notesOn,
   boxesAround,
   connectable,
   groupable,
@@ -88,11 +95,13 @@ import { cardRoom } from './canvas/cardRoom'
 import { languageIcon } from './canvas/codeLanguages'
 import { clearErrors, showError } from '../composables/useErrors'
 import { useLock } from '../composables/useLock'
+import { useNotesHidden } from '../composables/useNotesHidden'
 import { useTouch } from '../composables/useTouch'
 import { KIND_ICON, KIND_LABEL, SHAPE_LIBRARIES } from './canvas/kinds'
 import { recentShapes, rememberShape } from './canvas/recentShapes'
 import { labelSize } from './canvas/labelSize'
-import { CANVAS_ACTIONS, CANVAS_DRAG, CANVAS_FADED } from './canvas/types'
+import { CANVAS_ACTIONS, CANVAS_DRAG, CANVAS_FADED, CANVAS_NOTE_TARGET } from './canvas/types'
+import { clearOfCards, noteTarget, tether } from './canvas/notes'
 import type { ConnectionEdge, ObjectNode } from './canvas/types'
 import { arrangeInBackground, useLayoutEngine } from '../composables/useLayoutEngine'
 import type { Scene, SceneConnector } from '../export/svg'
@@ -367,12 +376,20 @@ function bringKept() {
   kept.value = undefined
 }
 
-function addBoxEvent(kind: ElementKind, name: string, details: ObjectDetails, wanted?: Point): WorkspaceEvent {
+function addBoxEvent(kind: ElementKind, given: string, details: ObjectDetails, wanted?: Point): WorkspaceEvent {
+  // A sticky note is its text alone, named by its first line (J69).
+  const name = details.shape === 'stickyNote' ? noteTitle(details.description ?? '') : given
   // The card is as tall as its text needs (Markdown): measured here, kept with the change.
   const room = cardRoom({ name, kind, ...details, icons: 0 })
   const size = room === CARD ? undefined : room
   const at = wanted && size ? freePlaceNear(wanted, size) : wanted
   return { type: 'objectAdded', view: viewId.value, kind, name, details, at, ...(size && { size }) }
+}
+
+/** "Sticky note" in the toolbar: a note's name, then it is on the diagram, shown. */
+function startAddingNote() {
+  notesHidden.value = false
+  startAdding('box', undefined, '', 'stickyNote')
 }
 
 function commitAdding() {
@@ -496,9 +513,10 @@ function saveEdit(objectId: string, name: string, details: ObjectDetails) {
   dispatch(editBoxEvent(objectId, name, details))
 }
 
-function editBoxEvent(objectId: string, name: string, details: ObjectDetails): WorkspaceEvent {
+function editBoxEvent(objectId: string, given: string, details: ObjectDetails): WorkspaceEvent {
   const object = workspace.value.model.objects.find((o) => o.id === objectId)
   const description = details.description ?? object?.description ?? ''
+  const name = (details.shape ?? object?.shape) === 'stickyNote' ? noteTitle(description) : given
   // Another text needs another room: the card grows or shrinks with it, on this diagram, and
   // moves to the nearest free place where it would otherwise reach into another card.
   let card: { view: string; size: Size; to?: Point } | undefined
@@ -572,6 +590,8 @@ provide(CANVAS_ACTIONS, {
   pickIcons: (objectId, at) => locked.value || (iconsOf.value = { id: objectId, at }),
   edit: startEditing,
   copy: (objectId) => copyCards([objectId]),
+  detach: (noteId) => locked.value || dispatch({ type: 'noteDetached', view: viewId.value, note: noteId }),
+  fillObject: (objectId, colour) => locked.value || dispatch({ type: 'objectFilled', object: objectId, ...(colour && { colour }) }),
   resize: (objectId, box) => resizeCardTo(objectId, box),
   describe: (objectId, text) => {
     const object = workspace.value.model.objects.find((o) => o.id === objectId)
@@ -598,6 +618,10 @@ const nodeTypes = { object: markRaw(ObjectNodeView) }
 const edgeTypes = { connection: markRaw(ConnectionEdgeView) }
 
 const nodes = ref<ObjectNode[]>([])
+/** Sticky notes are hidden (J69): not drawn, nor their lines; still in the workspace. */
+const notesHidden = useNotesHidden()
+/** Whether the open diagram has sticky notes, shown or not. */
+const notesHere = computed(() => Object.keys(view.value.positions).some((id) => isNoteCard(id)))
 // Selecting several: a click with Ctrl or Cmd adds a card (either key, on any system), and a
 // frame drawn on the canvas with Shift held takes the cards inside it (Vue Flow's default).
 const ALSO_SELECT = ['Meta', 'Control']
@@ -609,8 +633,13 @@ const selectSeveral = ref(false)
 function rebuildNodes() {
   const selected = new Set(selectNext ?? nodes.value.filter((n) => n.selected).map((n) => n.id))
   selectNext = undefined
+  const names = new Map(workspace.value.model.objects.map((object) => [object.id, object.name]))
+  const stuckOn = (id: string) => {
+    const on = view.value.attached?.[id]
+    return on === undefined ? undefined : names.get(on)
+  }
   nodes.value = workspace.value.model.objects
-    .filter((object) => Object.hasOwn(view.value.positions, object.id))
+    .filter((object) => Object.hasOwn(view.value.positions, object.id) && !(notesHidden.value && isStickyNote(object)))
     .map((object) => ({
       id: object.id,
       type: 'object',
@@ -619,6 +648,8 @@ function rebuildNodes() {
       // CARD; one that "Arrange" made larger for its connections has its own.
       ...cardSize(view.value, object.id),
       selected: selected.has(object.id),
+      // A sticky note lies over the cards, a selected one too (Vue Flow lifts those by 1000).
+      ...(isStickyNote(object) && { zIndex: 1001 }),
       ariaLabel: object.name,
       data: {
         name: object.name,
@@ -628,13 +659,16 @@ function rebuildNodes() {
         external: object.external === true,
         shape: object.shape,
         columns: object.columns,
-        opens: true,
+        // A sticky note is a note, not a box with an inside (J69).
+        opens: !isStickyNote(object),
         // A code element without an icon of its own shows its language's.
         icons: object.icons ?? (object.kind === 'code' ? [languageIcon(object.technology)].filter((icon) => icon !== undefined) : []),
+        stuckOn: stuckOn(object.id),
+        ...(object.fill && { fill: object.fill }),
       },
     }))
 }
-watch([workspace, viewId], rebuildNodes, { immediate: true })
+watch([workspace, viewId, notesHidden], rebuildNodes, { immediate: true })
 
 // The boundary: inside an object (a system's Container diagram, a container's Component diagram)
 // the object itself is not a card but a frame around its parts, with its name on it, as C4 draws
@@ -715,6 +749,27 @@ const groupFrames = computed(() =>
     return [{ id: group.id, name: group.name, type: group.type, members: group.members, x, y, width: right - x, height: bottom - y }]
   }),
 )
+
+// Sticky notes (J69): a note dropped on a card sticks there and goes where the card goes. A
+// dashed line runs from it to that card, under the cards, where they are now (a dragged one too).
+const tethers = computed(() => {
+  const boxes = new Map(
+    nodes.value.map((node) => [
+      node.id,
+      {
+        ...node.position,
+        width: typeof node.width === 'number' ? node.width : CARD.width,
+        height: typeof node.height === 'number' ? node.height : CARD.height,
+      },
+    ]),
+  )
+  if (notesHidden.value) return []
+  return Object.entries(view.value.attached ?? {}).flatMap(([note, on]) => {
+    const [a, b] = [boxes.get(note), boxes.get(on)]
+    const line = a && b ? tether(a, b) : undefined
+    return line ? [{ note, ...line }] : []
+  })
+})
 
 /** The form that puts the selected cards in a frame is open (the toolbar's "Group"). */
 const grouping = ref(false)
@@ -805,7 +860,7 @@ const frameLinks = computed(() => {
 const outsideCards = computed(() => {
   if (!framed.value) return []
   return nodes.value
-    .filter((node) => !framed.value!.isInside(node.id))
+    .filter((node) => !framed.value!.isInside(node.id) && !isAttached(node.id))
     .map((node) => ({
       id: node.id,
       ...(drag.value?.id === node.id ? drag.value.place : node.position),
@@ -946,7 +1001,7 @@ function frameStaysClear(objectId: string, place: Point, size?: Size): boolean {
   const right = Math.max(...own.map((card) => card.x + card.width)) + FRAME.side
   const bottom = Math.max(...own.map((card) => card.y + card.height)) + FRAME.bottom
   return all
-    .filter((card) => !isInside(card.id))
+    .filter((card) => !isInside(card.id) && !isAttached(card.id))
     .every(
       (card) =>
         card.x >= right + CARD_GAP ||
@@ -977,7 +1032,10 @@ function landingPlace(objectId: string, wanted: Point, alone = true): Point {
 function bestPlace(objectId: string, wanted: Point): Point {
   const fallback = { x: Math.round(wanted.x), y: Math.round(wanted.y) }
   if (!engine.value) return fallback
-  const cards = Object.entries(view.value.positions).map(([id, p]) => ({ id, ...p, ...cardSize(view.value, id) }))
+  // Notes stuck on cards are in nobody's way (J69).
+  const cards = Object.entries(view.value.positions)
+    .filter(([id]) => id === objectId || !isAttached(id))
+    .map(([id, p]) => ({ id, ...p, ...cardSize(view.value, id) }))
   // A card outside the frame lands among the other cards outside and the frame, one card.
   const frame = boundary.value
   const outside = framed.value && frame && !framed.value.isInside(objectId)
@@ -1016,7 +1074,9 @@ function freePlaceNear(wanted: Point, size: Size = CARD, alsoTaken: readonly Box
   try {
     const { x, y } = engine.value.snap({
       cards: [
-        ...Object.entries(view.value.positions).map(([id, p]) => ({ id, ...p, ...cardSize(view.value, id) })),
+        ...Object.entries(view.value.positions)
+          .filter(([id]) => !isAttached(id))
+          .map(([id, p]) => ({ id, ...p, ...cardSize(view.value, id) })),
         ...alsoTaken.map((box, index) => ({ id: `\u0000taken${index}`, ...box })),
         { id: NEW, ...onGrid, ...size },
       ],
@@ -1033,7 +1093,48 @@ function freePlaceNear(wanted: Point, size: Size = CARD, alsoTaken: readonly Box
   }
 }
 
+/** The card a dragged sticky note is over: let go, the note sticks on it. */
+const noteOver = ref<string>()
+provide(CANVAS_NOTE_TARGET, noteOver)
+
+const isNoteCard = (id: string) => isStickyNote(workspace.value.model.objects.find((object) => object.id === id))
+const onTheGrid = (at: Point): Point => ({ x: Math.round(at.x / SNAP_GRID) * SNAP_GRID, y: Math.round(at.y / SNAP_GRID) * SNAP_GRID })
+
+/** A sticky note stuck on a card: it may lie over anything and is in nobody's way. */
+function isAttached(id: string): boolean {
+  return view.value.attached?.[id] !== undefined
+}
+
+/** The card a sticky note at a place would be stuck on, were it let go there. */
+function cardUnderNote(noteId: string, at: Point): string | undefined {
+  const cards = Object.entries(view.value.positions)
+    .filter(([id]) => id !== noteId)
+    .map(([id, p]) => ({ id, ...p, ...cardSize(view.value, id), note: isNoteCard(id) }))
+  return noteTarget({ ...at, ...cardSize(view.value, noteId) }, cards)
+}
+
+/**
+ * The notes stuck on dragged cards come along while the hand moves, the same way; the model
+ * puts them where they land (`moveObject`). A note dragged itself is not taken along.
+ */
+function notesAlong(moved: readonly { id: string; position: Point }[]) {
+  const dragged = new Set(moved.map((card) => card.id))
+  const along = new Map<string, Point>()
+  for (const card of moved) {
+    const from = view.value.positions[card.id]
+    if (!from) continue
+    for (const note of notesOn(view.value, card.id)) {
+      const at = view.value.positions[note]
+      if (at && !dragged.has(note)) along.set(note, { x: at.x + card.position.x - from.x, y: at.y + card.position.y - from.y })
+    }
+  }
+  // A new list, where only the notes are new: Vue Flow takes a list, not a change inside one.
+  if (along.size > 0) nodes.value = nodes.value.map((node) => (along.has(node.id) ? { ...node, position: along.get(node.id)! } : node))
+}
+
 function onNodeDrag({ node, nodes: moved }: NodeDragEvent) {
+  notesAlong(moved)
+  noteOver.value = moved.length === 1 && isNoteCard(node.id) ? cardUnderNote(node.id, node.position) : undefined
   // The preview is for one card; several dragged together each land on their own, and only
   // show where they are in line.
   if (moved.length !== 1) {
@@ -1042,7 +1143,9 @@ function onNodeDrag({ node, nodes: moved }: NodeDragEvent) {
     return
   }
   groupDrag.value = undefined
-  const place = landingPlace(node.id, node.position)
+  // A note stuck on a card, or let go on one, stays right where it is let go: on anything.
+  const sticks = isAttached(node.id) || noteOver.value !== undefined
+  const place = sticks ? onTheGrid(node.position) : landingPlace(node.id, node.position)
   // The same place as before changes nothing: the connectors need no new routes.
   const before = drag.value
   if (before?.id !== node.id || before.place.x !== place.x || before.place.y !== place.y) {
@@ -1053,8 +1156,23 @@ function onNodeDrag({ node, nodes: moved }: NodeDragEvent) {
 function onNodeDragStop({ nodes: moved }: NodeDragEvent) {
   drag.value = undefined
   groupDrag.value = undefined
+  noteOver.value = undefined
+  // A sticky note let go over a card sticks on it, right there (J69). One that is stuck stays
+  // stuck wherever it is moved: its pin takes it off.
+  const [only] = moved
+  if (moved.length === 1 && only && isNoteCard(only.id)) {
+    const on = cardUnderNote(only.id, only.position)
+    if (on !== undefined && on !== view.value.attached?.[only.id]) {
+      dispatch({ type: 'noteAttached', view: viewId.value, note: only.id, object: on, to: onTheGrid(only.position) })
+      rebuildNodes()
+      return
+    }
+  }
   // One drag is one change, however many cards went along.
-  const moves = moved.map((node) => ({ object: node.id, to: landingPlace(node.id, node.position, moved.length === 1) }))
+  const moves = moved.map((node) => ({
+    object: node.id,
+    to: isAttached(node.id) ? onTheGrid(node.position) : landingPlace(node.id, node.position, moved.length === 1),
+  }))
   // Several cards: where they all land, a group's frame must not run over a card outside it.
   // Then none of them moves, and a card says why.
   if (moves.length > 1 && !groupFramesStayClear(view.value, Object.fromEntries(moves.map((move) => [move.object, move.to])))) {
@@ -1243,14 +1361,18 @@ async function arrange(signal?: AbortSignal, boxIds?: string[]) {
     if (signal) throw new Error('Arrange needs a diagram with cards and an idle layout engine.')
     return
   }
-  arranging.value = 'thinking'
-  clearErrors()
   const asked = { workspace: workspace.value, view: viewId.value }
-  const all = Object.entries(view.value.positions).map(([id, p]) => ({ id, ...p, ...cardSize(view.value, id) }))
+  const every = Object.entries(view.value.positions).map(([id, p]) => ({ id, ...p, ...cardSize(view.value, id) }))
+  // Sticky notes (J69) are no part of the layout: the cards are laid out as if they were not
+  // there, and the notes are then only made clear of them (`clearOfCards`).
+  const all = every.filter((card) => !isNoteCard(card.id))
+  const notes = every.filter((card) => isNoteCard(card.id))
   // On a diagram with a frame, the cards inside it: its neighbours stay around it.
   const own = framed.value ? all.filter((card) => framed.value!.isInside(card.id)) : all
   const selection = boxIds ?? (!signal && arrangeSome.value ? selected.value : undefined)
-  const chosen = new Set(selection ?? own.map((card) => card.id))
+  const chosen = new Set((selection ?? own.map((card) => card.id)).filter((id) => !isNoteCard(id)))
+  arranging.value = 'thinking'
+  clearErrors()
   const staying = all.filter((card) => !chosen.has(card.id))
   try {
     const [arranged] = await Promise.all([
@@ -1284,12 +1406,26 @@ async function arrange(signal?: AbortSignal, boxIds?: string[]) {
       return
     }
     arranging.value = 'gliding'
+    const moved = cards.map((card) => ({ ...card, x: card.x + by.x, y: card.y + by.y }))
+    // A note stuck on a card goes the same way, on anything; a loose note is made clear of the
+    // cards and the loose notes, nothing else.
+    const now = new Map(moved.map((card) => [card.id, card]))
+    const along = notes.flatMap((note) => {
+      const on = view.value.attached?.[note.id]
+      const [to, was] = [on === undefined ? undefined : now.get(on), on === undefined ? undefined : view.value.positions[on]]
+      return to && was ? [{ ...note, x: note.x + to.x - was.x, y: note.y + to.y - was.y }] : []
+    })
+    const loose = notes.filter((note) => !isAttached(note.id))
+    const notesNow = [...along, ...clearOfCards([...moved, ...staying], loose, CARD_GAP, SNAP_GRID)].filter((note) => {
+      const was = view.value.positions[note.id]!
+      return note.x !== was.x || note.y !== was.y
+    })
     const event: WorkspaceEvent = {
       type: 'viewArranged',
       view: asked.view,
-      cards: cards.map((card) => ({
+      cards: [...moved, ...notesNow].map((card) => ({
         object: card.id,
-        to: { x: card.x + by.x, y: card.y + by.y },
+        to: { x: card.x, y: card.y },
         size: { width: card.width, height: card.height },
       })),
     }
@@ -1326,8 +1462,11 @@ async function bringDiagram(diagram: Diagram, signal?: AbortSignal) {
     return at
   }
   const onDiagram = diagram.elements.filter((element) => element.inside === undefined)
-  const inFile = new Set(onDiagram.map((element) => element.id))
-  let laid = onDiagram.map((element, i) => ({
+  // Sticky notes are no part of the layout (J69): they come after it, made clear of the cards.
+  const noteElements = onDiagram.filter((element) => element.shape === 'stickyNote')
+  const cardElements = onDiagram.filter((element) => element.shape !== 'stickyNote')
+  const inFile = new Set(cardElements.map((element) => element.id))
+  let laid = cardElements.map((element, i) => ({
     id: element.id,
     x: (i % 4) * (CARD.width + 100),
     y: Math.floor(i / 4) * (CARD.height + 60),
@@ -1353,8 +1492,8 @@ async function bringDiagram(diagram: Diagram, signal?: AbortSignal) {
     }
   }
   const staying = Object.entries(view.value.positions).map(([id, p]) => ({ ...p, ...cardSize(view.value, id) }))
-  const left = Math.min(...laid.map((card) => card.x))
-  const top = Math.min(...laid.map((card) => card.y))
+  const left = laid.length > 0 ? Math.min(...laid.map((card) => card.x)) : 0
+  const top = laid.length > 0 ? Math.min(...laid.map((card) => card.y)) : 0
   const start =
     staying.length === 0
       ? { x: 40, y: 40 }
@@ -1364,7 +1503,21 @@ async function bringDiagram(diagram: Diagram, signal?: AbortSignal) {
         }
   const shifted = laid.map((card) => ({ ...card, x: card.x - left + start.x, y: card.y - top + start.y }))
   const by = placeBlock(shifted, staying, CARD_GAP, SNAP_GRID) ?? { x: 0, y: 0 }
-  const places = Object.fromEntries(shifted.map((card) => [card.id, { x: card.x + by.x, y: card.y + by.y }]))
+  const cardsNow = shifted.map((card) => ({ ...card, x: card.x + by.x, y: card.y + by.y }))
+  // A note stuck on a card lies over its top right corner, as on a board; a loose one goes in a
+  // row under the cards, clear of them.
+  const under = cardsNow.length > 0 ? Math.max(...cardsNow.map((card) => card.y + card.height)) + 2 * CARD_GAP : start.y
+  const from = cardsNow.length > 0 ? Math.min(...cardsNow.map((card) => card.x)) : start.x
+  let row = 0
+  const onCards: (Box & { id: string })[] = []
+  const looseNotes: (Box & { id: string })[] = []
+  for (const element of noteElements) {
+    const on = cardsNow.find((card) => card.id === element.attachedTo)
+    if (on) onCards.push({ id: element.id, x: on.x + on.width - STICKY_NOTE.width / 2, y: on.y - STICKY_NOTE.height / 2, ...STICKY_NOTE })
+    else looseNotes.push({ id: element.id, x: from + row++ * (STICKY_NOTE.width + CARD_GAP), y: under, ...STICKY_NOTE })
+  }
+  const notesNow = [...onCards, ...clearOfCards([...cardsNow, ...staying], looseNotes, CARD_GAP, SNAP_GRID)]
+  const places = Object.fromEntries([...cardsNow, ...notesNow].map((card) => [card.id, { x: card.x, y: card.y }]))
   if (workspace.value !== asked.workspace || viewId.value !== asked.view) {
     throw new Error('The diagram changed meanwhile. Import it again.')
   }
@@ -1409,18 +1562,22 @@ const links = computed(() => {
 const routes = computed(() => {
   const found = new Map<string, { route: readonly Point[]; labelAt?: Point }>()
   if (!engine.value || links.value.length === 0) return found
-  const places = { ...view.value.positions }
+  // A sticky note on a card is no card to route around (J69): it may lie over anything.
+  const places = Object.fromEntries(Object.entries(view.value.positions).filter(([id]) => !isAttached(id)))
   if (drag.value && Object.hasOwn(places, drag.value.id)) places[drag.value.id] = drag.value.place
+  // A connector of such a note runs straight, from card to card.
+  const routed = links.value.filter((link) => Object.hasOwn(places, link.from) && Object.hasOwn(places, link.to))
+  if (routed.length === 0) return found
   try {
     const answer = routeWithClearLabels(engine.value, {
       cards: Object.entries(places).map(([id, p]) => ({ id, ...p, ...cardSize(view.value, id) })),
-      connections: links.value.map((link) => ({
+      connections: routed.map((link) => ({
         from: link.from,
         to: link.to,
         label: link.label ? labelSize(link.label) : undefined,
       })),
     })
-    links.value.forEach((link, i) =>
+    routed.forEach((link, i) =>
       found.set(link.id, { route: answer.routes[i] ?? [], labelAt: answer.labels[i] ?? undefined }),
     )
   } catch (error) {
@@ -1437,6 +1594,10 @@ const faded = computed(() => {
   const clear = new Set(selected)
   const edges = new Set<string>()
   if (selected.size > 0) {
+    // A sticky note and the card it is stuck on are clear together.
+    for (const [note, on] of Object.entries(view.value.attached ?? {})) {
+      if (selected.has(note) || selected.has(on)) clear.add(note).add(on)
+    }
     for (const link of links.value) {
       if (selected.has(link.from) || selected.has(link.to)) clear.add(link.from).add(link.to)
       else edges.add(link.id)
@@ -1689,6 +1850,7 @@ function exportScene(): Scene {
     title: title.value,
     cards: nodes.value.map((node) => ({ ...box(node.id), ...node.data })),
     connectors,
+    tethers: tethers.value.map(({ from, to }) => ({ from, to })),
     boundary: boundary.value,
     key: {
       kinds: keyKinds.value,
@@ -1898,6 +2060,13 @@ const keyKinds = computed(() =>
                own wrapper is hidden: only the teleported outline shows. -->
           <div class="hidden">
             <EdgeLabelRenderer>
+              <!-- From each sticky note stuck on a card to that card (J69): dashed, a dot at the card. -->
+              <svg v-if="tethers.length > 0" class="pointer-events-none absolute top-0 left-0 size-px overflow-visible" aria-hidden="true">
+                <g v-for="line in tethers" :key="line.note" data-testid="note-tether">
+                  <path class="note-tether" :d="`M${line.from.x} ${line.from.y}L${line.to.x} ${line.to.y}`" />
+                  <circle class="note-tether-end" :cx="line.to.x" :cy="line.to.y" r="3.5" />
+                </g>
+              </svg>
               <!-- The frames around cards (groups): under the cards, their names over the frame's top. -->
               <div
                 v-for="frame in groupFrames"
@@ -2144,6 +2313,17 @@ const keyKinds = computed(() =>
             <LockOpenIcon aria-hidden="true" />
             Unlock
           </Button>
+          <Button
+            v-if="notesHere"
+            variant="ghost"
+            size="icon-lg"
+            :aria-label="notesHidden ? 'Show sticky notes' : 'Hide sticky notes'"
+            :title="notesHidden ? 'Show sticky notes' : 'Hide sticky notes'"
+            :aria-pressed="notesHidden"
+            @click="notesHidden = !notesHidden"
+          >
+            <component :is="notesHidden ? EyeIcon : EyeOffIcon" aria-hidden="true" />
+          </Button>
         </template>
         <AddObjectForm
           v-else-if="addingKind && !floatAt"
@@ -2156,6 +2336,23 @@ const keyKinds = computed(() =>
 
         <template v-else>
           <ShapePicker :kinds="kinds" @pick="(kind: ElementKind, technology?: string, shape?: BoxShape) => startAdding(kind, undefined, technology, shape)" />
+          <!-- Sticky notes (J69): a button of their own, and a way to hide them all. -->
+          <Button variant="ghost" size="lg" aria-label="Add sticky note" title="Add a sticky note: let go on a shape, it sticks there" @click="startAddingNote">
+            <StickyNoteIcon aria-hidden="true" />
+            <span class="max-lg:sr-only">Sticky note</span>
+          </Button>
+          <Button
+            v-if="notesHere"
+            variant="ghost"
+            size="icon-lg"
+            :aria-label="notesHidden ? 'Show sticky notes' : 'Hide sticky notes'"
+            :title="notesHidden ? 'Show sticky notes' : 'Hide sticky notes'"
+            :aria-pressed="notesHidden"
+            :class="{ 'bg-accent': notesHidden }"
+            @click="notesHidden = !notesHidden"
+          >
+            <component :is="notesHidden ? EyeIcon : EyeOffIcon" aria-hidden="true" />
+          </Button>
 
           <span class="bg-border mx-1 h-5 w-px" aria-hidden="true" />
 

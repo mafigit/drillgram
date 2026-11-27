@@ -2,9 +2,10 @@
 import { computed, inject, ref } from 'vue'
 import { Handle, NodeResizeControl, Position, ResizeControlVariant, storeToRefs, useConnection, useVueFlowStore } from '@xyflow/vue'
 import type { NodeProps, OnResizeEnd } from '@xyflow/vue'
-import { CopyIcon, ImagePlusIcon, PencilIcon, UserIcon, ZoomInIcon } from '@lucide/vue'
+import { CopyIcon, ImagePlusIcon, PaletteIcon, PencilIcon, PinIcon, UserIcon, ZoomInIcon } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
-import { CARD } from '@drillgram/model'
+import { CARD, FILL_COLOURS, FILL_COLOUR_HEX } from '@drillgram/model'
+import type { FillColour } from '@drillgram/model'
 import MarkdownField from '../MarkdownField.vue'
 import { renderMarkdown } from '@/lib/markdown'
 import { iconUrl, useTechIcons } from '../../composables/useTechIcons'
@@ -12,7 +13,7 @@ import { codeBadge, isAbstractCode } from './codeLanguages'
 import { KEY_SIGN } from './columns'
 import { cardType } from './kinds'
 import { boxShape } from './shapes'
-import { CANVAS_ACTIONS, CANVAS_FADED } from './types'
+import { CANVAS_ACTIONS, CANVAS_FADED, CANVAS_NOTE_TARGET } from './types'
 import type { ObjectNode } from './types'
 
 const props = defineProps<NodeProps<ObjectNode>>()
@@ -20,6 +21,19 @@ const props = defineProps<NodeProps<ObjectNode>>()
 const actions = inject(CANVAS_ACTIONS)
 const locked = computed(() => actions?.locked.value === true)
 const faded = inject(CANVAS_FADED)
+/** A sticky note is dragged over this card: let go, it sticks here (J69). */
+const noteTarget = inject(CANVAS_NOTE_TARGET, undefined)
+const takesNote = computed(() => noteTarget?.value === props.id)
+const isNote = computed(() => props.data.shape === 'stickyNote')
+/** The colour of a note's paper (yellow by itself), and the swatches to give it another, while open. */
+/** The colour the card is filled with: a note is yellow without one, another card has none. */
+const fill = computed<FillColour | undefined>(() => props.data.fill ?? (isNote.value ? 'yellow' : undefined))
+const pickingColour = ref(false)
+function colourAs(colour: FillColour | undefined) {
+  pickingColour.value = false
+  actions?.fillObject(props.id, colour)
+}
+const colourName = (colour: FillColour) => colour.charAt(0).toUpperCase() + colour.slice(1)
 const connection = useConnection()
 /** While a connection is being drawn, the whole card of every other object takes the drop. */
 const takesDrop = computed(() => connection.value.inProgress && connection.value.fromNode.id !== props.id)
@@ -70,7 +84,11 @@ const slanted = computed(() => isCode.value && isAbstractCode(props.data.technol
 // The description is Markdown (lib/markdown.ts makes it safe HTML). The card is as tall as the
 // text needs when it was added or edited (cardRoom.ts measures it with the classes used here);
 // where it is not, a card that was made longer since, the text scrolls inside the selected card.
-const text = computed(() => (props.data.description ? renderMarkdown(props.data.description) : ''))
+// A sticky note is its text alone, no name over it (J69): what it says, else its name.
+const text = computed(() => {
+  const said = props.data.description ?? (isNote.value ? props.data.name : undefined)
+  return said ? renderMarkdown(said) : ''
+})
 
 /** The last line: the kind, "external" for what is not ours, and the technology where there is one. */
 const type = computed(() => cardType(props.data))
@@ -99,7 +117,7 @@ const newText = ref<string>()
 // The field is as large on the screen however the diagram is zoomed: drawn at a fixed size and
 // scaled back by the zoom, from its top middle, which stays under the name.
 const { transform } = storeToRefs(useVueFlowStore())
-const TEXT_FIELD = { width: 300, height: 190 }
+const TEXT_FIELD = { width: 340, height: 280 }
 const textFieldStyle = computed(() => ({
   width: `${TEXT_FIELD.width}px`,
   height: `${TEXT_FIELD.height}px`,
@@ -116,7 +134,7 @@ function onDoubleClick(event: MouseEvent) {
   if (target.closest('[data-card-name]')) newName.value = props.data.name
   // A table's columns are written in its form.
   else if (isTable.value) edit(event)
-  else newText.value = props.data.description ?? ''
+  else newText.value = props.data.description ?? (isNote.value ? props.data.name : '')
 }
 
 // Resizing (J68): the selected card has a handle on each corner and can be pulled at each side.
@@ -145,8 +163,17 @@ function commitText() {
       'is-code': isCode,
       'is-table': isTable,
       'is-shaped': outline !== undefined,
+      'is-note': isNote,
+      'has-fill': !isNote && data.fill !== undefined,
+      'takes-note': takesNote,
     }"
-    :style="{ '--kind': data.external ? 'var(--muted-foreground)' : `var(--kind-${data.kind})`, ...shapeRoom }"
+    :data-takes-note="takesNote || undefined"
+    :data-fill="fill"
+    :style="{
+      '--kind': data.external ? 'var(--muted-foreground)' : `var(--kind-${data.kind})`,
+      ...shapeRoom,
+      ...(data.fill && { '--note': FILL_COLOUR_HEX[data.fill], '--fill': FILL_COLOUR_HEX[data.fill] }),
+    }"
     @dblclick="onDoubleClick"
   >
     <svg
@@ -162,6 +189,19 @@ function commitText() {
         <path v-for="line in outline.lines" :key="line" :d="line" class="card-shape-line" />
       </g>
     </svg>
+    <!-- A sticky note stuck on a card has a pin; a line runs from it to that card (DiagramEditor.vue). -->
+    <button
+      v-if="data.stuckOn !== undefined"
+      type="button"
+      :aria-label="`Stuck on ${data.stuckOn}`"
+      :title="locked ? `Stuck on ${data.stuckOn}: it goes where that goes` : `Stuck on ${data.stuckOn}: it goes where that goes. Press to take it off.`"
+      :disabled="locked"
+      class="note-pin nodrag nopan absolute -top-2.5 left-1/2 grid size-6 -translate-x-1/2 place-items-center rounded-full shadow-sm"
+      @click.stop="actions?.detach(id)"
+      @dblclick.stop
+    >
+      <PinIcon class="size-3.5" aria-hidden="true" />
+    </button>
     <!-- A person has a figure on the top border. -->
     <span
       v-if="data.kind === 'person'"
@@ -174,7 +214,7 @@ function commitText() {
 
     <div class="card-body flex min-h-0 w-full flex-1 flex-col items-center gap-1" :class="newText === undefined ? 'justify-center' : 'justify-start pt-3'">
       <!-- The name, with the icons left of it; as much room is kept free on its right. -->
-      <div class="card-name-row relative w-full shrink-0" :style="isCode ? undefined : { paddingInline: iconsRoom }">
+      <div v-if="!isNote" class="card-name-row relative w-full shrink-0" :style="isCode ? undefined : { paddingInline: iconsRoom }">
         <span v-if="badge" data-testid="code-badge" class="code-badge" aria-hidden="true">{{ badge }}</span>
         <!-- On a class box the icons stand in the row, after the badge; else left of the name, over the row's padding. -->
         <div class="card-icons flex items-center" :class="isCode ? 'flex-none' : 'absolute top-1/2 left-0 -translate-y-1/2'">
@@ -253,7 +293,19 @@ function commitText() {
       <Button variant="ghost" size="icon-xs" class="text-muted-foreground" aria-label="Edit" title="Edit" @click.stop="edit">
         <PencilIcon aria-hidden="true" />
       </Button>
-      <Button variant="ghost" size="icon-xs" class="text-muted-foreground" aria-label="Icons" title="Icons" @click.stop="pickIcons">
+      <!-- Any card takes a colour; a sticky note takes no icons (J69). -->
+      <Button
+        variant="ghost"
+        size="icon-xs"
+        class="text-muted-foreground"
+        aria-label="Colour"
+        title="Colour"
+        :aria-expanded="pickingColour"
+        @click.stop="pickingColour = !pickingColour"
+      >
+        <PaletteIcon aria-hidden="true" />
+      </Button>
+      <Button v-if="!isNote" variant="ghost" size="icon-xs" class="text-muted-foreground" aria-label="Icons" title="Icons" @click.stop="pickIcons">
         <ImagePlusIcon aria-hidden="true" />
       </Button>
       <Button variant="ghost" size="icon-xs" class="text-muted-foreground" aria-label="Copy" title="Copy" @click.stop="actions?.copy(id)">
@@ -261,7 +313,37 @@ function commitText() {
       </Button>
     </div>
 
-    <template v-if="selected && !locked">
+    <div
+      v-if="pickingColour && !locked"
+      role="group"
+      aria-label="Colours"
+      class="note-colours nodrag nopan bg-popover absolute top-8 right-1 z-30 grid grid-cols-5 gap-1 rounded-lg border p-1.5 shadow-md"
+    >
+      <!-- A note is yellow paper without a colour, so it has no "No colour". -->
+      <button
+        v-if="!isNote"
+        type="button"
+        aria-label="No colour"
+        title="No colour"
+        :aria-pressed="fill === undefined"
+        class="note-swatch no-fill bg-card size-5 rounded-full border"
+        @click.stop="colourAs(undefined)"
+      />
+      <button
+        v-for="colour in FILL_COLOURS"
+        :key="colour"
+        type="button"
+        :aria-label="colourName(colour)"
+        :title="colourName(colour)"
+        :aria-pressed="colour === fill"
+        class="note-swatch size-5 rounded-full border"
+        :style="{ background: FILL_COLOUR_HEX[colour] }"
+        @click.stop="colourAs(colour)"
+      />
+    </div>
+
+    <!-- Not while the text is written in place: the handles would lie over the field. -->
+    <template v-if="selected && !locked && newText === undefined">
       <NodeResizeControl
         v-for="side in SIDES"
         :key="side"
@@ -296,7 +378,7 @@ function commitText() {
       type="source"
       :position="Position.Right"
       class="connect-handle"
-      :class="{ invisible: locked }"
+      :class="{ invisible: locked || newText !== undefined }"
       data-testid="connection-handle"
       title="Drag to connect"
     />

@@ -1,6 +1,6 @@
 import { plainLines } from '@/lib/markdown'
-import { LINE_COLOURS, LINE_COLOUR_HEX } from '@drillgram/model'
-import type { BoxShape, ElementKind, LineColour, Point, TableColumn } from '@drillgram/model'
+import { LINE_COLOURS, LINE_COLOUR_HEX, FILL_COLOUR_HEX } from '@drillgram/model'
+import type { BoxShape, ElementKind, LineColour, FillColour, Point, TableColumn } from '@drillgram/model'
 import { codeBadge, isAbstractCode } from '../components/canvas/codeLanguages'
 import { KIND_LABEL, cardType } from '../components/canvas/kinds'
 import { boxShape } from '../components/canvas/shapes'
@@ -28,6 +28,10 @@ export interface SceneCard {
   shape?: BoxShape
   /** The columns of a table, in their order. */
   columns?: readonly TableColumn[]
+  /** The name of the card a sticky note is stuck on: it has a pin. */
+  stuckOn?: string
+  /** The colour the card is filled with; the light theme's card without (a sticky note: yellow). */
+  fill?: FillColour
 }
 
 /** A connector, as the canvas draws it. */
@@ -52,6 +56,8 @@ export interface Scene {
   connectors: readonly SceneConnector[]
   /** The frame around the parts of the object the diagram is about. */
   boundary?: { name: string; kind: ElementKind; x: number; y: number; width: number; height: number }
+  /** The lines from each sticky note that is stuck on a card to that card. */
+  tethers?: readonly { from: Point; to: Point }[]
   /** What the key lists: only what is on the diagram. */
   key: { kinds: readonly ElementKind[]; external: boolean; relationships: boolean; toFrame?: boolean }
 }
@@ -214,7 +220,7 @@ function codeCard(card: SceneCard, options: SvgOptions): string {
   const inner = card.width - 2 * CARD.padX
   const bottom = card.y + card.height
   const parts: string[] = [
-    `<rect x="${n(card.x + 0.5)}" y="${n(card.y + 0.5)}" width="${n(card.width - 1)}" height="${n(card.height - 1)}" rx="${CODE.radius}" fill="${COLOURS.card}" stroke="${COLOURS.border}"/>`,
+    `<rect x="${n(card.x + 0.5)}" y="${n(card.y + 0.5)}" width="${n(card.width - 1)}" height="${n(card.height - 1)}" rx="${CODE.radius}" fill="${card.fill ? FILL_COLOUR_HEX[card.fill] : COLOURS.card}" stroke="${COLOURS.border}"/>`,
   ]
   const rule = (y: number) => `<line x1="${n(card.x)}" y1="${n(y)}" x2="${n(card.x + card.width)}" y2="${n(y)}" stroke="${COLOURS.border}"/>`
   const type = cardType(card)
@@ -290,7 +296,7 @@ function tableCard(card: SceneCard, options: SvgOptions): string {
   const kind = COLOURS[`kind-${card.kind}`]
   const [left, right] = [card.x, card.x + card.width]
   const parts: string[] = [
-    `<rect x="${n(card.x + 0.5)}" y="${n(card.y + 0.5)}" width="${n(card.width - 1)}" height="${n(card.height - 1)}" rx="${TABLE.radius}" fill="${COLOURS.card}" stroke="${COLOURS.border}"/>`,
+    `<rect x="${n(card.x + 0.5)}" y="${n(card.y + 0.5)}" width="${n(card.width - 1)}" height="${n(card.height - 1)}" rx="${TABLE.radius}" fill="${card.fill ? FILL_COLOUR_HEX[card.fill] : COLOURS.card}" stroke="${COLOURS.border}"/>`,
     `<path d="M${n(left + 0.5)} ${n(card.y + TABLE.head)}V${n(card.y + TABLE.radius)}Q${n(left + 0.5)} ${n(card.y + 0.5)} ${n(left + TABLE.radius)} ${n(card.y + 0.5)}H${n(right - TABLE.radius)}Q${n(right - 0.5)} ${n(card.y + 0.5)} ${n(right - 0.5)} ${n(card.y + TABLE.radius)}V${n(card.y + TABLE.head)}Z" fill="${kind}" fill-opacity="0.09"/>`,
     `<line x1="${n(left)}" y1="${n(card.y + TABLE.head)}" x2="${n(right)}" y2="${n(card.y + TABLE.head)}" stroke="${COLOURS.border}"/>`,
     text({ x: card.x + card.width / 2, y: card.y + TABLE.head / 2, text: truncate(card.name, card.width - 2 * CARD.padX, FONT.name, measure), font: FONT.name, size: 15, weight: 600, fill: COLOURS['card-foreground'] }),
@@ -327,10 +333,12 @@ function card(card: SceneCard, options: SvgOptions): string {
   if (card.kind === 'code') return codeCard(card, options)
   if (card.shape === 'table') return tableCard(card, options)
   const { measure } = options
-  const fill = card.external ? COLOURS.muted : COLOURS.card
+  const outlined = card.shape ? boxShape(card.shape, card.width - 1, card.height - 1) : undefined
+  const isNote = outlined?.look === 'note'
+  const fill = card.fill ? FILL_COLOUR_HEX[card.fill] : isNote ? COLOURS.note : card.external ? COLOURS.muted : COLOURS.card
   // A box with a shape is drawn as its outline, and its text keeps clear of where that comes in,
   // as on the canvas (ObjectNode.vue).
-  const outline = card.shape ? boxShape(card.shape, card.width - 1, card.height - 1) : undefined
+  const outline = outlined
   const pad = {
     left: Math.max(CARD.padX, outline ? outline.inset.left + 8 : 0),
     right: Math.max(CARD.padX, outline ? outline.inset.right + 8 : 0),
@@ -343,9 +351,10 @@ function card(card: SceneCard, options: SvgOptions): string {
   const iconsRoom = icons.length > 0 ? icons.length * CARD.iconStep + 14 : 0
   const parts: string[] = [
     outline
-      ? `<g transform="translate(${n(card.x + 0.5)} ${n(card.y + 0.5)})">${outline.look === 'none' ? '' : `<path d="${outline.outline}" fill="${outline.look === 'solid' ? COLOURS.border : fill}" stroke="${outline.look === 'ground' ? 'none' : COLOURS.border}"/>`}${outline.lines.map((line) => `<path d="${line}" fill="none" stroke="${COLOURS.border}"/>`).join('')}</g>`
+      ? `<g transform="translate(${n(card.x + 0.5)} ${n(card.y + 0.5)})">${outline.look === 'none' ? '' : `<path d="${outline.outline}" fill="${outline.look === 'solid' ? COLOURS.border : fill}" stroke="${outline.look === 'ground' || isNote ? 'none' : COLOURS.border}"/>`}${outline.lines.map((line) => `<path d="${line}" fill="none" stroke="${COLOURS.border}"/>`).join('')}</g>`
       : `<rect x="${n(card.x + 0.5)}" y="${n(card.y + 0.5)}" width="${n(card.width - 1)}" height="${n(card.height - 1)}" rx="${CARD.radius}" fill="${fill}" stroke="${COLOURS.border}"/>`,
   ]
+  if (card.stuckOn !== undefined) parts.push(`<circle data-pin="" cx="${n(card.x + card.width / 2)}" cy="${n(card.y + 2)}" r="8" fill="${COLOURS['note-pin']}"/>`)
   if (card.kind === 'person') {
     const x = middle - CARD.figure / 2
     const y = card.y - CARD.figure / 2 - 2
@@ -550,6 +559,10 @@ export function diagramSvg(scene: Scene, options: SvgOptions): string {
     scene.boundary ? boundary(scene.boundary, measure) : '',
     // Connectors under the cards, their labels over the lines, as on the canvas.
     ...scene.connectors.map((c) => connector(c, measure)),
+    ...(scene.tethers ?? []).map(
+      ({ from, to }) =>
+        `<path data-tether="" d="M${n(from.x)} ${n(from.y)}L${n(to.x)} ${n(to.y)}" fill="none" stroke="${COLOURS['note-pin']}" stroke-width="1.5" stroke-dasharray="4 4"/><circle cx="${n(to.x)}" cy="${n(to.y)}" r="3.5" fill="${COLOURS['note-pin']}"/>`,
+    ),
     ...scene.cards.map((c) => card(c, options)),
     '</g>',
     key ? keyBox(key, MARGIN, keyTop) : '',

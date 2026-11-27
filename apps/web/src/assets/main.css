@@ -60,6 +60,10 @@
     --kind-container: oklch(0.6 0.12 185);
     --kind-component: oklch(0.68 0.16 60);
     --kind-code: oklch(0.55 0.02 260);
+    /* A sticky note (J69): paper of the same yellow in every theme, dark ink on it. */
+    --note: oklch(0.924 0.12 95.746);
+    --note-ink: oklch(0.268 0.007 34.298);
+    --note-pin: oklch(0.577 0.245 27.325);
     /* The colours a connection can have (LINE_COLOURS in the model): each theme has its tone. */
     --line-red: #dc2626;
     --line-orange: #ea580c;
@@ -806,6 +810,85 @@
 .object-card.is-external .card-shape-outline.is-none {
   fill: none;
   stroke: none;
+}
+
+.card-shape-outline.is-note,
+.object-card.is-external .card-shape-outline.is-note {
+  fill: var(--note);
+  stroke: none;
+}
+
+.object-card.is-note .card-shape {
+  filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.18));
+}
+
+.object-card.is-note,
+.object-card.is-note .text-muted-foreground {
+  color: var(--note-ink);
+}
+
+/* A note is its text alone: larger than a card's description, from the top. */
+.object-card.is-note .card-text {
+  font-size: 13px;
+  text-align: left;
+}
+
+.object-card.is-note .card-body {
+  justify-content: flex-start;
+}
+
+/* The pin of a sticky note that is stuck on a card, and the line from it to that card. */
+.note-pin {
+  z-index: 5;
+  background: var(--note-pin);
+  color: white;
+}
+
+/* A card filled with a colour: light, so its ink is dark in every theme. */
+.object-card.has-fill:not(.is-shaped) {
+  background: var(--fill);
+}
+
+.object-card.has-fill .card-shape-outline {
+  fill: var(--fill);
+}
+
+.object-card.has-fill,
+.object-card.has-fill .text-muted-foreground {
+  color: var(--note-ink);
+}
+
+/* Paper and fills are light in every theme: the Markdown's own colours (headings, bold) are ink too. */
+.object-card.is-note,
+.object-card.has-fill {
+  --card-foreground: var(--note-ink);
+}
+
+/* "No colour": the card of the theme, crossed out. */
+.note-swatch.no-fill {
+  background-image: linear-gradient(135deg, transparent 45%, var(--destructive) 45% 55%, transparent 55%);
+}
+
+.note-swatch[aria-pressed='true'] {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+
+.note-tether {
+  fill: none;
+  stroke: color-mix(in oklch, var(--note-pin) 70%, transparent);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
+}
+
+.note-tether-end {
+  fill: var(--note-pin);
+}
+
+/* A card a sticky note is dragged over: let go, the note sticks on it. */
+.object-card.takes-note {
+  outline: 2px dashed var(--note-pin);
+  outline-offset: 4px;
 }
 
 .card-shape-line {

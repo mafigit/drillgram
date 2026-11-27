@@ -1,6 +1,6 @@
 import type { C4Level } from '../index'
-import { COLUMN_KEYS, DiagramFormatError, ELEMENT_ID, canHaveShape, columnsProblem, isBoxShape, isLineColour, validateDiagram } from './model'
-import type { BoxShape, ColumnKey, Diagram, DiagramElement, ElementKind, LineColour, Relationship, TableColumn } from './model'
+import { COLUMN_KEYS, DiagramFormatError, ELEMENT_ID, canHaveShape, columnsProblem, isBoxShape, isLineColour, isFillColour, validateDiagram } from './model'
+import type { BoxShape, ColumnKey, Diagram, DiagramElement, ElementKind, LineColour, FillColour, Relationship, TableColumn } from './model'
 
 export interface Point {
   x: number
@@ -8,7 +8,7 @@ export interface Point {
 }
 
 /** An object of the architecture. It exists once in the model and can be placed on many views. */
-export interface ModelObject extends DiagramElement {
+export interface ModelObject extends Omit<DiagramElement, 'attachedTo'> {
   /** Id of the object this one lives inside, for example a container's software system. */
   parent?: string
   /**
@@ -69,6 +69,12 @@ export interface View {
   sizes?: Record<string, Size>
   /** The frames around cards of this view. A card stands in one of them at most. Absent when there are none. */
   groups?: ViewGroup[]
+  /**
+   * The sticky notes of this view that are stuck on another card, which they go along with: the
+   * note's id to the card's. Both stand on the view; the card is no sticky note. Absent when no
+   * note is stuck on anything.
+   */
+  attached?: Record<string, string>
 }
 
 /** The size of a card, in canvas pixels. */
@@ -88,6 +94,14 @@ export const CARD: Size = { width: 220, height: 120 }
 
 /** The least space between two cards. Cards never overlap and never come closer than this. */
 export const CARD_GAP = 20
+
+/** The size of a new sticky note: square, as a note of paper is. */
+export const STICKY_NOTE: Size = { width: 160, height: 160 }
+
+/** Whether an object is a sticky note, which can be stuck on another card (`attachNote`). */
+export function isStickyNote(object: { shape?: BoxShape } | undefined): boolean {
+  return object?.shape === 'stickyNote'
+}
 
 /** The Overview: the view every workspace starts with. (Its id is from when it was C4's landscape.) */
 export const ROOT_VIEW_ID = 'landscape'
@@ -183,12 +197,12 @@ export function addObject(
   const view = findView(ws, viewId)
   const trimmed = name.trim()
   if (!view || trimmed === '' || !KINDS.includes(kind)) return ws
-  const room = isSize(size) ? size : undefined
   const parent = view.scope
   const id = uniqueId(trimmed, new Set(ws.model.objects.map((o) => o.id)))
   const description = details.description?.trim()
   const technology = hasTechnology(kind) ? details.technology?.trim() : undefined
   const shape = canHaveShape(kind) && isBoxShape(details.shape) ? details.shape : undefined
+  const room = isSize(size) ? size : shape === 'stickyNote' ? STICKY_NOTE : undefined
   const columns = shape === 'table' ? tidyColumns(details.columns) : []
   const object: ModelObject = {
     id,
@@ -263,8 +277,9 @@ export function placeObject(ws: Workspace, viewId: string, objectId: string, at?
   const view = findView(ws, viewId)
   if (!view || !placeableObjects(ws, viewId).some((o) => o.id === objectId)) return ws
   const own = Object.keys(view.positions).filter((placed) => isWithin(ws, view, placed)).length
-  const usual = isWithin(ws, view, objectId) ? firstFree(view, gridSlot, own) : undefined
-  return { ...ws, views: replaceView(ws, place(view, objectId, wantedPlace(view, at) ?? usual)) }
+  const size = isStickyNote(ws.model.objects.find((o) => o.id === objectId)) ? STICKY_NOTE : undefined
+  const usual = isWithin(ws, view, objectId) ? firstFree(view, gridSlot, own, size) : undefined
+  return { ...ws, views: replaceView(ws, place(view, objectId, wantedPlace(view, at, size) ?? usual, size)) }
 }
 
 /**
@@ -339,7 +354,8 @@ export function arrangeView(ws: Workspace, viewId: string, cards: readonly Arran
   if (!changed) return ws
   const { sizes: _old, ...rest } = view
   const arranged: View = { ...rest, positions, ...(Object.keys(sizes).length > 0 && { sizes }) }
-  const ids = Object.keys(positions)
+  // A note stuck on a card may lie over any card.
+  const ids = Object.keys(positions).filter((id) => arranged.attached?.[id] === undefined)
   for (const [i, a] of ids.entries()) {
     for (const b of ids.slice(i + 1)) {
       if (!apart(positions[a]!, cardSize(arranged, a), positions[b]!, cardSize(arranged, b))) return ws
@@ -348,20 +364,160 @@ export function arrangeView(ws: Workspace, viewId: string, cards: readonly Arran
   return { ...ws, views: replaceView(ws, arranged) }
 }
 
-/** Put an object somewhere else on one view. A place too close to another card is refused. */
+/**
+ * Put an object somewhere else on one view. A place too close to another card is refused, but
+ * for a sticky note stuck on a card, which may lie over cards. The notes stuck on it go along,
+ * the same way. `alone`: notes that are moved by themselves in the same change, which do not go
+ * along.
+ */
 export function moveObject(
   ws: Workspace,
   viewId: string,
   objectId: string,
   position: Point,
+  alone: ReadonlySet<string> = new Set(),
 ): Workspace {
   const view = findView(ws, viewId)
   if (!view || !isPlaced(view, objectId)) return ws
   const old = view.positions[objectId]!
   if (old.x === position.x && old.y === position.y) return ws
-  if (!isFree(view, position, objectId)) return ws
-  const moved = { ...view, positions: { ...view.positions, [objectId]: { x: position.x, y: position.y } } }
-  return { ...ws, views: replaceView(ws, moved) }
+  const notes = notesOn(view, objectId).filter((note) => !alone.has(note))
+  const stuck = view.attached?.[objectId] !== undefined
+  if (!stuck && !isFreeOf(view, position, cardSize(view, objectId), new Set([objectId]))) return ws
+  const positions = { ...view.positions, [objectId]: { x: position.x, y: position.y } }
+  for (const note of notes) {
+    const was = positions[note]!
+    positions[note] = { x: was.x + position.x - old.x, y: was.y + position.y - old.y }
+  }
+  return { ...ws, views: replaceView(ws, { ...view, positions }) }
+}
+
+/** Several cards moved in one go (one drag): a note moved itself does not also go along with its card. */
+export function moveObjects(ws: Workspace, viewId: string, moves: readonly { object: string; to: Point }[]): Workspace {
+  const alone = new Set(moves.map((move) => move.object))
+  return moves.reduce((moved, { object, to }) => moveObject(moved, viewId, object, to, alone), ws)
+}
+
+/** The sticky notes stuck on a card of a view. */
+export function notesOn(view: View, objectId: string): string[] {
+  return Object.entries(view.attached ?? {})
+    .filter(([, on]) => on === objectId)
+    .map(([note]) => note)
+}
+
+/** How far a note looks for a free place around the one it is wanted at, in steps of `CARD_GAP`. */
+const NOTE_REACH = 20
+
+/**
+ * The free place for a card nearest to a wanted one, on a grid of `CARD_GAP` around it, nearest
+ * first, then from the top left; none within `NOTE_REACH` steps.
+ */
+function nearestFree(view: View, objectId: string, wanted: Point): Point | undefined {
+  const size = cardSize(view, objectId)
+  const fits = (at: Point) => isFreeOf(view, at, size, new Set([objectId]))
+  if (fits(wanted)) return wanted
+  for (let ring = 1; ring <= NOTE_REACH; ring++) {
+    const around: Point[] = []
+    for (let dy = -ring; dy <= ring; dy++) {
+      for (let dx = -ring; dx <= ring; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) === ring) around.push({ x: wanted.x + dx * CARD_GAP, y: wanted.y + dy * CARD_GAP })
+      }
+    }
+    const distance = (at: Point) => (at.x - wanted.x) ** 2 + (at.y - wanted.y) ** 2
+    const found = around.filter(fits).sort((a, b) => distance(a) - distance(b) || a.y - b.y || a.x - b.x)[0]
+    if (found) return found
+  }
+  return undefined
+}
+
+/**
+ * Stick a sticky note on another card of a view: it then goes where that card goes
+ * (`moveObject`), and may lie over it or any card. `to`: where the note is put at the same time.
+ * Refused for what is no sticky note, a card that is one, the note itself and a card not on the
+ * view.
+ */
+export function attachNote(ws: Workspace, viewId: string, noteId: string, objectId: string, to?: Point): Workspace {
+  const view = findView(ws, viewId)
+  const object = (id: string) => ws.model.objects.find((o) => o.id === id)
+  if (!view || noteId === objectId || !isPlaced(view, noteId) || !isPlaced(view, objectId)) return ws
+  if (!isStickyNote(object(noteId)) || isStickyNote(object(objectId))) return ws
+  const placed = notePlaced(view, noteId, to, false)
+  if (!placed) return ws
+  if (placed === view && view.attached?.[noteId] === objectId) return ws
+  return { ...ws, views: replaceView(ws, withAttached(placed, { ...placed.attached, [noteId]: objectId })) }
+}
+
+/**
+ * Take a sticky note off the card it is stuck on. Loose, it keeps its gap as any card: `to`,
+ * where it is put at the same time, must be free; without, it stays where it is, or goes to
+ * the free place nearest when it lies over a card.
+ */
+export function detachNote(ws: Workspace, viewId: string, noteId: string, to?: Point): Workspace {
+  const view = findView(ws, viewId)
+  if (!view || view.attached?.[noteId] === undefined) return ws
+  const { [noteId]: _gone, ...rest } = view.attached
+  const loose = withAttached(view, rest)
+  const at = view.positions[noteId]!
+  const placed = notePlaced(loose, noteId, to ?? nearestFree(loose, noteId, at) ?? at, to !== undefined)
+  if (!placed) return ws
+  return { ...ws, views: replaceView(ws, placed) }
+}
+
+/**
+ * Give an object's card a colour to be filled with; none: the theme's card again. A sticky note
+ * is yellow paper without one, so yellow is none there.
+ */
+export function fillObject(ws: Workspace, objectId: string, colour: FillColour | undefined): Workspace {
+  const object = ws.model.objects.find((o) => o.id === objectId)
+  if (!object || (colour !== undefined && !isFillColour(colour))) return ws
+  const wanted = colour === 'yellow' && isStickyNote(object) ? undefined : colour
+  if (object.fill === wanted) return ws
+  const { fill: _old, ...rest } = object
+  const changed: ModelObject = wanted === undefined ? rest : { ...rest, fill: wanted }
+  return { ...ws, model: { ...ws.model, objects: ws.model.objects.map((o) => (o === object ? changed : o)) } }
+}
+
+/** The view with a note put at a place (when it must be free, if it is); itself without a place. */
+function notePlaced(view: View, noteId: string, to: Point | undefined, free = true): View | undefined {
+  if (!to) return view
+  if (!Number.isFinite(to.x) || !Number.isFinite(to.y) || (free && !isFree(view, to, noteId))) return undefined
+  const old = view.positions[noteId]!
+  if (old.x === to.x && old.y === to.y) return view
+  return { ...view, positions: { ...view.positions, [noteId]: { x: to.x, y: to.y } } }
+}
+
+/** A view with these notes stuck on cards; without the key when there are none. */
+function withAttached(view: View, attached: Record<string, string>): View {
+  const { attached: _old, ...rest } = view
+  return Object.keys(attached).length > 0 ? { ...rest, attached } : rest
+}
+
+/**
+ * Every view without the notes stuck where they may no longer be: on a card that is gone from
+ * the view or has become a sticky note, or a note that has become something else.
+ */
+function keptAttached(ws: Workspace): Workspace {
+  const objects = new Map(ws.model.objects.map((object) => [object.id, object]))
+  let changed = false
+  const views = ws.views.map((view) => {
+    if (!view.attached) return view
+    const kept = Object.entries(view.attached).filter(
+      ([note, on]) =>
+        isPlaced(view, note) && isPlaced(view, on) && isStickyNote(objects.get(note)) && objects.has(on) && !isStickyNote(objects.get(on)),
+    )
+    if (kept.length === Object.keys(view.attached).length) return view
+    changed = true
+    // A note no longer stuck keeps its gap as any card: off a card it lay over.
+    let loose = withAttached(view, Object.fromEntries(kept))
+    for (const note of Object.keys(view.attached)) {
+      if (loose.attached?.[note] !== undefined || !isPlaced(loose, note)) continue
+      const at = loose.positions[note]!
+      const free = nearestFree(loose, note, at) ?? at
+      loose = { ...loose, positions: { ...loose.positions, [note]: free } }
+    }
+    return loose
+  })
+  return changed ? { ...ws, views } : ws
 }
 
 /** Give an object another name. Its id stays. */
@@ -383,7 +539,7 @@ export function editObject(ws: Workspace, objectId: string, name: string, detail
   const object = ws.model.objects.find((o) => o.id === objectId)
   const trimmed = name.trim()
   if (!object || trimmed === '') return ws
-  const { description: _d, technology: _t, external: _e, shape: _s, columns: _c, ...rest } = object
+  const { description: _d, technology: _t, external: _e, shape: _s, columns: _c, fill, ...rest } = object
   const description = details.description === undefined ? object.description : details.description.trim()
   const technology =
     details.technology === undefined || !hasTechnology(object.kind) ? object.technology : details.technology.trim()
@@ -401,8 +557,11 @@ export function editObject(ws: Workspace, objectId: string, name: string, detail
     ...(external === true && { external: true }),
     ...(shape !== undefined && { shape }),
     ...(columns.length > 0 && { columns }),
+    // A yellow note that becomes another shape is filled yellow, as it looked.
+    ...(fill !== undefined ? { fill } : isStickyNote(object) && shape !== 'stickyNote' ? { fill: 'yellow' as const } : {}),
   }
   const same =
+    changed.fill === object.fill &&
     sameColumns(changed.columns, object.columns) &&
     changed.shape === object.shape &&
     changed.name === object.name &&
@@ -410,7 +569,7 @@ export function editObject(ws: Workspace, objectId: string, name: string, detail
     changed.technology === object.technology &&
     (changed.external === true) === (object.external === true)
   if (same) return ws
-  return { ...ws, model: { ...ws.model, objects: ws.model.objects.map((o) => (o === object ? changed : o)) } }
+  return keptAttached({ ...ws, model: { ...ws.model, objects: ws.model.objects.map((o) => (o === object ? changed : o)) } })
 }
 
 /** Delete connections from the model, and with that from every diagram. */
@@ -432,7 +591,8 @@ export function removeConnections(ws: Workspace, connectionIds: readonly string[
  */
 export function setObjectIcons(ws: Workspace, objectId: string, icons: readonly string[]): Workspace {
   const object = ws.model.objects.find((o) => o.id === objectId)
-  if (!object || icons.length > MAX_ICONS || new Set(icons).size !== icons.length) return ws
+  // A sticky note is its text alone: no icons.
+  if (!object || isStickyNote(object) || icons.length > MAX_ICONS || new Set(icons).size !== icons.length) return ws
   if (!icons.every((icon) => typeof icon === 'string' && ICON_NAME.test(icon))) return ws
   const before = object.icons ?? []
   if (before.length === icons.length && before.every((icon, i) => icon === icons[i])) return ws
@@ -469,7 +629,7 @@ export function removeObjects(ws: Workspace, objectIds: readonly string[]): Work
         without(v.groups ?? [], gone),
       )
     })
-  return { model: { objects: ws.model.objects.filter((o) => !gone.has(o.id)), connections }, views }
+  return keptAttached({ model: { objects: ws.model.objects.filter((o) => !gone.has(o.id)), connections }, views })
 }
 
 /** Room the frame of a group takes around its cards: at the sides, above them for its name, under them. */
@@ -497,7 +657,10 @@ function framesInTheWay(view: View, changed: Readonly<Record<string, Point & Par
     const at = to ?? view.positions[id]!
     return { x: at.x, y: at.y, width: to?.width ?? size.width, height: to?.height ?? size.height }
   }
-  const cards = Object.keys(view.positions).map((id) => ({ id, ...box(id) }))
+  // A note stuck on a card may lie over frames as over cards.
+  const cards = Object.keys(view.positions)
+    .filter((id) => view.attached?.[id] === undefined)
+    .map((id) => ({ id, ...box(id) }))
   const found = new Set<string>()
   for (const group of view.groups ?? []) {
     const own = cards.filter((card) => group.members.includes(card.id))
@@ -671,6 +834,7 @@ export function addView(ws: Workspace, likeViewId: string, name: string, copy: b
     connections: copy ? [...like.connections] : [],
     ...(copy && like.sizes && { sizes: structuredClone(like.sizes) }),
     ...(copy && like.groups && { groups: structuredClone(like.groups) }),
+    ...(copy && like.attached && { attached: { ...like.attached } }),
   }
   return { ...ws, views: [...ws.views, view] }
 }
@@ -1061,6 +1225,7 @@ export function importDiagram(
       ...(canBeExternal(element.kind) && element.external === true && { external: true }),
       ...(element.shape !== undefined && { shape: element.shape }),
       ...(element.columns !== undefined && { columns: element.columns.map((column) => ({ ...column })) }),
+      ...(element.fill !== undefined && !(element.fill === 'yellow' && element.shape === 'stickyNote') && { fill: element.fill }),
     })
   }
   let next = ws.model.connections.length + 1
@@ -1088,12 +1253,26 @@ export function importDiagram(
     views: ws.views,
   }
   const byNew = new Map([...ids].map(([file, id]) => [id, file]))
+  /** Each sticky note of the file stuck on a card, to that card, by their new ids. */
+  const stuckOn = new Map(
+    diagram.elements.flatMap((element) => (element.attachedTo === undefined ? [] : [[ids.get(element.id)!, ids.get(element.attachedTo)!] as const])),
+  )
   const show = (onView: View, wanted: (id: string) => Point | undefined, only?: string) => {
     let shown = onView
-    for (const object of objects) {
-      if ((only !== undefined && object.parent !== only) || !landsOn(result, shown, object)) continue
+    const lands = objects.filter((object) => (only === undefined || object.parent === only) && landsOn(result, onView, object))
+    const landing = new Set(lands.map((object) => object.id))
+    const onACard = (object: ModelObject) => landing.has(stuckOn.get(object.id) ?? '')
+    for (const object of lands.filter((one) => !onACard(one))) {
       const at = wanted(object.id)
-      shown = place(shown, object.id, at && isFree(shown, at) ? at : undefined)
+      const size = isStickyNote(object) ? STICKY_NOTE : undefined
+      shown = place(shown, object.id, at && isFree(shown, at, undefined, size) ? at : undefined, size)
+    }
+    // A note stuck on a card lies where it is wanted, on anything; else over the card's top right corner.
+    for (const object of lands.filter(onACard)) {
+      const on = stuckOn.get(object.id)!
+      const card = { ...shown.positions[on]!, ...cardSize(shown, on) }
+      const at = wanted(object.id) ?? { x: card.x + card.width - STICKY_NOTE.width / 2, y: card.y - STICKY_NOTE.height / 2 }
+      shown = withAttached(place(shown, object.id, at, STICKY_NOTE), { ...shown.attached, [object.id]: on })
     }
     const added = connections
       .filter((c) => isPlaced(shown, c.from) && isPlaced(shown, c.to))
@@ -1239,6 +1418,9 @@ export function validateWorkspace(ws: Workspace): void {
       if (!isBoxShape(object.shape)) throw new DiagramFormatError(`Object ${object.id} has an unknown shape: ${String(object.shape)}`)
       if (!canHaveShape(object.kind)) throw new DiagramFormatError(`A ${object.kind} has no shape of its own to choose: ${object.id}`)
     }
+    if (object.fill !== undefined && !isFillColour(object.fill)) {
+      throw new DiagramFormatError(`Object ${object.id} has an unknown fill: ${String(object.fill)}`)
+    }
     if (object.columns !== undefined) {
       if (object.shape !== 'table') throw new DiagramFormatError(`Object ${object.id} has columns but is no table`)
       const problem = columnsProblem(object.columns)
@@ -1331,6 +1513,17 @@ export function validateWorkspace(ws: Workspace): void {
         grouped.add(id)
       }
     }
+    if (view.attached !== undefined && (!isObject(view.attached) || Object.keys(view.attached).length === 0)) {
+      throw new DiagramFormatError(`View ${view.id} has invalid sticky notes`)
+    }
+    for (const [note, on] of Object.entries(view.attached ?? {})) {
+      if (!isPlaced(view, note) || !isStickyNote(objects.get(note))) {
+        throw new DiagramFormatError(`View ${view.id} sticks something that is no sticky note of it: ${note}`)
+      }
+      if (typeof on !== 'string' || on === note || !isPlaced(view, on) || isStickyNote(objects.get(on))) {
+        throw new DiagramFormatError(`View ${view.id} sticks ${note} on what it cannot be stuck on: ${String(on)}`)
+      }
+    }
     for (const id of view.connections) {
       const connection = connections.get(id)
       if (!connection) throw new DiagramFormatError(`View ${view.id} shows an unknown connection: ${id}`)
@@ -1362,10 +1555,32 @@ function ancestors(ws: Workspace, objectId: string | undefined): ModelObject[] {
  * card being moved: it does not get in its own way, and brings its own size; a new card is `CARD`.
  */
 function isFree(view: View, position: Point, except?: string, ofSize?: Size): boolean {
+  // A note stuck on a card may lie anywhere.
+  if (except !== undefined && view.attached?.[except] !== undefined) return true
   const size = ofSize ?? (except === undefined ? CARD : cardSize(view, except))
+  return isFreeOf(view, position, size, new Set(except === undefined ? [] : [except]))
+}
+
+/** Whether a card of a size at `position` keeps the gap to every card of the view but those `except`. */
+function isFreeOf(view: View, position: Point, size: Size, except: ReadonlySet<string>): boolean {
+  // A note stuck on a card is in nobody's way.
   return Object.entries(view.positions).every(
-    ([id, other]) => id === except || apart(position, size, other, cardSize(view, id)),
+    ([id, other]) => except.has(id) || view.attached?.[id] !== undefined || apart(position, size, other, cardSize(view, id)),
   )
+}
+
+/**
+ * What a sticky note is called: the first line of its text, without the marks of Markdown,
+ * at most 80 characters. A note shows its text only; this names it in lists and the history.
+ */
+export function noteTitle(text: string): string {
+  const line = text.split('\n').map((l) => l.trim()).find((l) => l !== '') ?? ''
+  const plain = line
+    .replace(/^(#{1,6}\s+|>\s*|[-*+]\s+(\[[ xX]\]\s+)?|\d+[.)]\s+)/, '')
+    .replace(/[*_`~]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  return plain === '' ? 'Note' : plain.slice(0, 80)
 }
 
 /** Whether two cards neither overlap nor come closer than `CARD_GAP`. */

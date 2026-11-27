@@ -59,6 +59,30 @@ Project started 2026-11-03.
   grid; one change, `cardResized`, kept per view in `View.sizes`. A size that reaches into
   another card, or takes the frame over one outside, is refused and said on a card. Editing the
   text still sets the size the text needs.
+- Sticky notes (J69): a box with the shape `stickyNote` ("Sticky note", a toolbar button of its
+  own beside "Add shape", in no shape library; 160 px square, `STICKY_NOTE`) is yellow paper
+  with its Markdown alone, no title, no "Open" and no icons; its name is its first line (`noteTitle`),
+  set from the text when it is added or changed. Let go over another card (not a note), it is
+  stuck on it, right there, over the card: `View.attached` (note id to card id, per view),
+  events `noteAttached` and `noteDetached`. A stuck note lies over the cards (Vue Flow
+  `zIndex`), has a red pin that takes it off when pressed, a dashed line to its card where it
+  lies off it, and goes along when the card moves (`moveObject`, the same way). It may lie over
+  anything and is in nobody's way: the model's checks of gaps (`isFree`, `arrangeView`, frames
+  of groups), the snapping and the connectors' routes leave it out. Moved by itself it stays
+  stuck; taken off (pin, its card deleted, no longer a note) it goes to the free place nearest.
+  "Hide sticky notes" in the toolbar hides notes and lines, kept in the browser
+  (`drillgram.notesHidden`, `useNotesHidden`); a hidden loose note still takes its place.
+  Arrange and import lay the cards out without the notes; a stuck note then goes along with its
+  card, a loose one is made clear of the cards and loose notes (`clearOfCards` in
+  `canvas/notes.ts`). The SVG and PNG export draw paper, pin and line. From Miro's API
+  (`readMiroBoard`) a sticky note lying on an item is stuck on the one it covers most
+  (`DiagramElement.attachedTo`), over its top right corner; a copy and the PDF bring notes
+  loose (their places are not read). All of a Miro note's text is its Markdown.
+- Colours of cards (J70): "Colour" on a card's corner fills it with one of nine light colours
+  (`FILL_COLOURS`, `fill` on an object of the model, event `objectFilled`; `FILL_COLOUR_HEX`
+  for the canvas and the export) or none; the ink of a filled card is dark in every theme. A
+  sticky note is yellow paper without one and takes no icons. From Miro's API a sticky note's
+  `fillColor` comes as its colour (`NOTE_COLOURS` in `miro.ts`); shapes' colours do not yet.
 - Tables (J56): a box with the shape `table` has `columns` (name, type, key: primary, foreign,
   unique), in their order. The card is a card of its own make (`.object-card.is-table`), not an
   outline: the name over a line, a row per column; `cardRoom` measures it with the same classes.
@@ -338,7 +362,7 @@ Project started 2026-11-03.
   kept in the browser (`drillgram.locked.<workspace or room>`, `useLock`). The controls that
   change anything are disabled or gone, and the editor's own `dispatch` does nothing while
   locked; agents write to the store directly and are not held back.
-- Journeys J1 to J5, J7, J9, J11, J15 and J18 to J67 are real tests. J6, J8, J10,
+- Journeys J1 to J5, J7, J9, J11, J15 and J18 to J70 are real tests. J6, J8, J10,
   J12 to J14, J16 and J17 are still `test.fixme`.
 - Event sourcing (owner's call, 2026-11-22; begun 2026-11-26): the events are the truth and the
   workspace is what they add up to: the server keeps the log, the editor makes the workspace

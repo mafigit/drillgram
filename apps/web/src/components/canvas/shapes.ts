@@ -19,7 +19,7 @@ export interface ShapeDrawing {
    * comment beside a brace), `solid` is filled with the colour of the line (a junction). The
    * outline is then still the card's extent.
    */
-  look?: 'ground' | 'none' | 'solid'
+  look?: 'ground' | 'none' | 'solid' | 'note'
 }
 
 /** What each shape is called and is for, for the picker and the form. */
@@ -88,6 +88,7 @@ export const SHAPE_ABOUT: Record<BoxShape, { label: string; about: string }> = {
   bracket: { label: 'Comment, bracket', about: 'Words beside a square bracket' },
   speechBubble: { label: 'Speech bubble', about: 'An oval bubble: something said' },
   table: { label: 'Table', about: 'A table with its columns: name, type and key of each' },
+  stickyNote: { label: 'Sticky note', about: 'A post-it: dropped on a shape it sticks there and goes where the shape goes' },
 }
 
 /** The shapes of the Basic library; the others stand in the Flowchart library. */
@@ -500,6 +501,16 @@ export function boxShape(shape: BoxShape, w: number, h: number): ShapeDrawing {
         outline: `M${n(x2)} ${n(at(x2))}A${n(rx)} ${n(ry)} 0 1 0 ${n(x1)} ${n(at(x1))}L${n(w * 0.2)} ${n(h)}Z`,
         lines: [],
         inset: { top: e / 8, bottom: h - e + e / 8, left: w / 8, right: w / 8 },
+      }
+    }
+    case 'stickyNote': {
+      // A square of paper, its lower right corner a little lifted.
+      const c = Math.min(18, w / 6, h / 6)
+      return {
+        outline: `M0 0H${n(w)}V${n(h - c)}Q${n(w - c / 3)} ${n(h - c / 3)} ${n(w - c)} ${n(h)}H0Z`,
+        lines: [],
+        inset: none,
+        look: 'note',
       }
     }
     case 'table': {

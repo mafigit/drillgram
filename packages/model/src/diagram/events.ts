@@ -1,5 +1,5 @@
 import { bookshopExample } from './examples'
-import type { Diagram, ElementKind, LineColour } from './model'
+import type { Diagram, ElementKind, LineColour, FillColour } from './model'
 import {
   addObject,
   addView,
@@ -8,7 +8,11 @@ import {
   groupCards,
   arrangeView,
   connect,
-  moveObject,
+  attachNote,
+  fillObject,
+  detachNote,
+  isStickyNote,
+  moveObjects,
   openView,
   parseWorkspace,
   placeObject,
@@ -60,6 +64,12 @@ export type WorkspaceEvent =
   | { type: 'objectPlaced'; view: string; object: string; at?: Point }
   /** One drag: every card that was dragged along. */
   | { type: 'objectsMoved'; view: string; moves: { object: string; to: Point }[] }
+  /** A sticky note was stuck on another card (`object`), and put at `to`: it goes along with that card now. */
+  | { type: 'noteAttached'; view: string; note: string; object: string; to?: Point }
+  /** The colour of a sticky note's paper; none: yellow again. */
+  | { type: 'objectFilled'; object: string; colour?: FillColour }
+  /** A sticky note was taken off the card it was stuck on, and put at `to`. */
+  | { type: 'noteDetached'; view: string; note: string; to?: Point }
   /** A card was made larger or smaller at a corner or side; `to`: its new top-left corner. */
   | { type: 'cardResized'; view: string; object: string; size: Size; to?: Point }
   | { type: 'objectRenamed'; object: string; name: string }
@@ -122,9 +132,13 @@ export function applyEvent(ws: Workspace, event: WorkspaceEvent): Workspace {
     case 'objectPlaced':
       return onView(ws, event.view, (w) => placeObject(w, event.view, event.object, event.at))
     case 'objectsMoved':
-      return onView(ws, event.view, (w) =>
-        event.moves.reduce((moved, { object, to }) => moveObject(moved, event.view, object, to), w),
-      )
+      return onView(ws, event.view, (w) => moveObjects(w, event.view, event.moves))
+    case 'noteAttached':
+      return onView(ws, event.view, (w) => attachNote(w, event.view, event.note, event.object, event.to))
+    case 'noteDetached':
+      return onView(ws, event.view, (w) => detachNote(w, event.view, event.note, event.to))
+    case 'objectFilled':
+      return fillObject(ws, event.object, event.colour)
     case 'cardResized':
       return onView(ws, event.view, (w) => resizeCard(w, event.view, event.object, event.size, event.to))
     case 'objectEdited': {
@@ -232,6 +246,17 @@ export function describeEvent(before: Workspace, event: WorkspaceEvent): string 
       return `Moved ${some(event.moves.map((move) => move.object))}`
     case 'cardResized':
       return `Resized ${name(event.object)}`
+    case 'noteAttached':
+      return `Stuck ${name(event.note)} on ${name(event.object)}`
+    case 'objectFilled': {
+      const note = isStickyNote(before.model.objects.find((o) => o.id === event.object))
+      if (note && (event.colour === undefined || event.colour === 'yellow')) return `Made ${name(event.object)} yellow again`
+      return event.colour === undefined ? `Took the colour off ${name(event.object)}` : `Coloured ${name(event.object)} ${event.colour}`
+    }
+    case 'noteDetached': {
+      const on = before.views.find((v) => v.id === event.view)?.attached?.[event.note]
+      return on === undefined ? `Moved ${name(event.note)}` : `Took ${name(event.note)} off ${name(on)}`
+    }
     case 'objectEdited':
       return `Edited ${name(event.object)}`
     case 'connectionsRemoved': {
@@ -267,9 +292,12 @@ export function describeEvent(before: Workspace, event: WorkspaceEvent): string 
       return 'Brought the diagrams of this browser'
     case 'viewArranged': {
       // All cards of the diagram, or only some of them (the selected ones).
-      const onView = Object.keys(openView(before, event.view).views.find((v) => v.id === event.view)?.positions ?? {})
-      const part = event.cards.length > 0 && event.cards.length < onView.length
-      return part ? `Arranged ${some(event.cards.map((card) => card.object))}` : 'Arranged the diagram'
+      // Sticky notes only make room: they do not count.
+      const plain = (id: string) => !isStickyNote(before.model.objects.find((o) => o.id === id))
+      const onView = Object.keys(openView(before, event.view).views.find((v) => v.id === event.view)?.positions ?? {}).filter(plain)
+      const listed = event.cards.filter((card) => plain(card.object))
+      const part = listed.length > 0 && listed.length < onView.length
+      return part ? `Arranged ${some(listed.map((card) => card.object))}` : 'Arranged the diagram'
     }
     case 'diagramImported': {
       const count = event.diagram.elements.length

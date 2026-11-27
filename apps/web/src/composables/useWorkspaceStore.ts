@@ -31,6 +31,8 @@ export interface WorkspaceStore {
   clear: () => Promise<void>
   /** Bring a workspace that this browser kept from before the server, with its change log. */
   bring: (from: History) => void
+  /** Takes what was written to the log elsewhere (a folder changed from outside, J71). */
+  pull: () => Promise<void>
   /**
    * Working on the workspace with others (collab/): to share it, or the session this browser
    * is a guest of. Only the app without a server has it so far.
@@ -150,6 +152,7 @@ function storeOf({ log, history: now }: Opened, sharing?: Sharing): WorkspaceSto
     canRedo: computed(() => now.value.cursor < now.value.log.length),
     clear: () => log.clear(),
     bring: (from) => log.bring(from),
+    pull: () => log.pull(),
     sharing,
   }
 }

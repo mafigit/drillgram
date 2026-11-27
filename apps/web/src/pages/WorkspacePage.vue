@@ -12,6 +12,7 @@ import { openWorkspaceStore } from '../composables/useWorkspaceStore'
 import type { WorkspaceStore } from '../composables/useWorkspaceStore'
 import { useWorkspaces } from '../composables/useWorkspaces'
 import { ApiError, NO_ANSWER } from '../lib/api'
+import { keptIn } from '../lib/folder'
 import type { Problem } from '../lib/workspaceLog'
 
 // A workspace of the server, opened: its change log is read, then the editor works on it.
@@ -61,6 +62,13 @@ onMounted(open)
 const stopSharing = () => store.value?.sharing?.stop()
 onBeforeUnmount(stopSharing)
 useEventListener(window, 'pagehide', stopSharing)
+
+// Kept in a folder (J71): what another program writes to the file shows within seconds.
+const FOLLOW_EVERY = 2000
+const following = window.setInterval(() => {
+  if (keptIn.value && document.visibilityState === 'visible') void store.value?.pull()
+}, FOLLOW_EVERY)
+onBeforeUnmount(() => window.clearInterval(following))
 </script>
 
 <template>

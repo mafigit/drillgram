@@ -69,7 +69,18 @@ The web app needs it: see "The web app and the server" below.
   inputs of this build alone (`vite.config.ts`): the build with a server has neither. The
   service worker keeps them like every other file, so they are not answered with the app. Everything above `api.ts` is the same code.
   A change to what the app asks of the server needs its answer in `browserServer.ts` too
-  (its tests say of it what `workspaces_test.go` says of the server).
+  (its tests say of it what `workspaces_test.go` says of the server), and in `folderServer.ts`.
+- **In a folder** (J71, Chromium only): `src/lib/folder.ts` decides where `api.ts` asks, the
+  browser's database or `src/lib/folderServer.ts`, which answers from a folder the user chose
+  (`showDirectoryPicker`; the handle is kept in the IndexedDB database `drillgram-folder`,
+  store `place`). A workspace is a file `<id>.drillgram.json` of J64's format; the files are the
+  truth. `navigator.locks` is the row lock. The app counts entries by number and only forward:
+  the store `logs` remembers how far each file was counted, a file that grew goes on, a file
+  written anew from outside is a "cleared" and its entries after it. `WorkspacePage.vue` pulls
+  every 2 s while the tab is shown, the workspace menu lists the folder again when it opens.
+  Where the browser wants its user's word again, `FolderGate.vue` asks before anything is read.
+  "Keep in a folder" (`AboutSite.vue`) copies the browser's workspaces with changes in; "Keep in
+  this browser instead" forgets the folder, and the browser's workspaces are as they were.
 - **Agent sharing** (`build:cloudflare`, J7): the tab opens a same-origin WebSocket to a
   Durable Object when the user starts sharing. The MCP client sends its bearer token to `/mcp`.
   The token is the hash of the tab credential. The Worker hashes the token to find its session.

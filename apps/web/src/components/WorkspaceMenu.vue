@@ -33,13 +33,15 @@ const { busy, run } = useBusy()
 const openId = computed(() => String(route.params.workspace ?? ''))
 const open = computed(() => workspaces.value.find((known) => known.id === openId.value))
 
-onMounted(async () => {
+async function reload() {
   try {
     await load()
   } catch {
     // The page under the menu says that the server does not answer.
   }
-})
+}
+// Read again when the menu opens: kept in a folder, a workspace may have come in from outside (J71).
+onMounted(reload)
 
 /** The dialog that is asking, if one is. */
 const asking = ref<'new' | 'rename' | 'delete'>()
@@ -110,7 +112,7 @@ function importFile() {
 </script>
 
 <template>
-  <DropdownMenuRoot :modal="false">
+  <DropdownMenuRoot :modal="false" @update:open="(shown) => shown && reload()">
     <DropdownMenuTrigger as-child>
       <!-- The bar is short of room on a tablet and a phone: there the button is its sign alone,
            and the name is for those who do not see the sign. -->

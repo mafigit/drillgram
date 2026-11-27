@@ -2,7 +2,9 @@
 import { RouterView } from 'vue-router'
 import AgentPresence from './components/AgentPresence.vue'
 import ErrorCards from './components/ErrorCards.vue'
+import FolderGate from './components/FolderGate.vue'
 import ReloadPrompt from './components/ReloadPrompt.vue'
+import { browserOnly } from './lib/api'
 </script>
 
 <template>
@@ -13,6 +15,8 @@ import ReloadPrompt from './components/ReloadPrompt.vue'
   </RouterView>
   <!-- An agent is connected to the open workspace: the window glows, and leaving asks first. -->
   <AgentPresence />
+  <!-- Without a server, kept in a folder the browser asks about again (J71). -->
+  <FolderGate v-if="browserOnly" />
   <!-- The top right corner, under the bar: what the app has to say by itself, over the page. -->
   <div class="pointer-events-none fixed top-14 right-4 z-50 flex flex-col items-end gap-2 *:pointer-events-auto">
     <ReloadPrompt />

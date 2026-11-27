@@ -1,5 +1,5 @@
-import { browserServer } from './browserServer'
 import type { Answer } from './browserServer'
+import { storageServer } from './folder'
 
 // The server's API (apps/server), under /api of the address the app itself comes from.
 
@@ -63,9 +63,11 @@ async function askServer(method: string, path: string, sent?: string): Promise<A
   return { status: answer.status, data }
 }
 
-const inBrowser = browserOnly ? browserServer() : undefined
-/** Asks the browser in the server's place, with what would have gone over the wire. */
-const askBrowser = (method: string, path: string, sent?: string) => inBrowser!(method, path, sent === undefined ? undefined : JSON.parse(sent))
+/**
+ * Asks the browser in the server's place, with what would have gone over the wire: its own
+ * database, or the folder it keeps the workspaces in (lib/folder.ts).
+ */
+const askBrowser = async (method: string, path: string, sent?: string) => (await storageServer())(method, path, sent === undefined ? undefined : JSON.parse(sent))
 
 async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
   const sent = body === undefined ? undefined : JSON.stringify(body)

@@ -38,6 +38,12 @@ export default {
       if (origin !== null && origin !== url.origin) return new Response('Origin not allowed.', { status: 403 })
       return env.ROOMS.getByName(room).fetch(request)
     }
+    if (url.pathname.startsWith('/assets/')) {
+      // A file of an earlier build (a copy the browser kept asks for it): the app's page in its
+      // place would be refused as a script, and the page would stay white.
+      const file = await env.ASSETS.fetch(request)
+      return file.headers.get('Content-Type')?.startsWith('text/html') ? new Response('There is no such file.', { status: 404 }) : file
+    }
     if (url.pathname !== MCP_PATH) return env.ASSETS.fetch(request)
     if (origin !== null && origin !== url.origin) return new Response('Origin not allowed.', { status: 403 })
 

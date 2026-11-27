@@ -61,6 +61,7 @@ test.describe('with the service worker', () => {
     await editor.open()
     await expect(editor.title).toHaveText('Overview')
     expect(pages).toBe(2)
-    expect(consoleErrors.filter((text) => !notFound(text))).toEqual([])
+    // The import that was refused on purpose, and nothing else.
+    expect(consoleErrors.filter((text) => !notFound(text) && !text.startsWith('TypeError: Failed to fetch dynamically imported module'))).toEqual([])
   })
 })

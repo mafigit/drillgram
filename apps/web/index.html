@@ -10,6 +10,41 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Drillgram</title>
+    <script>
+      // A copy of the app the browser keeps (the service worker) can name files that a later
+      // deploy took away (J72), and the page would stay white. Then the copy is thrown away
+      // and the page loaded anew from the site: at most every ten seconds, so a site that is
+      // down does not reload without end. Before the app's own scripts, which may be the ones gone.
+      ;(function () {
+        var KEY = 'drillgram.loadedAnew'
+        var loading = false
+        function loadAnew() {
+          if (loading) return
+          try {
+            if (Date.now() - Number(sessionStorage.getItem(KEY)) < 10000) return
+            sessionStorage.setItem(KEY, String(Date.now()))
+          } catch (failure) {
+            return
+          }
+          loading = true
+          var worker = navigator.serviceWorker
+          var dropped = worker
+            ? worker.getRegistrations().then(function (all) {
+                return Promise.all(all.map(function (registration) { return registration.unregister() }))
+              })
+            : Promise.resolve()
+          dropped.catch(function () {}).then(function () { location.reload() })
+        }
+        addEventListener('error', function (event) {
+          var file = event.target
+          var named = file instanceof HTMLScriptElement ? file.src : file instanceof HTMLLinkElement ? file.href : ''
+          if (named && new URL(named, location.href).pathname.indexOf('/assets/') === 0) loadAnew()
+        }, true)
+        // A part the app loads later (a page) is gone: Vite says so with this event. Its error
+        // still goes to the console; the page is replaced a moment later.
+        addEventListener('vite:preloadError', function () { loadAnew() })
+      })()
+    </script>
   </head>
   <body>
     <div id="app"></div>

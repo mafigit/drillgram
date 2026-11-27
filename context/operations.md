@@ -134,6 +134,9 @@ requests do not count toward the Worker request limit.
   & Routes), not in `wrangler.jsonc`.
 - The name of the Worker is in `wrangler.jsonc`; another name is another Worker with its own
   address, and so with its own, empty storage in every browser.
+- A file of `assets/` that is not there is answered 404 by the Worker (it runs first for
+  `/assets/*`), never with the app's page: Cloudflare's `single-page-application` handling
+  would give `index.html`, and Chrome then refuses it as a script (J72).
 
 #### Connect an MCP client
 

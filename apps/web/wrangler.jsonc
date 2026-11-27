@@ -10,7 +10,8 @@
     "html_handling": "none",
     "not_found_handling": "single-page-application",
     // The rooms of shared sessions (`/signal/<room>`) are the Worker's, as the MCP relay is.
-    "run_worker_first": ["/mcp", "/api/agent/socket", "/signal/*"]
+    // A file of assets/ that is not there is the Worker's too: not found, never the app's page.
+    "run_worker_first": ["/mcp", "/api/agent/socket", "/signal/*", "/assets/*"]
   },
   "vars": {
     // The server that tells a browser of a shared session under which address it can be

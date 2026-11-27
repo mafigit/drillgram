@@ -1632,14 +1632,22 @@ const edges = computed<ConnectionEdge[]>(() => {
   }))
 })
 
-// Deleting: the selected cards leave the model, with their connections, on every diagram.
+// Deleting: on the first view of its box a card's object leaves the model, with its connections,
+// on every diagram; on any other view only the card is taken off (`removeCards`).
 const selected = computed(() => nodes.value.filter((n) => n.selected).map((n) => n.id))
 
 /** Whether a selected card stands in a frame: then "Ungroup" has something to do. */
 const selectedGrouped = computed(() => selected.value.some((id) => view.value.groups?.some((group) => group.members.includes(id))))
 
-function removeSelected() {
-  if (selected.value.length > 0) dispatch({ type: 'objectsRemoved', objects: selected.value })
+async function removeSelected() {
+  const cards = selected.value
+  if (cards.length === 0 || locked.value) return
+  dispatch({ type: 'cardsRemoved', view: viewId.value, objects: cards })
+  // Inside a box a card from outside its frame stays. Said after the change has closed the cards before it.
+  await nextTick()
+  if (cards.some((id) => Object.hasOwn(view.value.positions, id))) {
+    showError('Cards outside the frame are deleted on their own diagram, not here.')
+  }
 }
 
 // History: undo, redo and the timeline move along the change log. The diagram follows to where

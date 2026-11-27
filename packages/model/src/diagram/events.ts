@@ -16,6 +16,7 @@ import {
   openView,
   parseWorkspace,
   placeObject,
+  removeCards,
   removeObjects,
   editObject,
   importDiagram,
@@ -84,7 +85,10 @@ export type WorkspaceEvent =
     }
   /** The icons on the corner of an object's card, all of them, in their order. */
   | { type: 'objectIconsSet'; object: string; icons: string[] }
+  /** Objects were deleted from the model, from every view: what "Delete" wrote until 2026-11-27, and an agent's `delete_boxes`. */
   | { type: 'objectsRemoved'; objects: string[] }
+  /** "Delete" on cards of a view: deleted where the object is at home, else taken off that view only (`removeCards`). */
+  | { type: 'cardsRemoved'; view: string; objects: string[] }
   | { type: 'connected'; view: string; from: string; to: string; label?: string; technology?: string }
   | { type: 'connectionLabelled'; connection: string; label: string; technology?: string }
   /** The colour of a connection's line; none takes it off. */
@@ -154,6 +158,8 @@ export function applyEvent(ws: Workspace, event: WorkspaceEvent): Workspace {
       return renameObject(ws, event.object, event.name)
     case 'objectsRemoved':
       return removeObjects(ws, event.objects)
+    case 'cardsRemoved':
+      return onView(ws, event.view, (w) => removeCards(w, event.view, event.objects))
     case 'connected':
       return onView(ws, event.view, (w) => {
         const drawn = connect(w, event.view, event.from, event.to, event.label)
@@ -274,6 +280,18 @@ export function describeEvent(before: Workspace, event: WorkspaceEvent): string 
       return `Renamed ${name(event.object)} to "${event.name.trim()}"`
     case 'objectsRemoved':
       return `Deleted ${some(event.objects)}`
+    case 'cardsRemoved': {
+      // Deleted from the model, or only taken off the diagram: by what is left afterwards.
+      const after = applyEvent(before, event)
+      const left = new Set(after.model.objects.map((o) => o.id))
+      const cards = (ws: Workspace) => ws.views.find((v) => v.id === event.view)?.positions ?? {}
+      const [had, has] = [cards(openView(before, event.view)), cards(after)]
+      const deleted = event.objects.filter((id) => Object.hasOwn(had, id) && !left.has(id))
+      const taken = event.objects.filter((id) => Object.hasOwn(had, id) && left.has(id) && !Object.hasOwn(has, id))
+      if (taken.length === 0) return `Deleted ${some(deleted)}`
+      const off = `${some(taken)} off the diagram`
+      return deleted.length === 0 ? `Took ${off}` : `Deleted ${some(deleted)} and took ${off}`
+    }
     case 'connected':
       return `Connected ${name(event.from)} to ${name(event.to)}${says(event.label, event.technology)}`
     case 'connectionLabelled': {

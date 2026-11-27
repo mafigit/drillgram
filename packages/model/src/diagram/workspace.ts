@@ -614,22 +614,48 @@ export function removeObjects(ws: Workspace, objectIds: readonly string[]): Work
   if (gone.size === 0) return ws
   const connections = ws.model.connections.filter((c) => !gone.has(c.from) && !gone.has(c.to))
   const kept = new Set(connections.map((c) => c.id))
-  const views = ws.views
-    .filter((v) => v.scope === undefined || !gone.has(v.scope))
-    .map((v) => {
-      const { sizes: oldSizes, ...rest } = v
-      const sizes = Object.entries(oldSizes ?? {}).filter(([id]) => !gone.has(id))
-      return withGroups(
-        {
-          ...rest,
-          positions: Object.fromEntries(Object.entries(v.positions).filter(([id]) => !gone.has(id))),
-          connections: v.connections.filter((id) => kept.has(id)),
-          ...(sizes.length > 0 && { sizes: Object.fromEntries(sizes) }),
-        },
-        without(v.groups ?? [], gone),
-      )
-    })
+  const views = ws.views.filter((v) => v.scope === undefined || !gone.has(v.scope)).map((v) => withoutCards(v, gone, kept))
   return keptAttached({ model: { objects: ws.model.objects.filter((o) => !gone.has(o.id)), connections }, views })
+}
+
+/** A view without some cards: their places, sizes and places in frames, and with the connections of `kept` only. */
+function withoutCards(view: View, gone: ReadonlySet<string>, kept: ReadonlySet<string>): View {
+  const { sizes: oldSizes, ...rest } = view
+  const sizes = Object.entries(oldSizes ?? {}).filter(([id]) => !gone.has(id))
+  return withGroups(
+    {
+      ...rest,
+      positions: Object.fromEntries(Object.entries(view.positions).filter(([id]) => !gone.has(id))),
+      connections: view.connections.filter((id) => kept.has(id)),
+      ...(sizes.length > 0 && { sizes: Object.fromEntries(sizes) }),
+    },
+    without(view.groups ?? [], gone),
+  )
+}
+
+/**
+ * "Delete" on cards of a view. An object is at home on the first view of the box it is a part
+ * of (the Overview for one that stands in no box): there it is deleted from the model, from
+ * every view (`removeObjects`). On any other view only its card is taken off, and the object
+ * stays; but a part of the view's own box goes with its last card on the views of that box.
+ * On a view inside a box, a card from outside that box stays: it is deleted on its own diagram.
+ */
+export function removeCards(ws: Workspace, viewId: string, objectIds: readonly string[]): Workspace {
+  const view = findView(ws, viewId)
+  if (!view) return ws
+  const cards = [...new Set(objectIds)].filter((id) => isPlaced(view, id) && (view.scope === undefined || isWithin(ws, view, id)))
+  // The first Overview shows every box that stands in no other, also before it was opened again.
+  const elsewhere = (id: string) =>
+    view.scope === undefined || ws.views.some((v) => v !== view && v.scope === view.scope && isPlaced(v, id))
+  const deleted = cards.filter(
+    (id) => ws.model.objects.find((o) => o.id === id)?.parent === view.scope && (view.name === undefined || !elsewhere(id)),
+  )
+  const pruned = removeObjects(ws, deleted)
+  const left = findView(pruned, viewId)
+  const off = new Set(cards.filter((id) => left && isPlaced(left, id)))
+  if (!left || off.size === 0) return pruned
+  const kept = new Set(pruned.model.connections.filter((c) => !off.has(c.from) && !off.has(c.to)).map((c) => c.id))
+  return keptAttached({ ...pruned, views: replaceView(pruned, withoutCards(left, off, kept)) })
 }
 
 /** Room the frame of a group takes around its cards: at the sides, above them for its name, under them. */

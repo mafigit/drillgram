@@ -41,8 +41,11 @@ Project started 2026-11-03.
   any number of added ones with a name ("Deployment", a flow), on tabs beside the diagram's
   title. Each view has its own cards, places and sizes; an added view starts with the cards of
   the view it is made from or empty, gets nothing by itself afterwards, and is renamed and
-  deleted in its tab. Not yet: kinds of views with shapes of their own (deployment nodes that
-  hold cards), and taking a card off one view only.
+  deleted in its tab. Delete takes a card off an added view only (`removeCards`, the event
+  `cardsRemoved`): the object is deleted on the first view of its box, or with its last card on
+  the views of its box. Inside a box, a card from outside its frame is neither deleted nor
+  taken off. Not yet: kinds of views with shapes of their own (deployment nodes that hold
+  cards), taking a card off the first view only, and taking an outside card off a view.
 - Shapes (J53): a box can have one of 63 outlines instead of the rectangle (or be a table, J56) (`BOX_SHAPES`):
   `shape` on an object of the model, for every kind but person and code. The list covers what a
   Mermaid flowchart and D2 can draw, as far as a name fits inside, and every shape of Miro's
@@ -215,7 +218,7 @@ Project started 2026-11-03.
   workspace stays, with its name; a new one is begun in the workspace menu (J58).
 - Rename and delete (J4): double-click a card to rename it; Delete, Backspace or the Delete
   button removes the selected cards from the model, with what is inside them and their
-  connections.
+  connections; on a view that is not the object's first one, only from that view (J51).
 - Edit what is there (J37): "Edit" on a selected card opens its form (name, description,
   technology, external) as one change; a double-click on a connector opens its label to change
   it or to delete the connector.

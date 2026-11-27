@@ -1,0 +1,132 @@
+# The chart with a PostgreSQL of somebody else's, in another namespace: it installs no database
+# and no volume of its own, the admin signs in, and what the app keeps is in that database.
+# $CHART, $IMAGE_REPOSITORY and $IMAGE_TAG come from bin/helm-check.
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: external
+spec:
+  timeouts:
+    assert: 4m
+    exec: 5m
+  bindings:
+    - name: database
+      value: (join('-', [$namespace, 'db']))
+  steps:
+    - name: a PostgreSQL outside the release's namespace
+      try:
+        - apply:
+            resource:
+              apiVersion: v1
+              kind: Namespace
+              metadata:
+                name: ($database)
+        - apply:
+            resource:
+              apiVersion: v1
+              kind: Pod
+              metadata:
+                name: postgres
+                namespace: ($database)
+                labels:
+                  app: postgres
+              spec:
+                containers:
+                  - name: postgres
+                    image: postgres:17-bookworm
+                    env:
+                      - name: POSTGRES_USER
+                        value: drillgram
+                      - name: POSTGRES_PASSWORD
+                        value: test/db:p@ss%word
+                      - name: POSTGRES_DB
+                        value: external
+                    readinessProbe:
+                      exec:
+                        command: [pg_isready, -U, drillgram, -d, external]
+                      periodSeconds: 2
+        - apply:
+            resource:
+              apiVersion: v1
+              kind: Service
+              metadata:
+                name: postgres
+                namespace: ($database)
+              spec:
+                selector:
+                  app: postgres
+                ports:
+                  - port: 5432
+        - assert:
+            resource:
+              apiVersion: v1
+              kind: Pod
+              metadata:
+                name: postgres
+                namespace: ($database)
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: installs without a database of its own
+      try:
+        - apply:
+            resource:
+              apiVersion: v1
+              kind: Secret
+              metadata:
+                name: drillgram-admin
+              stringData:
+                email: admin@example.org
+                password: helm-test-admin
+        - apply:
+            resource:
+              apiVersion: v1
+              kind: Secret
+              metadata:
+                name: external-db
+              stringData:
+                url: (join('', ['postgres://drillgram:test%2Fdb%3Ap%40ss%25word@postgres.', $database, ':5432/external?sslmode=disable']))
+        - script:
+            env:
+              - name: NAMESPACE
+                value: ($namespace)
+            content: |
+              helm upgrade --install drillgram "$CHART" --namespace "$NAMESPACE" --wait --timeout 4m \
+                --set-string image.repository="$IMAGE_REPOSITORY" --set-string image.tag="$IMAGE_TAG" \
+                --set postgresql.enabled=false --set externalDatabase.existingSecret=external-db
+        - assert:
+            resource:
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                name: drillgram
+              status:
+                availableReplicas: 1
+        - error:
+            resource:
+              apiVersion: apps/v1
+              kind: StatefulSet
+        - error:
+            resource:
+              apiVersion: v1
+              kind: PersistentVolumeClaim
+      catch:
+        - podLogs:
+            selector: app.kubernetes.io/instance=drillgram
+            tail: 100
+        - events: {}
+    - name: the admin signs in, and the app keeps its data in that database
+      try:
+        - script:
+            env:
+              - name: NAMESPACE
+                value: ($namespace)
+            content: ../signed-in.sh 'curl -fsS -b "$COOKIE" "$APP/api/workspaces" >/dev/null'
+        - script:
+            env:
+              - name: DATABASE
+                value: ($database)
+            content: kubectl -n "$DATABASE" exec postgres -- psql -U drillgram -d external -tAc 'SELECT count(*) FROM users'
+            check:
+              ($error == null): true
+              (contains($stdout, '1')): true

@@ -1,7 +1,7 @@
 name: Hosted Helm chart
 
-# The chart is packaged and tested on Kubernetes (both database modes) when it or the image's
-# build changes. A release (the hosted image on GitHub Container Registry, the chart on GitHub
+# The chart is packaged and tested on Kubernetes (its Chainsaw tests on kind, both database
+# modes) when it or the image's build changes. A release (the hosted image on GitHub Container Registry, the chart on GitHub
 # Releases) comes by itself: CI calls this workflow after every green commit on main
 # (`release: true`), and the job `version` says from the commits since the last `helm-v` tag
 # which version is next (deploy/release): a feature a minor one, a fix a patch, nothing for
@@ -37,6 +37,7 @@ env:
   HELM_VERSION: '3.21.4'
   KIND_VERSION: '0.33.0'
   KUBECTL_VERSION: '1.37.1'
+  CHAINSAW_VERSION: '0.2.15'
 
 jobs:
   # Which version to release: that of a pushed tag, or the next one after the last tag. Empty
@@ -77,7 +78,7 @@ jobs:
           submodules: true
       - uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
         with:
-          install_args: helm@${{ env.HELM_VERSION }} kind@${{ env.KIND_VERSION }} kubectl@${{ env.KUBECTL_VERSION }}
+          install_args: helm@${{ env.HELM_VERSION }} kind@${{ env.KIND_VERSION }} kubectl@${{ env.KUBECTL_VERSION }} aqua:kyverno/chainsaw@${{ env.CHAINSAW_VERSION }}
       # A release is packaged as its version, which is also the image's tag (appVersion);
       # Chart.yaml's own is for checks only.
       - name: Package the chart
@@ -93,10 +94,11 @@ jobs:
           as=()
           if [ -n "$VERSION" ]; then as=(--version "$VERSION" --app-version "$VERSION"); fi
           mise exec "helm@$HELM_VERSION" -- helm package "$staging/drillgram" --destination dist "${as[@]}"
-      - name: Test both database modes on Kubernetes
+      # The chart's Chainsaw tests (deploy/helm/tests) on kind: rendering, both database modes.
+      - name: Test the chart on Kubernetes
         run: |
           docker build --provenance=false -t drillgram:helm-test .
-          mise exec "helm@$HELM_VERSION" "kind@$KIND_VERSION" "kubectl@$KUBECTL_VERSION" -- bash -c '
+          mise exec "helm@$HELM_VERSION" "kind@$KIND_VERSION" "kubectl@$KUBECTL_VERSION" "aqua:kyverno/chainsaw@$CHAINSAW_VERSION" -- bash -c '
             set -euo pipefail
             kind create cluster --wait 2m
             kind load docker-image drillgram:helm-test

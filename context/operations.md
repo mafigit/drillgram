@@ -65,9 +65,17 @@ The [Helm chart](../deploy/helm/drillgram/README.md) installs the hosted image a
 PostgreSQL StatefulSet. The bundled database uses a volume claim that survives Helm uninstall.
 The external mode takes a PostgreSQL connection URL from a Kubernetes Secret.
 
-The Helm workflow creates a kind cluster and runs `bin/helm-check` against the packaged chart.
-The test signs into both database modes and checks that a workspace survives a PostgreSQL pod
-restart.
+The chart's tests are [Chainsaw](https://kyverno.github.io/chainsaw) tests in
+`deploy/helm/tests`, a folder each, each in a namespace of its own: `rendering` (lint, the
+settings the chart refuses, an HTTPS setup the cluster takes), `bundled` (the admin signs in, a
+workspace survives a restart of the PostgreSQL pod) and `external` (a PostgreSQL in another
+namespace; no StatefulSet or volume claim of the chart's, the app's users are in that
+database). `bin/helm-check [chart] [image]` runs them against the cluster kubectl points at,
+which has the image loaded; the Helm workflow makes that cluster with kind and tests the
+packaged chart there, before every release. Locally the tools are those of the workflow's
+`env` (mise installs them; Chainsaw as `aqua:kyverno/chainsaw`). Where Docker runs in an LXC
+container (Proxmox), kind's kubelet may not open `/dev/kmsg`; a kind config with
+`extraMounts` of `/dev/console` as `/dev/kmsg` on the node lets it start (found 2026-11-27).
 
 Releases come by themselves (since 2026-11-27; before, a tag was pushed by hand and only 0.1.0
 was ever released): after the check of a commit on main is green, CI's job `release` calls the

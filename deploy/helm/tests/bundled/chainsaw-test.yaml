@@ -1,0 +1,96 @@
+# The chart with its own PostgreSQL: it installs, the admin signs in, and a workspace survives a
+# restart of the database. $CHART, $IMAGE_REPOSITORY and $IMAGE_TAG come from bin/helm-check.
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: bundled
+spec:
+  timeouts:
+    assert: 4m
+    exec: 5m
+  steps:
+    - name: installs with its own database
+      try:
+        - apply:
+            resource:
+              apiVersion: v1
+              kind: Secret
+              metadata:
+                name: drillgram-admin
+              stringData:
+                email: admin@example.org
+                password: helm-test-admin
+        - apply:
+            resource:
+              apiVersion: v1
+              kind: Secret
+              metadata:
+                name: drillgram-postgresql
+              stringData:
+                # Characters a database address must escape.
+                password: test/db:p@ss%word
+        - script:
+            env:
+              - name: NAMESPACE
+                value: ($namespace)
+            content: |
+              helm upgrade --install drillgram "$CHART" --namespace "$NAMESPACE" --wait --timeout 4m \
+                --set-string image.repository="$IMAGE_REPOSITORY" --set-string image.tag="$IMAGE_TAG"
+        - assert:
+            resource:
+              apiVersion: apps/v1
+              kind: StatefulSet
+              metadata:
+                name: drillgram-postgres
+              status:
+                readyReplicas: 1
+        - assert:
+            resource:
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                name: drillgram
+              status:
+                availableReplicas: 1
+      catch: &logs
+        - podLogs:
+            selector: app.kubernetes.io/instance=drillgram
+            tail: 100
+        - events: {}
+    - name: the admin signs in and makes a workspace
+      try:
+        - script:
+            env:
+              - name: NAMESPACE
+                value: ($namespace)
+            content: |
+              ../signed-in.sh 'curl -fsS -b "$COOKIE" -H "Content-Type: application/json" \
+                -d "{\"name\":\"Helm smoke workspace\"}" "$APP/api/workspaces"'
+      catch: *logs
+    - name: the workspace survives a restart of the database
+      try:
+        # kubectl waits for this pod to go, by its UID: the StatefulSet makes one of the same name
+        # at once, which Chainsaw's own `delete` would take for the old one and wait for in vain.
+        - script:
+            env:
+              - name: NAMESPACE
+                value: ($namespace)
+            content: kubectl -n "$NAMESPACE" delete pod drillgram-postgres-0 --wait --timeout 2m
+        - assert:
+            resource:
+              apiVersion: v1
+              kind: Pod
+              metadata:
+                name: drillgram-postgres-0
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+        - script:
+            env:
+              - name: NAMESPACE
+                value: ($namespace)
+            content: ../signed-in.sh 'curl -fsS -b "$COOKIE" "$APP/api/workspaces"'
+            check:
+              ($error == null): true
+              (contains($stdout, 'Helm smoke workspace')): true
+      catch: *logs

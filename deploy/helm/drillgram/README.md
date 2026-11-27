@@ -100,7 +100,7 @@ next version from the commits since the last `helm-v` tag ([Conventional
 Commits](https://www.conventionalcommits.org)): a `feat` is a minor version, a `fix` or `perf` a
 patch, a breaking change (`feat!:`, or `BREAKING CHANGE:` in the body) a major one, before 1.0 a
 minor one. Commits such as `test`, `docs`, `ci` or `chore` alone make no release. GitHub Actions
-then tests both database modes on Kubernetes, publishes the image as
+then runs the chart's Chainsaw tests (`deploy/helm/tests`) on kind, publishes the image as
 `ghcr.io/mafigit/drillgram:<version>` and the chart with that version, and tags the commit
 `helm-v<version>`. `deploy/release` holds the rule; `node deploy/release/src/cli.ts` prints the
 version the next release would have. `version` and `appVersion` in `Chart.yaml` are for checks

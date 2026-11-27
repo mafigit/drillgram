@@ -1,0 +1,39 @@
+# The chart as text: it lints, refuses what cannot work, and renders an HTTPS setup that the
+# cluster takes. $CHART is the chart (a folder or a packaged archive), set by bin/helm-check.
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: rendering
+spec:
+  steps:
+    - name: lints
+      try:
+        - script:
+            content: helm lint "$CHART" --strict
+    - name: refuses an external database without its Secret
+      try:
+        - script:
+            content: helm template drillgram "$CHART" --set postgresql.enabled=false
+            check:
+              ($error != null): true
+              (contains($stderr, 'externalDatabase.existingSecret')): true
+    - name: refuses an Ingress without a host
+      try:
+        - script:
+            content: helm template drillgram "$CHART" --set ingress.enabled=true
+            check:
+              ($error != null): true
+              (contains($stderr, 'ingress.host')): true
+    - name: renders HTTPS behind an Ingress, which the cluster takes
+      try:
+        - script:
+            env:
+              - name: NAMESPACE
+                value: ($namespace)
+            content: |
+              helm template drillgram "$CHART" --set ingress.enabled=true --set ingress.host=drillgram.example.org \
+                --set ingress.tlsSecret=drillgram-tls --set postgresql.enabled=false \
+                --set externalDatabase.existingSecret=external-db --set externalDatabase.caSecret=external-ca >https.yaml
+              grep -q 'value: "https://drillgram.example.org"' https.yaml
+              kubectl -n "$NAMESPACE" apply --dry-run=server -f https.yaml
+              rm https.yaml

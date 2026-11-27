@@ -151,7 +151,7 @@ Project started 2026-11-03.
 - Red at the frame (J40): a connector that runs only to the frame of the opened box (the box is
   connected, none of its parts yet) is red, line and label, on the canvas, in the key ("Not yet
   to a part") and in the SVG and PNG export.
-- Look: Tailwind CSS with shadcn-vue components, four themes (Light, Dark, Solarized Light, Solarized Dark), a floating toolbar, cards
+- Look: Tailwind CSS with shadcn-vue components, six themes (Light, Dark, Solarized Light and Dark, Catppuccin Latte and Mocha), a floating toolbar, cards
   with one colour per C4 kind, the font shipped with the app.
 - Canvas on Vue Flow (J9): pan, zoom, fit to screen, drag a card to move it (saved). A fit
   (the button, a diagram that opens with a card out of sight, a new card out of sight) leaves

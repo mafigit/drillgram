@@ -200,7 +200,7 @@ export function tourSteps(browserOnly: boolean): TourStep[] {
     {
       id: 'theme',
       title: 'Themes',
-      text: 'Light, Dark and two Solarized themes. The one you choose is kept in this browser.',
+      text: 'Light, Dark, two Solarized and two Catppuccin themes. The one you choose is kept in this browser.',
       target: [button('Theme')],
     },
     // Only the app without a server shares a workspace so far (collab/).

@@ -243,6 +243,108 @@
     --sidebar-ring: #268bd2;
 }
 
+/* Catppuccin (catppuccin.com, MIT): Latte is `.catppuccin` alone, Mocha comes with `.dark`. The
+   named colours as they are; cards on base (Latte) or surface0 (Mocha), the canvas on mantle. */
+.catppuccin {
+    --canvas: #e6e9ef;
+    --canvas-dot: #bcc0cc;
+    --kind-box: #6c6f85;
+    --kind-person: #1e66f5;
+    --kind-softwareSystem: #8839ef;
+    --kind-container: #179299;
+    --kind-component: #fe640b;
+    --kind-code: #7c7f93;
+    --line-red: #d20f39;
+    --line-orange: #fe640b;
+    --line-yellow: #df8e1d;
+    --line-green: #40a02b;
+    --line-teal: #179299;
+    --line-blue: #1e66f5;
+    --line-purple: #8839ef;
+    --line-pink: #ea76cb;
+    --background: #eff1f5;
+    --foreground: #4c4f69;
+    --card: #eff1f5;
+    --card-foreground: #4c4f69;
+    --popover: #eff1f5;
+    --popover-foreground: #4c4f69;
+    --primary: #4c4f69;
+    --primary-foreground: #eff1f5;
+    --secondary: #e6e9ef;
+    --secondary-foreground: #4c4f69;
+    --muted: #e6e9ef;
+    --muted-foreground: #6c6f85;
+    --accent: #e6e9ef;
+    --accent-foreground: #4c4f69;
+    --destructive: #d20f39;
+    --border: #ccd0da;
+    --input: #ccd0da;
+    --ring: #7287fd;
+    --chart-1: #1e66f5;
+    --chart-2: #179299;
+    --chart-3: #40a02b;
+    --chart-4: #df8e1d;
+    --chart-5: #fe640b;
+    --sidebar: #e6e9ef;
+    --sidebar-foreground: #4c4f69;
+    --sidebar-primary: #1e66f5;
+    --sidebar-primary-foreground: #eff1f5;
+    --sidebar-accent: #dce0e8;
+    --sidebar-accent-foreground: #4c4f69;
+    --sidebar-border: #ccd0da;
+    --sidebar-ring: #7287fd;
+}
+
+.catppuccin.dark {
+    --canvas: #181825;
+    --canvas-dot: #45475a;
+    --kind-box: #9399b2;
+    --kind-person: #89b4fa;
+    --kind-softwareSystem: #cba6f7;
+    --kind-container: #94e2d5;
+    --kind-component: #fab387;
+    --kind-code: #a6adc8;
+    --line-red: #f38ba8;
+    --line-orange: #fab387;
+    --line-yellow: #f9e2af;
+    --line-green: #a6e3a1;
+    --line-teal: #94e2d5;
+    --line-blue: #89b4fa;
+    --line-purple: #cba6f7;
+    --line-pink: #f5c2e7;
+    --background: #1e1e2e;
+    --foreground: #cdd6f4;
+    --card: #313244;
+    --card-foreground: #cdd6f4;
+    --popover: #313244;
+    --popover-foreground: #cdd6f4;
+    --primary: #cdd6f4;
+    --primary-foreground: #1e1e2e;
+    --secondary: #45475a;
+    --secondary-foreground: #cdd6f4;
+    --muted: #45475a;
+    --muted-foreground: #a6adc8;
+    --accent: #45475a;
+    --accent-foreground: #cdd6f4;
+    --destructive: #f38ba8;
+    --border: rgb(205 214 244 / 12%);
+    --input: rgb(205 214 244 / 18%);
+    --ring: #b4befe;
+    --chart-1: #89b4fa;
+    --chart-2: #94e2d5;
+    --chart-3: #a6e3a1;
+    --chart-4: #f9e2af;
+    --chart-5: #fab387;
+    --sidebar: #313244;
+    --sidebar-foreground: #cdd6f4;
+    --sidebar-primary: #89b4fa;
+    --sidebar-primary-foreground: #1e1e2e;
+    --sidebar-accent: #45475a;
+    --sidebar-accent-foreground: #cdd6f4;
+    --sidebar-border: rgb(205 214 244 / 12%);
+    --sidebar-ring: #b4befe;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

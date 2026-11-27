@@ -9,6 +9,8 @@ import type { Download, Locator, Page } from '@playwright/test'
 
 export type ElementKind = 'Box' | 'Person' | 'Software System' | 'Container' | 'Component'
 /** What C4 asks an element to say besides its name. */
+type Corner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+
 export type ElementDetails = { description?: string; technology?: string; external?: boolean }
 export type ExportFormat = 'PNG' | 'SVG' | 'Mermaid' | 'D2'
 export type DiagramKind = 'System Landscape' | 'Free-form'
@@ -357,7 +359,17 @@ export class DiagramEditor {
    * Select a card and drag one of its corners by an offset in pixels of the diagram; `scale` is
    * how many screen pixels one of them takes.
    */
-  async resize(name: string, corner: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right', by: Point, scale = 1): Promise<void> {
+  async resize(name: string, corner: Corner, by: Point, scale = 1): Promise<void> {
+    const grab = await this.holdCorner(name, corner, by, scale)
+    await this.page.mouse.move(grab.x + by.x * scale, grab.y + by.y * scale, { steps: 8 })
+    await this.page.mouse.up()
+  }
+
+  /**
+   * The same, but the mouse stays down: the card is still being resized. Gives where the corner
+   * was grabbed, on the screen, so the test can move on from there.
+   */
+  async holdCorner(name: string, corner: Corner, by: Point, scale = 1): Promise<Point> {
     const card = this.element(name)
     await card.getByText(name, { exact: true }).click()
     const handle = card.getByTestId(`resize-${corner}`)
@@ -367,7 +379,7 @@ export class DiagramEditor {
     await this.page.mouse.move(grab.x, grab.y)
     await this.page.mouse.down()
     await this.page.mouse.move(grab.x + by.x * scale, grab.y + by.y * scale, { steps: 8 })
-    await this.page.mouse.up()
+    return grab
   }
 
   async delete(name: string): Promise<void> {

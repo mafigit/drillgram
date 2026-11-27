@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import fc from 'fast-check'
-import { gapsFor, guidesFor } from '../alignment'
+import { gapsFor, guidesFor, sizesFor } from '../alignment'
 
 const box = (x: number, y: number) => ({ x, y, width: 220, height: 120 })
 
@@ -114,5 +114,39 @@ describe('gapsFor', () => {
         }
       }),
     )
+  })
+})
+
+describe('sizesFor', () => {
+  const both = { width: true, height: true }
+
+  it('marks the width across the card and across a card nearby as wide', () => {
+    expect(sizesFor(box(0, 0), [box(320, 0)], { width: true, height: false })).toEqual([
+      { upright: false, at: -12, from: 0, to: 220 },
+      { upright: false, at: -12, from: 320, to: 540 },
+    ])
+  })
+
+  it('marks the height beside the card and beside a card nearby as tall', () => {
+    expect(sizesFor(box(0, 0), [box(0, 200)], { width: false, height: true })).toEqual([
+      { upright: true, at: -12, from: 0, to: 120 },
+      { upright: true, at: -12, from: 200, to: 320 },
+    ])
+  })
+
+  it('marks only the sizes being changed', () => {
+    expect(sizesFor(box(0, 0), [box(320, 0)], { width: false, height: false })).toEqual([])
+  })
+
+  it('marks nothing for a card of another size', () => {
+    expect(sizesFor({ x: 0, y: 0, width: 240, height: 140 }, [box(320, 0)], both)).toEqual([])
+  })
+
+  it('leaves out cards far away', () => {
+    expect(sizesFor(box(0, 0), [box(2000, 0)], both)).toEqual([])
+  })
+
+  it('marks the card once for several cards of its size', () => {
+    expect(sizesFor(box(0, 0), [box(320, 0), box(0, 200)], { width: true, height: false })).toHaveLength(3)
   })
 })

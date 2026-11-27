@@ -352,3 +352,39 @@ describe('a box with a shape', () => {
     expect(doc.querySelector('g[transform="translate(40.5 40.5)"] path')?.getAttribute('fill')).toBe(COLOURS.muted)
   })
 })
+
+describe('sticky notes', () => {
+  const scene: Scene = {
+    title: 'Overview',
+    cards: [
+      { x: 40, y: 40, width: 220, height: 120, name: 'Checkout', kind: 'box', external: false, icons: [] },
+      { x: 280, y: 40, width: 160, height: 160, name: 'Ask legal', kind: 'box', external: false, icons: [], shape: 'stickyNote', stuckOn: 'Checkout' },
+    ],
+    connectors: [],
+    tethers: [{ from: { x: 280, y: 100 }, to: { x: 260, y: 100 } }],
+    key: { kinds: ['box'], external: false, relationships: false },
+  }
+
+  it('draws a note as paper, with a pin where it is stuck, and a dashed line to its card', () => {
+    const svg = diagramSvg(scene, { measure })
+    const doc = parse(svg)
+    expect([...doc.getElementsByTagName('path')].some((path) => path.getAttribute('fill') === COLOURS.note)).toBe(true)
+    expect(doc.querySelector('[data-pin]')).not.toBeNull()
+    const line = doc.querySelector('[data-tether]')
+    expect(line?.getAttribute('stroke-dasharray')).toBeTruthy()
+    // Under the cards, as on the canvas.
+    expect(svg.indexOf('data-tether')).toBeLessThan(svg.indexOf('Ask legal'))
+  })
+
+  it('draws a card in its fill', () => {
+    const filled: Scene = { ...scene, cards: scene.cards.map((c) => (c.shape === undefined ? { ...c, fill: 'blue' as const } : c)) }
+    const doc = parse(diagramSvg(filled, { measure }))
+    expect([...doc.getElementsByTagName('rect')].some((rect) => rect.getAttribute('fill') === '#bfdbfe')).toBe(true)
+  })
+
+  it('draws a note in its colour', () => {
+    const green: Scene = { ...scene, cards: scene.cards.map((c) => (c.shape === 'stickyNote' ? { ...c, fill: 'green' as const } : c)) }
+    const doc = parse(diagramSvg(green, { measure }))
+    expect([...doc.getElementsByTagName('path')].some((path) => path.getAttribute('fill') === '#bbf7d0')).toBe(true)
+  })
+})

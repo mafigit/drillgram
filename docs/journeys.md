@@ -1367,3 +1367,54 @@ from the one pulled staying where it was; a shape's outline is drawn at the new 
 resize is one change ("Resized "Notes"") that one undo takes back, and the size stays after a
 reload. A card made to reach into another goes back to its size, and a card says
 "Notes" would reach into another card. A locked workspace offers no resizing.
+
+## J69 Stick a note on a shape
+
+Test: `apps/web/e2e/j69-sticky-notes.spec.ts`
+
+1. Open the app, add a box "Checkout" and, with "Sticky note" beside "Add shape", a sticky note
+   with the text "Ask legal".
+2. Move "Checkout"; then drag "Ask legal" over "Checkout" and let it go.
+3. Move "Checkout" again, open the history, reload the page.
+4. Drag "Ask legal" away from "Checkout", move "Checkout", press the pin, move "Checkout", undo
+   twice.
+5. With "Stock" between "Checkout" and "Payment" and a connector from one to the other, stick
+   a note on "Checkout".
+6. Press "Hide sticky notes", reload, press "Show sticky notes".
+7. Add "Payment" connected to "Checkout", arrange, add a loose note, move "Payment", arrange
+   again.
+8. Import a Miro board through its access token, with a sticky note lying over a shape's corner
+   and one lying by itself.
+
+Expected: a sticky note is a square of yellow paper with its text alone, Markdown, no title,
+no "Open" and no "Icons"; "Colour" gives it other paper (J70). A double-click opens its text in
+place, with no handle of the card over the field. Its first line names it in lists and the history. Loose, it is a card as any other
+and stays where it is when "Checkout" moves. While it is dragged over a card, that card is
+outlined: let go, the note sticks on it, right there, lying over the card ("Stuck "Ask legal"
+on "Checkout"", one change), with a red pin ("Stuck on Checkout"). It goes where the card goes,
+the same way, also while the card is dragged. Moved by itself it stays stuck, over anything; a
+dashed line runs to the card where it lies off it. A press on the pin takes it off ("Took "Ask
+legal" off "Checkout""): it then keeps its gap as any card, off the card it lay on; undo sticks
+it back. A note on a card is no card for the connectors: the line around "Stock" stays as it
+was. Focus on either keeps both clear. Hidden, no note and no line is drawn, also after a reload
+(kept in the browser); shown, they are back. "Arrange" lays the cards out as if there were no
+notes ("Payment" lies where it did without them); a stuck note goes along with its card, a loose
+one is moved clear of the cards and loose notes. From Miro every sticky note is one of ours,
+all its text the note's, and one that lies on a shape (not a frame, not another note) comes in
+stuck on the shape it covers most, over its top right corner. A sticky note is stuck per view:
+on another view the same note may be loose.
+
+## J70 Colour a card
+
+Test: `apps/web/e2e/j70-colour-a-card.spec.ts`
+
+1. Open the app, add a box "Checkout" and a database "Orders DB".
+2. Select "Checkout", press "Colour" on its corner, pick "Blue". Give "Orders DB" "Green".
+3. Reload, give "Checkout" "No colour", open the history.
+4. Lock the workspace and select a card.
+
+Expected: every card has "Colour" on its corner, with nine light colours and "No colour" (a
+sticky note has no "No colour": it is yellow paper without one). The card, or a shape's
+outline, is filled with the colour, its ink dark in every theme; the SVG and PNG export draw
+it so. Each colour is one change ("Coloured "Checkout" blue", "Took the colour off
+"Checkout""), kept after a reload. A locked workspace offers no colours.

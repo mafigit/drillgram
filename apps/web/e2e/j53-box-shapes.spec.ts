@@ -111,7 +111,7 @@ test('J53 The Flowchart library has the rest of the shapes; a text has no outlin
   await editor.openEditForm('Only words')
   const shape = page.getByRole('form', { name: 'Edit box' }).getByRole('combobox', { name: 'Shape' })
   await expect(shape.locator('optgroup')).toHaveCount(2)
-  await expect(shape.locator('option')).toHaveCount(65)
+  await expect(shape.locator('option')).toHaveCount(66)
   await shape.selectOption({ label: 'Comment' })
   await page.getByRole('form', { name: 'Edit box' }).getByRole('button', { name: 'Save' }).click()
   await expect(words.getByTestId('card-shape')).toHaveAttribute('data-shape', 'brace')

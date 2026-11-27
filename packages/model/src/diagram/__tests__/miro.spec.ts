@@ -47,7 +47,8 @@ describe('miroDiagram', () => {
     validateDiagram(diagram)
     expect(named('Checkout')).toMatchObject({ kind: 'box' })
     expect(named('Checkout')?.inside).toBeUndefined()
-    expect(named('Cart & basket')).toMatchObject({ kind: 'box', description: 'Holds what\nis chosen', inside: named('Checkout')!.id })
+    // A sticky note keeps all its text: it shows its text alone (J69).
+    expect(named('Cart & basket')).toMatchObject({ kind: 'box', description: 'Cart & basket\nHolds what\nis chosen', inside: named('Checkout')!.id })
     expect(named('Orders DB')).toMatchObject({ shape: 'cylinder', inside: named('Checkout')!.id })
     expect(named('Payment Provider')?.shape).toBeUndefined()
     expect(named('Fraud check')).toMatchObject({ description: 'Looks at every payment' })
@@ -65,6 +66,38 @@ describe('miroDiagram', () => {
     )
     validateDiagram(round)
     expect(round.elements.map((element) => element.inside)).toEqual(['m2', undefined, undefined])
+  })
+
+  it('makes a sticky note a sticky note, stuck on the shape it lies on', () => {
+    // Miro gives the middle of an item: on the board, or from the top left corner of its frame.
+    const at = (x: number, y: number, inFrame = false) => ({ x, y, origin: 'center', relativeTo: inFrame ? 'parent_top_left' : 'canvas_center' })
+    const board = miroDiagram(
+      [
+        { id: '1', type: 'frame', data: { title: 'Checkout' }, position: at(0, 0), geometry: { width: 1000, height: 800 } },
+        { id: '2', type: 'shape', data: { content: 'Orders DB', shape: 'can' }, parent: { id: '1' }, position: at(200, 200, true), geometry: { width: 200, height: 100 } },
+        // Over the right top corner of "Orders DB".
+        { id: '3', type: 'sticky_note', data: { content: 'Ask legal' }, style: { fillColor: 'light_green' }, parent: { id: '1' }, position: at(290, 160, true), geometry: { width: 100, height: 100 } },
+        { id: '4', type: 'sticky_note', data: { content: 'Far away' }, position: at(2000, 2000), geometry: { width: 100, height: 100 } },
+        // On the frame alone, and on another note.
+        { id: '5', type: 'sticky_note', data: { content: 'In the frame' }, parent: { id: '1' }, position: at(700, 600, true), geometry: { width: 100, height: 100 } },
+        { id: '6', type: 'sticky_note', data: { content: 'On a note' }, position: at(2050, 2050), geometry: { width: 100, height: 100 } },
+        { id: '7', type: 'sticky_note', data: { content: 'Nowhere said' } },
+      ],
+      [],
+    )
+    validateDiagram(board)
+    const named = (name: string) => board.elements.find((element) => element.name === name)!
+    expect(named('Ask legal')).toMatchObject({ shape: 'stickyNote', description: 'Ask legal', fill: 'green', attachedTo: named('Orders DB').id })
+    // Miro's yellow, or a colour it does not say, is ours by itself.
+    expect(named('Far away').fill).toBeUndefined()
+    for (const loose of ['Far away', 'In the frame', 'On a note', 'Nowhere said']) {
+      expect(named(loose)).toMatchObject({ shape: 'stickyNote' })
+      expect(named(loose).attachedTo).toBeUndefined()
+    }
+    const ws = importDiagram(emptyWorkspace(), ROOT_VIEW_ID, board)
+    validateWorkspace(ws)
+    const inside = findViewInside(ws, ws.model.objects.find((object) => object.name === 'Checkout')!.id)!
+    expect(Object.values(inside.attached ?? {})).toHaveLength(1)
   })
 
   it('names a box without text by what it is', () => {
@@ -98,6 +131,8 @@ describe('miroDiagram', () => {
       type: fc.constantFrom('frame', 'sticky_note', 'shape', 'text', 'card', 'app_card', 'image', 'embed', 'mindmap_node', 'unknown'),
       data: fc.record({ content: fc.string(), title: fc.string(), shape: fc.string(), description: fc.string() }, { requiredKeys: [] }),
       parent: fc.option(fc.record({ id: fc.stringMatching(/^[0-9]{1,4}$/) }), { nil: undefined }),
+      position: fc.option(fc.record({ x: fc.integer({ min: -50, max: 50 }), y: fc.integer({ min: -50, max: 50 }), relativeTo: fc.constantFrom('canvas_center', 'parent_top_left') }), { nil: undefined }),
+      geometry: fc.option(fc.record({ width: fc.integer({ min: 1, max: 60 }), height: fc.integer({ min: 1, max: 60 }) }), { nil: undefined }),
     })
     const end = fc.option(fc.record({ id: fc.stringMatching(/^[0-9]{1,4}$/) }), { nil: undefined })
     const connector = fc.record({ id: fc.string(), startItem: end, endItem: end, captions: fc.option(fc.array(fc.record({ content: fc.string() })), { nil: undefined }) })
@@ -231,7 +266,7 @@ describe('a copy from Miro', () => {
     const diagram = miroPastedDiagram(clipboardOf(COPIED))
     validateDiagram(diagram)
     const named = (name: string) => diagram.elements.find((element) => element.name === name)
-    expect(named('Cart')).toMatchObject({ kind: 'box', description: 'what is chosen', inside: named('Checkout')!.id })
+    expect(named('Cart')).toMatchObject({ kind: 'box', description: 'Cart\nwhat is chosen', inside: named('Checkout')!.id })
     expect(named('Pay')).toMatchObject({ inside: named('Checkout')!.id })
     expect(named('Invoice')).toMatchObject({ shape: 'document' })
     expect(named('Payment')?.shape).toBeUndefined()

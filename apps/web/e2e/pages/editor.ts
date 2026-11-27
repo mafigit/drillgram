@@ -300,10 +300,11 @@ export class DiagramEditor {
     await this.page.keyboard.press('Enter')
   }
 
-  async move(name: string, by: { x: number; y: number }): Promise<void> {
+  /** Drag a card by an offset; `grip` is where it is held, as parts of its width and height (the middle by default). */
+  async move(name: string, by: { x: number; y: number }, grip = { x: 0.5, y: 0.5 }): Promise<void> {
     const box = await this.element(name).boundingBox()
     if (!box) throw new Error(`Element "${name}" is not visible`)
-    const start = { x: box.x + box.width / 2, y: box.y + box.height / 2 }
+    const start = { x: box.x + box.width * grip.x, y: box.y + box.height * grip.y }
     await this.page.mouse.move(start.x, start.y)
     await this.page.mouse.down()
     await this.page.mouse.move(start.x + by.x, start.y + by.y, { steps: 5 })
@@ -327,6 +328,29 @@ export class DiagramEditor {
     const length = Math.hypot(by.x, by.y) || 1
     await this.page.mouse.move(grab.x + (3 * by.x) / length, grab.y + (3 * by.y) / length)
     await this.page.mouse.move(grab.x + by.x * scale, grab.y + by.y * scale, { steps: 8 })
+  }
+
+  /** Drag a card by its middle and let it go over the middle of another one: a sticky note is stuck on it so. */
+  async dropOnto(name: string, target: string): Promise<void> {
+    const from = await this.element(name).boundingBox()
+    const to = await this.element(target).boundingBox()
+    if (!from || !to) throw new Error(`"${name}" or "${target}" is not visible`)
+    const grab = { x: from.x + from.width / 2, y: from.y + from.height / 2 }
+    await this.page.mouse.move(grab.x, grab.y)
+    await this.page.mouse.down()
+    await this.page.mouse.move(grab.x + 3, grab.y)
+    await this.page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 10 })
+    await this.page.mouse.up()
+  }
+
+  /** The pin on a sticky note that is stuck on a card, which names that card; a press takes it off. */
+  pinOf(note: string): Locator {
+    return this.element(note).getByRole('button', { name: /^Stuck on / })
+  }
+
+  /** The dashed lines from each sticky note that is stuck on a card to that card. */
+  get tethers(): Locator {
+    return this.canvas.getByTestId('note-tether')
   }
 
   /**

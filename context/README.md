@@ -78,9 +78,10 @@ Project started 2026-11-03.
   Arrange and import lay the cards out without the notes; a stuck note then goes along with its
   card, a loose one is made clear of the cards and loose notes (`clearOfCards` in
   `canvas/notes.ts`). The SVG and PNG export draw paper, pin and line. From Miro's API
-  (`readMiroBoard`) a sticky note lying on an item is stuck on the one it covers most
-  (`DiagramElement.attachedTo`), over its top right corner; a copy and the PDF bring notes
-  loose (their places are not read). All of a Miro note's text is its Markdown.
+  (`readMiroBoard`) and from a copy (`_position.offsetPx` and `size`) a sticky note lying on an
+  item is stuck on the one it covers most (`DiagramElement.attachedTo`), over its top right
+  corner; the PDF brings notes loose. A shape that wholly covers other items holds them like a
+  frame (`holdShapes` in `miro.ts`); one covering only notes is no holder. All of a Miro note's text is its Markdown.
 - Colours of cards (J70): "Colour" on a card's corner fills it with one of nine light colours
   (`FILL_COLOURS`, `fill` on an object of the model, event `objectFilled`; `FILL_COLOUR_HEX`
   for the canvas and the export) or none; the ink of a filled card is dark in every theme. A

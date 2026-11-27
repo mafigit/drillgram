@@ -280,11 +280,13 @@ export function miroDiagram(items: readonly MiroItem[], connectors: readonly Mir
     while (at !== undefined && at !== element.id) at = inside.get(at)
     if (at === undefined) inside.set(element.id, parent)
   }
+  const places = placesOf(items)
+  const holders = holdShapes(items, elements, ids, places, inside)
   for (const element of elements) {
     const parent = inside.get(element.id)
     if (parent !== undefined) element.inside = parent
   }
-  stickNotes(items, elements, ids)
+  stickNotes(items, elements, ids, places, holders)
   const relationships: Relationship[] = connectors.flatMap((connector) => {
     const from = ids.get(idOf(connector.startItem?.id) ?? '')
     const to = ids.get(idOf(connector.endItem?.id) ?? '')
@@ -299,12 +301,8 @@ export function miroDiagram(items: readonly MiroItem[], connectors: readonly Mir
 
 type Rect = { x: number; y: number; width: number; height: number }
 
-/**
- * Each sticky note that lies on another item, a frame or a note aside, is stuck on it (J69): on
- * the one it covers most. Miro has no such link of its own; a note put on a shape lies over it.
- * Only where the board says where items are (its API), not a copy (which is read without).
- */
-function stickNotes(items: readonly MiroItem[], elements: DiagramElement[], ids: ReadonlyMap<string, string>) {
+/** Where each item lies on the board, by Miro's id, where the board says so (not a PDF). */
+function placesOf(items: readonly MiroItem[]): Map<string, Rect> {
   const byId = new Map(items.map((item) => [idOf(item.id), item]))
   const rects = new Map<string, Rect | undefined>()
   const rectOf = (miroId: string, seen = new Set<string>()): Rect | undefined => {
@@ -322,17 +320,79 @@ function stickNotes(items: readonly MiroItem[], elements: DiagramElement[], ids:
     rects.set(miroId, rect)
     return rect
   }
+  const places = new Map<string, Rect>()
+  for (const item of items) {
+    const miroId = idOf(item.id)
+    const rect = miroId === undefined ? undefined : rectOf(miroId)
+    if (miroId !== undefined && rect) places.set(miroId, rect)
+  }
+  return places
+}
+
+const holds = (outer: Rect, inner: Rect) =>
+  outer.x <= inner.x && outer.y <= inner.y && outer.x + outer.width >= inner.x + inner.width && outer.y + outer.height >= inner.y + inner.height && outer.width * outer.height > inner.width * inner.height
+
+/**
+ * A shape drawn round other items holds them, as a frame does: each item goes into the smallest
+ * shape of its frame that wholly holds it. A shape holding sticky notes only is no holder: the
+ * notes are stuck on it (J69). Changes `inside`; gives the ids of the holding shapes.
+ */
+function holdShapes(
+  items: readonly MiroItem[],
+  elements: readonly DiagramElement[],
+  ids: ReadonlyMap<string, string>,
+  places: ReadonlyMap<string, Rect>,
+  inside: Map<string, string>,
+): Set<string> {
+  const type = new Map(items.map((item) => [idOf(item.id), item.type]))
+  const note = new Set(elements.filter((element) => element.shape === 'stickyNote').map((element) => element.id))
+  const placed = [...ids].flatMap(([miroId, id]) => {
+    const rect = places.get(miroId)
+    return rect ? [{ id, rect, frame: inside.get(id), shape: type.get(miroId) === 'shape' }] : []
+  })
+  const smallest = (wanted: (typeof placed)[number], among: typeof placed) => {
+    let best: (typeof placed)[number] | undefined
+    for (const other of among) {
+      if (other.frame !== wanted.frame || !holds(other.rect, wanted.rect)) continue
+      if (!best || other.rect.width * other.rect.height < best.rect.width * best.rect.height) best = other
+    }
+    return best
+  }
+  const shapes = placed.filter((one) => one.shape)
+  const holders = new Set(placed.filter((one) => !note.has(one.id)).flatMap((one) => smallest(one, shapes)?.id ?? []))
+  const holding = shapes.filter((one) => holders.has(one.id))
+  // Each holder is smaller than the one holding it, so nothing holds itself round about.
+  for (const one of placed) {
+    const holder = smallest(one, holding)
+    if (holder) inside.set(one.id, holder.id)
+  }
+  return holders
+}
+
+/**
+ * Each sticky note that lies on another item, a frame, a shape holding items or a note aside, is
+ * stuck on it (J69): on the one it covers most. Miro has no such link of its own; a note put on a
+ * shape lies over it. Only where the board or a copy says where items are.
+ */
+function stickNotes(
+  items: readonly MiroItem[],
+  elements: DiagramElement[],
+  ids: ReadonlyMap<string, string>,
+  places: ReadonlyMap<string, Rect>,
+  holders: ReadonlySet<string>,
+) {
+  const type = new Map(items.map((item) => [idOf(item.id), item.type]))
   const shared = (a: Rect, b: Rect) =>
     Math.max(0, Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x)) * Math.max(0, Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y))
   const element = new Map(elements.map((made) => [made.id, made]))
-  const takers = [...ids].filter(([miroId, id]) => byId.get(miroId)?.type !== 'frame' && element.get(id)?.shape !== 'stickyNote')
+  const takers = [...ids].filter(([miroId, id]) => type.get(miroId) !== 'frame' && !holders.has(id) && element.get(id)?.shape !== 'stickyNote')
   for (const [miroId, id] of ids) {
     const note = element.get(id)
-    const rect = note?.shape === 'stickyNote' ? rectOf(miroId) : undefined
+    const rect = note?.shape === 'stickyNote' ? places.get(miroId) : undefined
     if (!note || !rect) continue
     let best: { id: string; area: number } | undefined
     for (const [otherMiro, other] of takers) {
-      const under = rectOf(otherMiro)
+      const under = places.get(otherMiro)
       const area = under ? shared(rect, under) : 0
       if (area > 0 && (!best || area > best.area)) best = { id: other, area }
     }
@@ -442,6 +502,18 @@ function stencilText(json: Record<string, unknown>): string {
   return [...new Set(order)].map((key) => asRecord(texts[key]).text).filter((text): text is string => typeof text === 'string' && lines(text).length > 0).join('<br>')
 }
 
+/** Where a copied item lies: its middle from the middle of the copy (`_position.offsetPx`), and its size times its scale. */
+function placeOf(json: Record<string, unknown>): Pick<MiroItem, 'position' | 'geometry'> {
+  const position = asRecord(json._position)
+  const { x, y } = asRecord(position.offsetPx)
+  const { width, height } = asRecord(json.size)
+  const scale = asRecord(json.scale).scale ?? 1
+  const numbers = [x, y, width, height, scale]
+  if (position.schema !== 'canvasOffsetPx' || !numbers.every((n) => typeof n === 'number' && Number.isFinite(n))) return {}
+  const times = scale as number
+  return { position: { x, y }, geometry: { width: (width as number) * times, height: (height as number) * times } }
+}
+
 /** The copied items in the words of Miro's API, so that a copy is read as a board is. */
 export function miroClipboardBoard(data: unknown): { items: MiroItem[]; connectors: MiroConnector[] } {
   const objects = asRecord(asRecord(data).data).objects
@@ -456,7 +528,7 @@ export function miroClipboardBoard(data: unknown): { items: MiroItem[]; connecto
     const json = asRecord(object?.widgetData?.json)
     // A frame names what stands in it by the place of the frame in the list (`_parent: { index }`).
     const parent = idAt(asRecord(json._parent).index)
-    const within = parent !== undefined ? { parent: { id: parent } } : {}
+    const within = { ...(parent !== undefined && { parent: { id: parent } }), ...placeOf(json) }
     if (type === 'line') {
       const captions = asRecord(json.line).captions
       connectors.push({

@@ -1472,3 +1472,19 @@ browser asks again, the app says that the diagrams are in "diagrams" and opens t
 "Open the folder". "Keep in this browser instead" brings back what the browser kept, as it
 was; the folder's files stay. A browser that cannot open folders offers no "Keep in a
 folder".
+
+## J72 The app opens after an update
+
+Test: `apps/web/e2e/j72-opens-after-an-update.spec.ts`. The service worker's steps in Chromium only.
+
+The browser keeps a copy of the app (the service worker). After a deploy that copy can ask for
+files the site no longer has: they went with the earlier build.
+
+1. Ask the site for a file of an earlier build (`/assets/index-gone.js`), and for a page of
+   the app (`/w/some-workspace`).
+2. Open the app, then reload it with a kept page whose files are all gone.
+3. Open the app where the part it loads later (the workspace page) is gone the first time.
+
+Expected: the file is not found (404, no page of the app in its place); the page of the app
+is. Where the kept copy or a part of it is gone, the app throws away the copy, loads anew from
+the site once and opens on the workspace, never on an empty white page.

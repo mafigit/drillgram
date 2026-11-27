@@ -1517,4 +1517,4 @@ where they stood when it was set, at the same size. Marks are kept in the browse
 diagram, also after a reload; they are no change to the workspace (nothing in the history)
 and work on a locked one too. A number without a mark says so on a card. Escape, a click or
 another key puts the marks back to small. Inside "Checkout" there are no marks yet: M says how
-to set one.
+to set one. The keyboard shortcuts list both keys.

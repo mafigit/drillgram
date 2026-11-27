@@ -831,6 +831,24 @@
   fill: var(--primary);
 }
 
+/* Camera marks in the minimap (J73): small numbers, big and in the primary colour while M is pressed. */
+.canvas-minimap .minimap-mark circle {
+  fill: var(--muted-foreground);
+}
+
+.canvas-minimap .minimap-mark text {
+  fill: var(--background);
+  font-weight: 600;
+}
+
+.canvas-minimap .minimap-mark.is-lit circle {
+  fill: var(--primary);
+}
+
+.canvas-minimap .minimap-mark.is-lit text {
+  fill: var(--primary-foreground);
+}
+
 /* The frame of an opened box in the minimap: a line of one screen pixel whatever the scale. */
 .canvas-minimap .minimap-frame {
   fill: color-mix(in oklch, var(--foreground) 5%, transparent);

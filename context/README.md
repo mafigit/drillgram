@@ -219,6 +219,11 @@ Project started 2026-11-03.
   on screen marked and, inside a box, its frame; dragging in it moves the view, the wheel over it zooms. Not on an empty
   diagram or a phone, and it makes room for the history. A card that would lie under it counts
   as out of sight, so the view fits itself.
+- Camera marks (J73): hold M and press 1 to 9 to keep the view (its middle and zoom) as a mark;
+  M alone lights the marks up as numbers on the minimap, then a number glides the view there
+  (`canvas/CanvasMarks.vue`, keys and storage in `canvas/cameraMarks.ts`, drawn by
+  `MinimapMarks.vue`). Kept in the browser per workspace and diagram, no change to the
+  workspace, also when locked.
 - Clear the workspace (J43): "Clear workspace" in the top bar asks first, then deletes
   everything in the workspace and its change log, on the server. It cannot be undone. The
   workspace stays, with its name; a new one is begun in the workspace menu (J58).

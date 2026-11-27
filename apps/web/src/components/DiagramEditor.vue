@@ -80,6 +80,9 @@ import CanvasKey from './canvas/CanvasKey.vue'
 import CanvasPointers from './canvas/CanvasPointers.vue'
 import CanvasQuickMenu from './canvas/CanvasQuickMenu.vue'
 import CanvasToolDrop from './canvas/CanvasToolDrop.vue'
+import CanvasMarks from './canvas/CanvasMarks.vue'
+import MinimapMarks from './canvas/MinimapMarks.vue'
+import type { CameraMarks } from './canvas/cameraMarks'
 import type { QuickMenuItem } from './canvas/CanvasQuickMenu.vue'
 import ConnectionEdgeView from './canvas/ConnectionEdge.vue'
 import ObjectNodeView from './canvas/ObjectNode.vue'
@@ -134,7 +137,8 @@ const { history } = store
 // change it are not offered, and a change of the editor that comes through anyway is not made.
 // An agent (J7) writes to the store itself and is not held back.
 const route = useRoute()
-const locked = useLock(String(route.params.workspace ?? route.params.room ?? ''))
+const workspaceKey = String(route.params.workspace ?? route.params.room ?? '')
+const locked = useLock(workspaceKey)
 const dispatch = (event: WorkspaceEvent) => {
   if (!locked.value) store.dispatch(event)
 }
@@ -1773,6 +1777,9 @@ function movesCards(before: typeof view.value, after: typeof view.value): boolea
 const minimapShown = computed(() => nodes.value.length > 0 && !showHistory.value)
 /** The minimap with the space around it, in px of the screen. */
 const MINIMAP_ROOM = { width: 210, height: 150 }
+/** The camera marks of the open diagram (J73), kept by CanvasMarks and drawn on the minimap. */
+const cameraMarks = ref<CameraMarks>({})
+const marksLit = ref(false)
 
 // Starting over: everything in the workspace and its change log go, on the server, and the
 // editor is back on the empty Overview. The workspace itself stays, with its name and members.
@@ -2131,6 +2138,7 @@ const keyKinds = computed(() =>
                 :height="card.dimensions.height"
                 rx="12"
               />
+              <MinimapMarks v-if="card.id === nodes.at(-1)?.id" :marks="cameraMarks" :lit="marksLit" :width="180" :height="120" />
             </template>
           </MiniMap>
           <!-- The title and, beside it, the views of this box: in one row, so that the panel
@@ -2152,6 +2160,7 @@ const keyKinds = computed(() =>
           <CanvasControls :reveal="added" :centre="found" :diagram="viewId" :corner="minimapShown ? MINIMAP_ROOM : undefined" :framed="boundary !== undefined" :near="tourNear" />
           <CanvasPointers v-if="sharing" :sharing="sharing" :view="viewId" />
           <CanvasToolDrop @drop="onToolDropped" />
+          <CanvasMarks v-model:marks="cameraMarks" v-model:lit="marksLit" :workspace="workspaceKey" :view="viewId" />
           <CanvasQuickMenu
             :items="quickMenuItems"
             :open-at="quickMenuAt"

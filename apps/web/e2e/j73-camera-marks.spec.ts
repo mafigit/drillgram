@@ -63,8 +63,16 @@ test('J73 Hold M and a number to mark the view, M then the number to jump back',
   await expect.poll(async () => near(await at(), two)).toBe(true)
 
   // Each diagram has its own marks.
+  await editor.fitToScreen()
   await editor.drillDown('Checkout')
   await page.keyboard.press('m')
   await expect(status).toHaveText('No marks here yet. Hold M and press 1 to 9 to set one.')
+  await page.keyboard.press('Escape')
+
+  // The keyboard shortcuts list them.
+  await page.getByRole('button', { name: 'Keyboard shortcuts' }).click()
+  const legend = page.getByRole('list', { name: 'Keyboard shortcuts' })
+  await expect(legend.getByRole('listitem').filter({ hasText: 'Set a camera mark' })).toContainText('Hold M')
+  await expect(legend.getByRole('listitem').filter({ hasText: 'Jump to a camera mark' })).toContainText('M')
   expect(consoleErrors).toEqual([])
 })

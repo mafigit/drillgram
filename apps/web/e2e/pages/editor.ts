@@ -661,6 +661,19 @@ export class DiagramEditor {
     await this.page.mouse.up()
   }
 
+  /** Hold M and press a number: the view is that camera mark (J73). */
+  async setMark(n: number): Promise<void> {
+    await this.page.keyboard.down('m')
+    await this.page.keyboard.press(String(n))
+    await this.page.keyboard.up('m')
+  }
+
+  /** Press M, then a number: the view goes to that camera mark (J73). */
+  async jumpToMark(n: number): Promise<void> {
+    await this.page.keyboard.press('m')
+    await this.page.keyboard.press(String(n))
+  }
+
   async fitToScreen(): Promise<void> {
     await this.page.getByRole('button', { name: 'Fit to screen' }).click()
   }

@@ -1497,3 +1497,24 @@ files the site no longer has: they went with the earlier build.
 Expected: the file is not found (404, no page of the app in its place); the page of the app
 is. Where the kept copy or a part of it is gone, the app throws away the copy, loads anew from
 the site once and opens on the workspace, never on an empty white page.
+
+## J73 Jump to a camera mark
+
+Test: `apps/web/e2e/j73-camera-marks.spec.ts`. Desktop only: it needs a keyboard.
+
+1. Open the app, add the boxes "Checkout" and "Payment".
+2. Pan the view, hold M and press 1. Pan and zoom elsewhere, hold M and press 2.
+3. Pan away, press M, then 1. Press M, then 2.
+4. Reload, press M, then 1.
+5. Press M, then 5. Press M, then Escape.
+6. Lock the workspace, press M, then 2. Open "Checkout" and press M.
+
+Expected: holding M and pressing a number from 1 to 9 keeps the view as it is (where it looks
+and how near) as that mark, says so ("Mark 1 set") and puts its number on the minimap. M
+alone lights up the marks of this diagram on the minimap and says which numbers there are;
+then a number brings the view back to that mark, gliding there: the cards stand on the screen
+where they stood when it was set, at the same size. Marks are kept in the browser, per
+diagram, also after a reload; they are no change to the workspace (nothing in the history)
+and work on a locked one too. A number without a mark says so on a card. Escape, a click or
+another key puts the marks back to small. Inside "Checkout" there are no marks yet: M says how
+to set one.

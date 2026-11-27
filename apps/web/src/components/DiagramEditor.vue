@@ -634,6 +634,7 @@ function rebuildNodes() {
   const selected = new Set(selectNext ?? nodes.value.filter((n) => n.selected).map((n) => n.id))
   selectNext = undefined
   const names = new Map(workspace.value.model.objects.map((object) => [object.id, object.name]))
+  const parents = new Set(workspace.value.model.objects.map((object) => object.parent))
   const stuckOn = (id: string) => {
     const on = view.value.attached?.[id]
     return on === undefined ? undefined : names.get(on)
@@ -661,6 +662,7 @@ function rebuildNodes() {
         columns: object.columns,
         // A sticky note is a note, not a box with an inside (J69).
         opens: !isStickyNote(object),
+        hasParts: parents.has(object.id),
         // A code element without an icon of its own shows its language's.
         icons: object.icons ?? (object.kind === 'code' ? [languageIcon(object.technology)].filter((icon) => icon !== undefined) : []),
         stuckOn: stuckOn(object.id),

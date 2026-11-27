@@ -16,6 +16,8 @@ export type ObjectNode = Node<
     columns?: TableColumn[]
     /** Whether it has a next level to drill down into. */
     opens: boolean
+    /** Whether anything is inside it, in its frame: its magnifier is green then. */
+    hasParts: boolean
     /** Names of the icons on the card's corner, in their order. */
     icons: string[]
     /** The name of the card a sticky note is stuck on, which it goes along with. */

@@ -1024,12 +1024,14 @@ Test: `apps/web/e2e/j54-themes.spec.ts`
 
 1. Open the app, add a box and press "Theme" in the top bar.
 2. Choose "Solarized Dark", reload the page.
-3. Choose "Solarized Light", then "Dark", then "Light".
+3. Choose "Solarized Light", "Catppuccin Mocha", "Catppuccin Latte", then "Dark", then "Light".
 
-Expected: the menu lists Light, Dark, Solarized Light and Solarized Dark, each with a swatch,
-the one in use ticked. A theme applies at once, to the top bar, the canvas and the cards
-(Solarized Dark: base03 under the app, cards on base02; Solarized Light: base3), and is kept
-over a reload. Solarized Dark is a dark theme for everything that follows the dark theme.
+Expected: the menu lists Light, Dark, Solarized Light, Solarized Dark, Catppuccin Latte and
+Catppuccin Mocha, each with a swatch, the one in use ticked. A theme applies at once, to the top
+bar, the canvas and the cards (Solarized Dark: base03 under the app, cards on base02; Solarized
+Light: base3; Catppuccin Mocha: base under the app, cards on surface0; Catppuccin Latte: base),
+and is kept over a reload. Solarized Dark and Catppuccin Mocha are dark themes for everything
+that follows the dark theme.
 
 ## J55 A connection with a colour
 

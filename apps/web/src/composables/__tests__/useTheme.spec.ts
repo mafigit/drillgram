@@ -40,8 +40,15 @@ describe('useTheme', () => {
     expect(useTheme().theme.value).toBe('light')
   })
 
-  it('offers light, dark and the two Solarized themes', () => {
-    expect(THEMES.map((theme) => theme.name)).toEqual(['Light', 'Dark', 'Solarized Light', 'Solarized Dark'])
+  it('offers light, dark, the two Solarized and the two Catppuccin themes', () => {
+    expect(THEMES.map((theme) => theme.name)).toEqual([
+      'Light',
+      'Dark',
+      'Solarized Light',
+      'Solarized Dark',
+      'Catppuccin Latte',
+      'Catppuccin Mocha',
+    ])
   })
 
   it('sets, applies and remembers the choice', () => {
@@ -64,5 +71,17 @@ describe('useTheme', () => {
     expect(useTheme().theme.value).toBe('solarized-light')
     set('dark')
     expect(classes()).toEqual(['dark'])
+  })
+
+  it('a Catppuccin theme is light (Latte) or dark (Mocha) too, and drops the other palette', () => {
+    const { set } = useTheme()
+    set('solarized-dark')
+    set('catppuccin-mocha')
+    expect(classes()).toEqual(['catppuccin', 'dark'])
+    set('catppuccin-latte')
+    expect(classes()).toEqual(['catppuccin'])
+    expect(useTheme().theme.value).toBe('catppuccin-latte')
+    set('light')
+    expect(classes()).toEqual([])
   })
 })

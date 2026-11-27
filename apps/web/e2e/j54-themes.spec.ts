@@ -13,9 +13,16 @@ test('J54 The theme is chosen from a menu, applies at once and is kept', async (
 
   const light = await ground()
 
-  // Four themes, the one in use ticked.
+  // Six themes, the one in use ticked.
   await page.getByRole('button', { name: 'Theme' }).click()
-  await expect(page.getByRole('menuitemradio')).toHaveText([/^Light/, /^Dark/, /^Solarized Light/, /^Solarized Dark/])
+  await expect(page.getByRole('menuitemradio')).toHaveText([
+    /^Light/,
+    /^Dark/,
+    /^Solarized Light/,
+    /^Solarized Dark/,
+    /^Catppuccin Latte/,
+    /^Catppuccin Mocha/,
+  ])
   await expect(page.getByRole('menuitemradio', { name: 'Light', exact: true })).toHaveAttribute('aria-checked', 'true')
   await page.keyboard.press('Escape')
 
@@ -39,6 +46,17 @@ test('J54 The theme is chosen from a menu, applies at once and is kept', async (
   await expect.poll(ground).toBe('rgb(253, 246, 227)')
   await expect(page.locator('html')).not.toHaveClass(/dark/)
   expect(await canvas()).not.toBe(darkCanvas)
+
+  // Catppuccin Mocha: its base under the app, a card on surface0, a dark theme.
+  await choose('Catppuccin Mocha')
+  await expect.poll(ground).toBe('rgb(30, 30, 46)')
+  await expect(card).toHaveCSS('background-color', 'rgb(49, 50, 68)')
+  await expect(page.locator('html')).toHaveClass(/dark/)
+
+  // Catppuccin Latte: its base under the app, no dark theme.
+  await choose('Catppuccin Latte')
+  await expect.poll(ground).toBe('rgb(239, 241, 245)')
+  await expect(page.locator('html')).not.toHaveClass(/dark/)
 
   // Back to the plain ones.
   await choose('Dark')

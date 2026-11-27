@@ -1374,13 +1374,20 @@ Test: `apps/web/e2e/j68-resize-a-card.spec.ts`
 4. On another workspace add "Notes" and "Neighbour" beside it, and drag the right corner of
    "Notes" into "Neighbour".
 5. Lock the workspace and select a card.
+6. Add "Notes" with a few lines of text and "Customer Accounts Service"; pull each in, far.
+7. Add "Notes" and "Neighbour"; pull the corner of "Notes" out and back, still holding, first
+   sideways, then down.
 
 Expected: a selected card has a handle on each corner and can be pulled at each side; an
 unselected one shows none. The card follows the pointer and lands on the grid, the side across
 from the one pulled staying where it was; a shape's outline is drawn at the new size. Each
 resize is one change ("Resized "Notes"") that one undo takes back, and the size stays after a
 reload. A card made to reach into another goes back to its size, and a card says
-"Notes" would reach into another card. A locked workspace offers no resizing.
+"Notes" would reach into another card. A locked workspace offers no resizing. A card stops
+where its text would no longer show whole: no line of the text, no part of the name cut off
+(a sticky note's text scrolls, so it has no such limit). While a card is resized, a width or
+height being changed that is the same as that of a card nearby is marked in green across both,
+as equal gaps are while dragging; letting go takes the marks away.
 
 ## J69 Stick a note on a shape
 

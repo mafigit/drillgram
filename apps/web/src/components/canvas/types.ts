@@ -56,6 +56,8 @@ export interface CanvasActions {
   edit: (objectId: string, at: { x: number; y: number }) => void
   /** Give an object's card another size, and with it its top-left corner: where a corner or side was pulled to. */
   resize: (objectId: string, box: { x: number; y: number; width: number; height: number }) => void
+  /** Where a card being resized is now, while a corner or side is pulled; none: let go. */
+  resizing: (objectId: string, box: { x: number; y: number; width: number; height: number } | undefined) => void
   /** Make a copy of an object, beside it. */
   copy: (objectId: string) => void
   /** Take a sticky note off the card it is stuck on. */

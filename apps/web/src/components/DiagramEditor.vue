@@ -82,7 +82,7 @@ import CanvasQuickMenu from './canvas/CanvasQuickMenu.vue'
 import type { QuickMenuItem } from './canvas/CanvasQuickMenu.vue'
 import ConnectionEdgeView from './canvas/ConnectionEdge.vue'
 import ObjectNodeView from './canvas/ObjectNode.vue'
-import { gapsFor, guidesFor } from './canvas/alignment'
+import { gapsFor, guidesFor, sizesFor } from './canvas/alignment'
 import { besideTheirCards } from './canvas/besideFrame'
 import type { ColumnRow } from './canvas/columns'
 import type { Guide } from './canvas/alignment'
@@ -91,7 +91,8 @@ import type { Box } from './canvas/geometry'
 import { joins, routePath } from './canvas/routePath'
 import { routeWithClearLabels } from './canvas/routeLabels'
 import { nearestPlace, placeBlock } from './canvas/blockPlace'
-import { cardRoom } from './canvas/cardRoom'
+import { cardFits, cardRoom } from './canvas/cardRoom'
+import type { CardText } from './canvas/cardRoom'
 import { languageIcon } from './canvas/codeLanguages'
 import { clearErrors, showError } from '../composables/useErrors'
 import { useLock } from '../composables/useLock'
@@ -593,6 +594,7 @@ provide(CANVAS_ACTIONS, {
   detach: (noteId) => locked.value || dispatch({ type: 'noteDetached', view: viewId.value, note: noteId }),
   fillObject: (objectId, colour) => locked.value || dispatch({ type: 'objectFilled', object: objectId, ...(colour && { colour }) }),
   resize: (objectId, box) => resizeCardTo(objectId, box),
+  resizing: resizingCard,
   describe: (objectId, text) => {
     const object = workspace.value.model.objects.find((o) => o.id === objectId)
     if (object) saveEdit(objectId, object.name, { description: text })
@@ -962,8 +964,10 @@ provide(CANVAS_DRAG, drag)
 /** The cards dragged together, where the hand has them now; one card alone is `drag`. */
 const groupDrag = ref<{ id: string; place: Point }[]>()
 const hints = computed(() => {
+  const sizes = sizeHints()
+  if (sizes) return { guides: [], gaps: [], sizes }
   const moving = drag.value ? [drag.value] : (groupDrag.value ?? [])
-  if (moving.length === 0) return { guides: [], gaps: [] }
+  if (moving.length === 0) return { guides: [], gaps: [], sizes: [] }
   const ids = new Set(moving.map((card) => card.id))
   const others = Object.entries(view.value.positions)
     .filter(([id]) => !ids.has(id))
@@ -976,8 +980,38 @@ const hints = computed(() => {
   return {
     guides: once(cards.flatMap((card) => guidesFor(card, others))),
     gaps: once(cards.flatMap((card) => gapsFor(card, others))),
+    sizes: [],
   }
 })
+
+// Resizing (J68): while a card is resized, a size that is the same as that of a card nearby is
+// marked across both, as a gap is while dragging. Only a size being changed counts: one that
+// has changed since the card was taken hold of.
+const resize = ref<{ id: string; box: Point & Size; width: boolean; height: boolean }>()
+function resizingCard(objectId: string, box: (Point & Size) | undefined) {
+  if (!box) {
+    resize.value = undefined
+    return
+  }
+  const was = cardSize(view.value, objectId)
+  const before = resize.value?.id === objectId ? resize.value : undefined
+  resize.value = {
+    id: objectId,
+    box: { x: box.x, y: box.y, width: box.width, height: box.height },
+    width: (before?.width ?? false) || box.width !== was.width,
+    height: (before?.height ?? false) || box.height !== was.height,
+  }
+}
+function sizeHints(): Guide[] | undefined {
+  const now = resize.value
+  if (!now) return undefined
+  const notes = new Set(workspace.value.model.objects.filter((o) => o.shape === 'stickyNote').map((o) => o.id))
+  if (notes.has(now.id)) return []
+  const others = Object.entries(view.value.positions)
+    .filter(([id]) => id !== now.id && !notes.has(id))
+    .map(([id, place]) => ({ ...place, ...cardSize(view.value, id) }))
+  return sizesFor(now.box, others, now)
+}
 /** How long the end marks of a gap are, across it. */
 const GAP_MARK = 12
 /** How far a guide reaches past the outermost cards, so it reads as a line and not as an edge. */
@@ -1186,6 +1220,14 @@ function onNodeDragStop({ nodes: moved }: NodeDragEvent) {
   rebuildNodes()
 }
 
+/** What a card shows of its object, to measure it by. */
+function textOf(objectId: string): CardText | undefined {
+  const object = workspace.value.model.objects.find((o) => o.id === objectId)
+  if (!object) return undefined
+  const { name, kind, description, technology, external, shape, columns } = object
+  return { name, kind, description, technology, external, shape, columns, icons: object.icons?.length ?? 0 }
+}
+
 // Resizing (J68): a corner or side of the selected card was pulled. The sides that moved land on
 // the grid, the others stay; a card that would then reach into another one, or take its frame
 // over one outside, keeps its size and says so.
@@ -1195,10 +1237,22 @@ function resizeCardTo(objectId: string, box: Point & Size) {
   const was = { ...at, ...cardSize(view.value, objectId) }
   const onGrid = (value: number) => Math.round(value / SNAP_GRID) * SNAP_GRID
   const moved = (a: number, b: number) => Math.abs(a - b) > 0.5
-  const left = moved(box.x, was.x) ? onGrid(box.x) : was.x
-  const top = moved(box.y, was.y) ? onGrid(box.y) : was.y
-  const right = moved(box.x + box.width, was.x + was.width) ? onGrid(box.x + box.width) : was.x + was.width
-  const bottom = moved(box.y + box.height, was.y + was.height) ? onGrid(box.y + box.height) : was.y + was.height
+  let left = moved(box.x, was.x) ? onGrid(box.x) : was.x
+  let top = moved(box.y, was.y) ? onGrid(box.y) : was.y
+  let right = moved(box.x + box.width, was.x + was.width) ? onGrid(box.x + box.width) : was.x + was.width
+  let bottom = moved(box.y + box.height, was.y + was.height) ? onGrid(box.y + box.height) : was.y + was.height
+  // Never smaller than its text: a side pulled in goes back out a step of the grid at a time,
+  // the height first, until all of the text shows. A card already too small for it may grow.
+  const text = textOf(objectId)
+  for (let step = 0; text && step < 100; step++) {
+    const lower = bottom - top < was.height
+    const narrower = right - left < was.width
+    if (!(lower || narrower) || cardFits(text, { width: right - left, height: bottom - top })) break
+    if (lower && moved(box.y, was.y)) top -= SNAP_GRID
+    else if (lower) bottom += SNAP_GRID
+    else if (moved(box.x, was.x)) left -= SNAP_GRID
+    else right += SNAP_GRID
+  }
   const size = { width: right - left, height: bottom - top }
   const to = { x: left, y: top }
   const same = to.x === was.x && to.y === was.y && size.width === was.width && size.height === was.height
@@ -2199,6 +2253,28 @@ const keyKinds = computed(() =>
                 "
               >
                 <div class="bg-emerald-500" :class="gap.upright ? 'h-full w-0.5' : 'h-0.5 w-full'" />
+              </div>
+              <div
+                v-for="mark in hints.sizes"
+                :key="`${mark.upright} ${mark.at} ${mark.from}`"
+                data-testid="size-guide"
+                class="pointer-events-none absolute top-0 left-0 flex items-center justify-center border-emerald-500"
+                :class="mark.upright ? 'border-y-2' : 'border-x-2'"
+                :style="
+                  mark.upright
+                    ? {
+                        transform: `translate(${mark.at - GAP_MARK / 2}px, ${mark.from}px)`,
+                        width: `${GAP_MARK}px`,
+                        height: `${mark.to - mark.from}px`,
+                      }
+                    : {
+                        transform: `translate(${mark.from}px, ${mark.at - GAP_MARK / 2}px)`,
+                        width: `${mark.to - mark.from}px`,
+                        height: `${GAP_MARK}px`,
+                      }
+                "
+              >
+                <div class="bg-emerald-500" :class="mark.upright ? 'h-full w-0.5' : 'h-0.5 w-full'" />
               </div>
               <div
                 v-if="drag"

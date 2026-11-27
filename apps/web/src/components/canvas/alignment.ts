@@ -80,3 +80,26 @@ export function gapsFor(card: Box, others: readonly Box[]): Guide[] {
   }
   return marks
 }
+
+/** How far from a card the mark of its size stands: over it for the width, left of it for the height. */
+const SIZE_MARK_OFFSET = 12
+/** Cards further apart than this, edge to edge, are not nearby: their sizes are not compared. */
+const NEARBY = 400
+
+/**
+ * The marks for a card being resized that is as wide (or as tall) as a card nearby: one across
+ * the card and one across each such card. Only the sizes being changed are compared.
+ */
+export function sizesFor(card: Box, others: readonly Box[], changing: { width: boolean; height: boolean }): Guide[] {
+  const apart = (other: Box) =>
+    Math.max(other.x - (card.x + card.width), card.x - (other.x + other.width), other.y - (card.y + card.height), card.y - (other.y + other.height))
+  const near = others.filter((other) => apart(other) <= NEARBY)
+  const widthMark = (b: Box): Guide => ({ upright: false, at: b.y - SIZE_MARK_OFFSET, from: b.x, to: b.x + b.width })
+  const heightMark = (b: Box): Guide => ({ upright: true, at: b.x - SIZE_MARK_OFFSET, from: b.y, to: b.y + b.height })
+  const marks: Guide[] = []
+  const wide = changing.width ? near.filter((other) => other.width === card.width) : []
+  if (wide.length > 0) marks.push(widthMark(card), ...wide.map(widthMark))
+  const tall = changing.height ? near.filter((other) => other.height === card.height) : []
+  if (tall.length > 0) marks.push(heightMark(card), ...tall.map(heightMark))
+  return marks
+}

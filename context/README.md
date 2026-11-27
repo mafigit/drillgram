@@ -60,8 +60,11 @@ Project started 2026-11-03.
 - Resize a card (J68): a selected card has a handle on each corner and can be pulled at each
   side (Vue Flow's `NodeResizeControl` in `ObjectNode.vue`). The sides that moved land on the
   grid; one change, `cardResized`, kept per view in `View.sizes`. A size that reaches into
-  another card, or takes the frame over one outside, is refused and said on a card. Editing the
-  text still sets the size the text needs.
+  another card, or takes the frame over one outside, is refused and said on a card. A card is
+  never made smaller than its text (`cardFits` in `canvas/cardRoom.ts`, the same probe the
+  height is measured with): a step that would cut text off is not taken. A width or height
+  being changed that equals a card's nearby is marked green (`sizesFor` in `canvas/alignment.ts`).
+  Editing the text still sets the size the text needs.
 - Sticky notes (J69): a box with the shape `stickyNote` ("Sticky note", a toolbar button of its
   own beside "Add shape", in no shape library; 160 px square, `STICKY_NOTE`) is yellow paper
   with its Markdown alone, no title, no "Open" and no icons; its name is its first line (`noteTitle`),

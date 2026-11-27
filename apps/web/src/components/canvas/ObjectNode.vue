@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, inject, ref } from 'vue'
 import { Handle, NodeResizeControl, Position, ResizeControlVariant, storeToRefs, useConnection, useVueFlowStore } from '@xyflow/vue'
-import type { NodeProps, OnResizeEnd } from '@xyflow/vue'
+import type { NodeProps, OnResize, OnResizeEnd, ResizeParams } from '@xyflow/vue'
 import { CopyIcon, ImagePlusIcon, PaletteIcon, PencilIcon, PinIcon, UserIcon, ZoomInIcon } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { CARD, FILL_COLOURS, FILL_COLOUR_HEX } from '@drillgram/model'
@@ -11,6 +11,7 @@ import { renderMarkdown } from '@/lib/markdown'
 import { iconUrl, useTechIcons } from '../../composables/useTechIcons'
 import { codeBadge, isAbstractCode } from './codeLanguages'
 import { KEY_SIGN } from './columns'
+import { cardFits } from './cardRoom'
 import { cardType } from './kinds'
 import { boxShape } from './shapes'
 import { CANVAS_ACTIONS, CANVAS_FADED, CANVAS_NOTE_TARGET } from './types'
@@ -143,7 +144,21 @@ const CORNERS = ['top-left', 'top-right', 'bottom-left', 'bottom-right'] as cons
 const SIDES = ['top', 'right', 'bottom', 'left'] as const
 /** The least a card is made by hand: room for a short name and its kind. */
 const SMALLEST = { width: 100, height: 60 }
-const resized = ({ params }: OnResizeEnd) => actions?.resize(props.id, params)
+/**
+ * A step of a resize is taken where all of the text still shows at the new size (`cardFits`),
+ * or where the card grows: a card already too small for its text can still be made larger.
+ */
+function shouldResize(_event: unknown, to: ResizeParams) {
+  const now = { width: typeof props.width === 'number' ? props.width : CARD.width, height: typeof props.height === 'number' ? props.height : CARD.height }
+  if (to.width >= now.width && to.height >= now.height) return true
+  const { name, kind, description, technology, external, shape, columns, icons } = props.data
+  return cardFits({ name, kind, description, technology, external, shape, columns, icons: icons.length }, to)
+}
+const resizing = ({ params }: OnResize) => actions?.resizing(props.id, params)
+const resized = ({ params }: OnResizeEnd) => {
+  actions?.resizing(props.id, undefined)
+  actions?.resize(props.id, params)
+}
 
 function commitText() {
   const text = newText.value
@@ -352,7 +367,9 @@ function commitText() {
         :variant="ResizeControlVariant.Line"
         :min-width="SMALLEST.width"
         :min-height="SMALLEST.height"
+        :should-resize="shouldResize"
         class="card-resize-side"
+        @resize="resizing"
         @resize-end="resized"
       />
       <NodeResizeControl
@@ -363,7 +380,9 @@ function commitText() {
         :min-height="SMALLEST.height"
         :data-testid="`resize-${corner}`"
         title="Drag to resize"
+        :should-resize="shouldResize"
         class="card-resize-corner"
+        @resize="resizing"
         @resize-end="resized"
       />
     </template>

@@ -93,6 +93,7 @@ import type { Guide } from './canvas/alignment'
 import { CARD, elbow } from './canvas/geometry'
 import type { Box } from './canvas/geometry'
 import { joins, routePath } from './canvas/routePath'
+import { toOutlines } from './canvas/outlineEnds'
 import { routeWithClearLabels } from './canvas/routeLabels'
 import { nearestPlace, placeBlock } from './canvas/blockPlace'
 import { cardFits, cardRoom } from './canvas/cardRoom'
@@ -1934,7 +1935,7 @@ useEventListener(window, 'keydown', (event: KeyboardEvent) => {
 })
 
 // Export: the diagram as the canvas shows it, every card and connector, wherever the view is
-// panned to. A connector runs along its route, as canvas/ConnectionEdge.vue draws it.
+// panned to. A connector runs along its route to the cards' outlines, as canvas/ConnectionEdge.vue draws it.
 function exportScene(): Scene {
   const box = (id: string): Box => ({ ...view.value.positions[id]!, ...cardSize(view.value, id) })
   const connectors = links.value.flatMap((link): SceneConnector[] => {
@@ -1942,7 +1943,8 @@ function exportScene(): Scene {
     const [from, to] = [box(link.from), box(link.to)]
     const drawn = routes.value.get(link.id)
     const routed = drawn !== undefined && joins(drawn.route, from, to)
-    const points = routed ? drawn.route : elbow(from, to)
+    const shape = (id: string) => nodes.value.find((node) => node.id === id)?.data.shape
+    const points = toOutlines(routed ? drawn.route : elbow(from, to), { ...from, shape: shape(link.from) }, { ...to, shape: shape(link.to) })
     const line = routePath(points)
     const corner = routed ? drawn.labelAt : undefined
     const labelAt =

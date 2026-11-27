@@ -57,8 +57,10 @@ Project started 2026-11-03.
   Basic or Flowchart library of "Add shape" or in a box's form. D2 writes and reads the ones D2
   has (a folder is its `package`); the flowchart import keeps a node's shape, written with
   brackets or by name (`a@{ shape: cyl }`, every name and alias of Mermaid 12.3); the Mermaid C4
-  export does not write them yet. Connectors still end at the card's rectangle, so on a slanted
-  or round outline a line can stop a few pixels short.
+  export does not write them yet. A connector's route ends at the card's rectangle; its end
+  pieces then run on, the way they came, to the outline itself (`toOutlines` in
+  `canvas/outlineEnds.ts`, on the canvas and in the image export), so the arrow sits on a
+  diamond's side or a bubble's round edge. A way on that misses the outline keeps the end.
 - Resize a card (J68): a selected card has a handle on each corner and can be pulled at each
   side (Vue Flow's `NodeResizeControl` in `ObjectNode.vue`). The sides that moved land on the
   grid; one change, `cardResized`, kept per view in `View.sizes`. A size that reaches into

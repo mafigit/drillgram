@@ -10,21 +10,25 @@ import { Input } from '@/components/ui/input'
 import { CARD, elbow } from './geometry'
 import type { Box } from './geometry'
 import { labelSize } from './labelSize'
+import { toOutlines } from './outlineEnds'
 import { joins, routePath } from './routePath'
 import { CANVAS_ACTIONS, CANVAS_DRAG } from './types'
-import type { ConnectionEdge } from './types'
+import type { ConnectionEdge, ObjectNode } from './types'
 
 // A connector runs along the route the layout engine laid for it, around the cards. While one of
 // its cards is dragged, that is the route to the place the card would land on: the connector
 // shows how it will run after the drop, not where the card is under the hand. Without a route
 // that fits (the engine has not answered yet, or several cards are dragged together) it runs from
-// border to border with one bend at most, with the label in its middle. Never slanted.
+// border to border with one bend at most, with the label in its middle. Never slanted. At a card
+// drawn as a shape (a diamond, a speech bubble) it runs on to the outline (outlineEnds.ts).
 const props = defineProps<EdgeProps<ConnectionEdge>>()
 
 const actions = inject(CANVAS_ACTIONS)
 const drag = inject(CANVAS_DRAG, undefined)
 const source = useInternalNode(() => props.source)
 const target = useInternalNode(() => props.target)
+
+const shapeOf = (node: InternalNode) => (node.data as ObjectNode['data'] | undefined)?.shape
 
 function box(node: InternalNode): Box {
   return {
@@ -45,17 +49,18 @@ const line = computed(() => {
     width: node.width ?? CARD.width,
     height: node.height ?? CARD.height,
   })
+  const [fromShape, toShape] = [shapeOf(source.value), shapeOf(target.value)]
   const route = props.data?.route
   const cards = [placed(source.value), placed(target.value)] as const
   if (route && joins(route, ...cards)) {
-    const line = routePath(route)
+    const line = routePath(toOutlines(route, { ...cards[0], shape: fromShape }, { ...cards[1], shape: toShape }))
     const corner = props.data?.labelAt
     if (typeof props.label !== 'string' || !corner) return line
     // The engine found the place for the label's box: where it covers the least.
     const size = labelSize(props.label)
     return { path: line.path, labelX: corner.x + size.width / 2, labelY: corner.y + size.height / 2 }
   }
-  return routePath(elbow(from, to))
+  return routePath(toOutlines(elbow(from, to), { ...from, shape: fromShape }, { ...to, shape: toShape }))
 })
 
 const vFocus = { mounted: (el: HTMLInputElement) => (el.focus(), el.select()) }

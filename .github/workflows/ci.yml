@@ -4,7 +4,8 @@ name: CI
 # gate, the e2e journeys in the pinned Playwright image, the licence of every file), so a job
 # only checks out and calls it. The parts of the check run side by side, a job each: one after
 # the other they took 17 to 20 minutes (2026-11-26). It needs Docker. A commit on main whose
-# every part is green then goes to Cloudflare, as the app without a server (the job `deploy`).
+# every part is green then goes to Cloudflare, as the app without a server (the job `deploy`),
+# and is released for Kubernetes when it brings a feature or a fix (the job `release`).
 on:
   push:
     branches: [main]
@@ -113,3 +114,21 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+  # The hosted image and the Helm chart (.github/workflows/helm.yml): released by themselves when
+  # the commits on main since the last release have a feature or a fix (deploy/release), after
+  # their check, tested on Kubernetes first. One release at a time, none stopped half-way: a
+  # commit that comes while one runs waits (of several, the newest) and counts from the tag
+  # that one made, so the commits of one that never ran are in its release.
+  release:
+    needs: ci-check
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && github.repository == 'mafigit/drillgram'
+    concurrency:
+      group: helm-release
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      packages: write
+    uses: ./.github/workflows/helm.yml
+    with:
+      release: true

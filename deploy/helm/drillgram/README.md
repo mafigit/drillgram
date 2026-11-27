@@ -18,10 +18,13 @@ kubectl -n drillgram create secret generic drillgram-admin \
 kubectl -n drillgram create secret generic drillgram-postgresql \
   --from-literal=password="$POSTGRES_PASSWORD"
 
-chart=https://github.com/mafigit/drillgram/releases/download/helm-v0.1.0/drillgram-0.1.0.tgz
+chart=https://github.com/mafigit/drillgram/releases/latest/download/drillgram.tgz
 helm upgrade --install drillgram "$chart" -n drillgram --wait --timeout 5m
 kubectl -n drillgram port-forward svc/drillgram 8080:8080
 ```
+
+That address is always the latest release. To stay on one version, take its archive instead:
+`https://github.com/mafigit/drillgram/releases/download/helm-v<version>/drillgram-<version>.tgz`.
 
 Open `http://localhost:8080` and sign in. Drillgram creates the first admin on an empty database.
 Change the admin password in the app after bootstrap.
@@ -59,7 +62,7 @@ postgres://drillgram:PASSWORD@postgres.example.org:5432/drillgram?sslmode=verify
 kubectl -n drillgram create secret generic drillgram-external-db \
   --from-literal=url="$DRILLGRAM_DATABASE_URL"
 
-chart=https://github.com/mafigit/drillgram/releases/download/helm-v0.1.0/drillgram-0.1.0.tgz
+chart=https://github.com/mafigit/drillgram/releases/latest/download/drillgram.tgz
 helm upgrade --install drillgram "$chart" -n drillgram --wait --timeout 5m \
   --set postgresql.enabled=false \
   --set externalDatabase.existingSecret=drillgram-external-db
@@ -92,9 +95,18 @@ Secret references. To use your own build, set `image.repository` and `image.tag`
 
 ## Release
 
-Set `version` and `appVersion` in `Chart.yaml` to the release version. From that commit on main,
-push the matching `helm-v<version>` tag. GitHub Actions packages the chart and tests both
-database modes on Kubernetes before publishing the image and the chart.
+Releases come by themselves. After every commit on main whose check is green, CI works out the
+next version from the commits since the last `helm-v` tag ([Conventional
+Commits](https://www.conventionalcommits.org)): a `feat` is a minor version, a `fix` or `perf` a
+patch, a breaking change (`feat!:`, or `BREAKING CHANGE:` in the body) a major one, before 1.0 a
+minor one. Commits such as `test`, `docs`, `ci` or `chore` alone make no release. GitHub Actions
+then tests both database modes on Kubernetes, publishes the image as
+`ghcr.io/mafigit/drillgram:<version>` and the chart with that version, and tags the commit
+`helm-v<version>`. `deploy/release` holds the rule; `node deploy/release/src/cli.ts` prints the
+version the next release would have. `version` and `appVersion` in `Chart.yaml` are for checks
+only: a release sets both.
+
+A `helm-v<version>` tag pushed by hand on a commit of main releases that version.
 
 The chart archive appears on [GitHub Releases](https://github.com/mafigit/drillgram/releases).
 GitHub Container Registry starts a new package with private visibility. Set the image package

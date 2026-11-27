@@ -67,8 +67,17 @@ The external mode takes a PostgreSQL connection URL from a Kubernetes Secret.
 
 The Helm workflow creates a kind cluster and runs `bin/helm-check` against the packaged chart.
 The test signs into both database modes and checks that a workspace survives a PostgreSQL pod
-restart. A `helm-v<version>` tag on main publishes the chart to GitHub Releases and the hosted
-image to GitHub Container Registry.
+restart.
+
+Releases come by themselves (since 2026-11-27; before, a tag was pushed by hand and only 0.1.0
+was ever released): after the check of a commit on main is green, CI's job `release` calls the
+Helm workflow, which works out the next version from the commit messages since the last
+`helm-v` tag (`deploy/release`: `feat` minor, `fix` and `perf` patch, a breaking change major,
+before 1.0 minor; `test`, `docs`, `ci`, `chore` and the like none). With one, it tests the chart
+on kind, publishes the hosted image to GitHub Container Registry and the chart to GitHub
+Releases (also as `drillgram.tgz`, which `releases/latest/download/` finds), and tags the
+commit. One release runs at a time. The commit messages decide: a change users notice needs
+`feat` or `fix`. A `helm-v<version>` tag pushed by hand still releases that version.
 
 ## Without a server
 

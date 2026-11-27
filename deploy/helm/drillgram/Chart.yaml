@@ -2,6 +2,7 @@ apiVersion: v2
 name: drillgram
 description: Hosted Drillgram with its web app, API and optional PostgreSQL
 type: application
+# A release sets both from the commits since the last one (README.md, "Release"); these are for checks.
 version: 0.1.0
 appVersion: "0.1.0"
 home: https://github.com/mafigit/drillgram

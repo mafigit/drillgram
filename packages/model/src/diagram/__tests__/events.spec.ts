@@ -80,6 +80,23 @@ describe('applyEvent', () => {
   })
 })
 
+describe('cardsRemoved', () => {
+  it('opens the view first: what a box shows around its frame by itself is not deleted there', () => {
+    const ws = j2()
+    expect(applyEvent(ws, { type: 'cardsRemoved', view: 'inside-OnlineShop', objects: ['Customer'] })).toBe(ws)
+  })
+
+  it('takes a card off an added view and says so; the last card of a part deletes it', () => {
+    const ws = apply([{ type: 'viewAdded', view: ROOT_VIEW_ID, name: 'Team map', copy: true }], j2())
+    const off: WorkspaceEvent = { type: 'cardsRemoved', view: 'view-1', objects: ['Customer'] }
+    expect(describeEvent(ws, off)).toBe('Took "Customer" off the diagram')
+    const after = applyEvent(ws, off)
+    expect(after.model).toEqual(ws.model)
+    expect(Object.keys(after.views[1]!.positions)).toEqual(['OnlineShop'])
+    expect(describeEvent(ws, { ...off, objects: ['Customer', 'OnlineShop'] })).toBe('Took 2 objects off the diagram')
+  })
+})
+
 describe('connectionColoured', () => {
   it('colours a connection as the editing function does, and takes the colour off again', () => {
     const red = applyEvent(j2(), { type: 'connectionColoured', connection: 'c1', colour: 'red' })
@@ -153,6 +170,8 @@ describe('describeEvent', () => {
     )
     expect(said({ type: 'objectsRemoved', objects: ['OnlineShop'] })).toBe('Deleted "Online Shop"')
     expect(said({ type: 'objectsRemoved', objects: ['OnlineShop', 'Customer'] })).toBe('Deleted 2 objects')
+    expect(said({ type: 'cardsRemoved', view: ROOT_VIEW_ID, objects: ['OnlineShop'] })).toBe('Deleted "Online Shop"')
+    expect(said({ type: 'cardsRemoved', view: ROOT_VIEW_ID, objects: ['OnlineShop', 'Customer'] })).toBe('Deleted 2 objects')
     expect(said(connected)).toBe('Connected "Customer" to "Online Shop"')
     expect(said({ ...connected, label: 'Pays', technology: 'HTTPS' })).toBe(
       'Connected "Customer" to "Online Shop": Pays [HTTPS]',

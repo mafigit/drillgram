@@ -37,6 +37,7 @@ import {
   parseWorkspace,
   placeObject,
   placeableObjects,
+  removeCards,
   removeObjects,
   removeView,
   renameView,
@@ -1059,6 +1060,8 @@ describe('any sequence of edits', () => {
     fc.nat().map((n): Edit => (ws) => ensureViewInside(ws, object(ws, n))),
     fc.tuple(fc.nat(), fc.string()).map(([n, name]): Edit => (ws) => renameObject(ws, object(ws, n), name)),
     fc.array(fc.nat(), { maxLength: 2 }).map((ns): Edit => (ws) => removeObjects(ws, ns.map((n) => object(ws, n)))),
+    fc.tuple(fc.nat(), fc.array(fc.nat(), { maxLength: 2 })).map(([v, ns]): Edit => (ws) => removeCards(ws, view(ws, v), ns.map((n) => object(ws, n)))),
+    fc.tuple(fc.nat(), fc.string({ minLength: 1 }), fc.boolean()).map(([v, name, copy]): Edit => (ws) => addView(ws, view(ws, v), name, copy)),
     fc.tuple(fc.constantFrom('context', 'inside'), fc.nat()).map(([p, n]): Edit => (ws) => openView(ws, `${p}-${object(ws, n)}`)),
     fc.tuple(fc.nat(), fc.nat()).map(([v, n]): Edit => (ws) => drillDown(ws, view(ws, v), object(ws, n))?.workspace ?? ws),
     fc.nat().map((v): Edit => (ws) => syncView(ws, view(ws, v))),
@@ -1681,6 +1684,95 @@ describe('several views of one box', () => {
     const twice = structuredClone(addView(base(), 'inside-OnlineShop', 'Deployment', true))
     delete twice.views[2]!.name
     expect(() => validateWorkspace(twice)).toThrow('has more than one first view')
+  })
+})
+
+describe('removeCards: "Delete" on a view', () => {
+  /** J18's workspace, with a "Deployment" view of Online Shop that started with the cards of its first view. */
+  const base = () => addView(syncView(syncView(j18Workspace(), ROOT_VIEW_ID), 'inside-OnlineShop'), 'inside-OnlineShop', 'Deployment', true)
+  const cards = (ws: Workspace, viewId: string) => Object.keys(ws.views.find((v) => v.id === viewId)!.positions).sort()
+  const objects = (ws: Workspace) => ws.model.objects.map((o) => o.id).sort()
+
+  it('takes a card off an added view only: the object stays, and its card on the first view', () => {
+    const ws = removeCards(base(), 'view-1', ['API'])
+    validateWorkspace(ws)
+    expect(cards(ws, 'view-1')).toEqual(['PaymentService', 'WebApp'])
+    expect(cards(ws, 'inside-OnlineShop')).toEqual(['API', 'PaymentService', 'WebApp'])
+    expect(objects(ws)).toEqual(objects(base()))
+    expect(ws.model.connections).toEqual(base().model.connections)
+    // The view no longer shows the connection that ended at the card; the other view does.
+    const confirms = ws.model.connections.find((c) => c.label === 'Confirms payment')!.id
+    expect(ws.views.find((v) => v.id === 'view-1')!.connections).not.toContain(confirms)
+    expect(findViewInside(ws, 'OnlineShop')!.connections).toContain(confirms)
+    // It is offered to the view again, as an object that exists, and nothing brings it back by itself.
+    expect(placeableObjects(ws, 'view-1').map((o) => o.id)).toContain('API')
+    expect(openView(ws, 'view-1')).toBe(ws)
+  })
+
+  it('leaves a card from outside the box on every view of the box: it is deleted on its own diagram', () => {
+    const ws = base()
+    expect(removeCards(ws, 'view-1', ['PaymentService'])).toBe(ws)
+    expect(removeCards(ws, 'inside-OnlineShop', ['PaymentService'])).toBe(ws)
+    // Also one that was put there by hand and is connected to nothing inside.
+    const mail = placeObject(addObject(ws, ROOT_VIEW_ID, 'softwareSystem', 'Mail Service'), 'view-1', 'MailService')
+    expect(removeCards(mail, 'view-1', ['MailService'])).toBe(mail)
+    // Selected with cards of the box: those go, it stays.
+    const off = removeCards(ws, 'view-1', ['PaymentService', 'API'])
+    validateWorkspace(off)
+    expect(cards(off, 'view-1')).toEqual(['PaymentService', 'WebApp'])
+    const without = removeCards(ws, 'inside-OnlineShop', ['PaymentService', 'WebApp', 'API'])
+    validateWorkspace(without)
+    expect(cards(without, 'inside-OnlineShop')).toEqual(['PaymentService'])
+    expect(objects(without)).toEqual(['OnlineShop', 'PaymentService'])
+  })
+
+  it('deletes the object on the first view of its box, from every view, as removeObjects does', () => {
+    expect(removeCards(base(), 'inside-OnlineShop', ['API'])).toEqual(removeObjects(base(), ['API']))
+    expect(removeCards(base(), ROOT_VIEW_ID, ['PaymentService'])).toEqual(removeObjects(base(), ['PaymentService']))
+  })
+
+  it('deletes a part with its last card: one that stands on no other view of its box', () => {
+    let ws = addObject(base(), 'view-1', 'container', 'Queue')
+    ws = connect(ws, 'view-1', 'Queue', 'API', 'Feeds')
+    const gone = removeCards(ws, 'view-1', ['Queue'])
+    validateWorkspace(gone)
+    expect(gone).toEqual(removeObjects(ws, ['Queue']))
+    // On a third view too it is still a card of the box: only the last one deletes it.
+    const twice = removeCards(addView(ws, 'view-1', 'Flow', true), 'view-1', ['Queue'])
+    expect(objects(twice)).toContain('Queue')
+    expect(cards(twice, 'view-2')).toContain('Queue')
+  })
+
+  it('takes a box off an added view of the Overview: the first one shows every box', () => {
+    let ws = addView(base(), ROOT_VIEW_ID, 'Team map', false)
+    ws = addObject(ws, 'view-2', 'person', 'Customer')
+    ws = placeObject(ws, 'view-2', 'WebApp')
+    const off = removeCards(ws, 'view-2', ['Customer', 'WebApp'])
+    validateWorkspace(off)
+    expect(cards(off, 'view-2')).toEqual([])
+    expect(objects(off)).toEqual(objects(ws))
+    expect(cards(syncView(off, ROOT_VIEW_ID), ROOT_VIEW_ID)).toContain('Customer')
+    // A part that was put on the Overview is taken off there, not deleted.
+    const shown = placeObject(ws, ROOT_VIEW_ID, 'WebApp')
+    expect(objects(removeCards(shown, ROOT_VIEW_ID, ['WebApp']))).toContain('WebApp')
+    expect(cards(removeCards(shown, ROOT_VIEW_ID, ['WebApp']), ROOT_VIEW_ID)).not.toContain('WebApp')
+  })
+
+  it('takes the card out of its frame and drops its size with it', () => {
+    let ws = groupCards(base(), 'view-1', ['WebApp', 'API'], 'Cluster')
+    ws = resizeCard(ws, 'view-1', 'API', { width: 300, height: 200 })
+    const view = removeCards(ws, 'view-1', ['API']).views.find((v) => v.id === 'view-1')!
+    expect(view.groups).toEqual([{ id: 'g1', name: 'Cluster', members: ['WebApp'] }])
+    expect(view.sizes).toBeUndefined()
+    validateWorkspace(removeCards(removeCards(ws, 'view-1', ['API']), 'view-1', ['WebApp']))
+  })
+
+  it('does nothing for a card the view does not have, or a view that is not there', () => {
+    const ws = base()
+    expect(removeCards(ws, 'view-1', ['nope'])).toBe(ws)
+    expect(removeCards(ws, 'view-1', [])).toBe(ws)
+    expect(removeCards(ws, 'nope', ['API'])).toBe(ws)
+    expect(removeCards(ws, 'view-1', ['OnlineShop'])).toBe(ws)
   })
 })
 

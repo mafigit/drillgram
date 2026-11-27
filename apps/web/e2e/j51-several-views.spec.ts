@@ -94,6 +94,58 @@ test('J51 The Overview has views too, and nothing comes onto an added view by it
   await expect(editor.element('Customer')).toHaveCount(0)
 })
 
+test('J51 Delete takes a card off an added view only, and leaves what stands outside the frame', async ({ editor, page, consoleErrors }) => {
+  await editor.open()
+  await editor.addElement('Person', 'Customer')
+  await editor.addElement('Software System', 'Online Shop')
+  await editor.connect('Customer', 'Online Shop', 'Buys from')
+  await editor.drillDown('Online Shop')
+  await editor.addElement('Container', 'Web App')
+  await editor.addElement('Container', 'API')
+
+  // "Customer" stands around the frame by itself: it is not deleted from inside the box.
+  await editor.delete('Customer')
+  await expect(editor.errors).toContainText(['Cards outside the frame are deleted on their own diagram, not here.'])
+  await expect(editor.element('Customer')).toBeVisible()
+
+  // On an added view Delete takes the card off that view; the first view keeps it.
+  await editor.addView('Deployment')
+  await editor.delete('API')
+  await expect(editor.element('API')).toHaveCount(0)
+  await expect(editor.errors).toHaveCount(0)
+  // A card outside the frame stays here too.
+  await editor.delete('Customer')
+  await expect(editor.errors).toContainText(['Cards outside the frame are deleted on their own diagram, not here.'])
+  await expect(editor.element('Customer')).toBeVisible()
+  await editor.views.nth(0).click()
+  await expect(editor.element('API')).toBeVisible()
+  await editor.backTo('Overview')
+  await expect(editor.element('Customer')).toBeVisible()
+
+  // The view is offered the card again; a part that stood on this view only is gone with its card.
+  await editor.drillDown('Online Shop')
+  await editor.views.nth(1).click()
+  await editor.addElement('Container', 'Queue')
+  await editor.delete('Queue')
+  await page.getByRole('button', { name: 'Add existing object' }).click()
+  await expect(page.getByRole('option', { name: 'API' })).toBeVisible()
+  await expect(page.getByRole('option', { name: 'Queue' })).toHaveCount(0)
+  await page.keyboard.press('Escape')
+  await editor.openHistory()
+  await expect(editor.changes.filter({ hasText: 'Took "API" off the diagram' })).toHaveCount(1)
+  await expect(editor.changes.filter({ hasText: 'Deleted "Queue"' })).toHaveCount(1)
+
+  // On the first view of its box the object itself is deleted: from the other views too. Undo brings it back on both.
+  await editor.views.nth(0).click()
+  await editor.delete('Web App')
+  await expect(editor.element('Web App')).toHaveCount(0)
+  await editor.views.nth(1).click()
+  await expect(editor.element('Web App')).toHaveCount(0)
+  await editor.undo()
+  await expect(editor.element('Web App')).toBeVisible()
+  expect(consoleErrors).toEqual([])
+})
+
 test('J51 The tabs stay where they are from one view to the next', async ({ editor, page }) => {
   await editor.open()
   await editor.addElement('Software System', 'Online Shop')

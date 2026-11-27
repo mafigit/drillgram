@@ -932,6 +932,10 @@ Test: `apps/web/e2e/j51-several-views.spec.ts`
 5. Go to the Overview, open "Online Shop", reload the page.
 6. On the Overview add a view "Team map" without cards, add the existing "Online Shop" to it;
    add a person on the first view.
+8. In a fresh app: "Customer" to "Online Shop" ("Buys from"); open "Online Shop", add "Web App"
+   and "API" and press Delete on "Customer". Add the view "Deployment" with the cards of this
+   view, delete "API" there and press Delete on "Customer", then add "Queue" and delete it. On
+   "Structure" delete "Web App", and undo.
 
 Expected: every box, and the Overview, starts with one view, "Structure". An added view has a
 name, a tab and an address of its own (`/view/view-1`); its title is "Online Shop: Deployment".
@@ -944,6 +948,12 @@ neither. A deleted view leaves for the first view and one undo brings it back. O
 leads to its first view. The views are kept over a reload. Going from tab to tab moves no tab
 and no button: the title beside them names the box only, and every added tab has its own delete
 button.
+Delete deletes an object on the first view of the box it is a part of (the Overview for one in
+no box), from every view. On any other view it takes the card off that view only: in step 8
+"API" stays on "Structure" and "Deployment" is offered it again; "Queue", which stood on no
+other view of its box, is deleted with its card. A card outside the frame stays, on every view
+of the box ("Customer" on "Structure" and on "Deployment"), and an error card (J50) says "Cards
+outside the frame are deleted on their own diagram, not here."
 
 ## J52 Frames that hold cards
 

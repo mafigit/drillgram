@@ -23,6 +23,7 @@ import {
   noteTitle,
   parseWorkspace,
   placeObject,
+  removeCards,
   removeObjects,
   serializeWorkspace,
   validateWorkspace,
@@ -162,6 +163,16 @@ describe('a note on a shape', () => {
     expect(root(removeObjects(stuck(), ['Shop'])).attached).toBeUndefined()
     expect(root(removeObjects(stuck(), ['Shop'])).positions.Todo).toEqual({ x: 280, y: 40 })
     expect(root(removeObjects(stuck(), ['Todo'])).attached).toBeUndefined()
+  })
+
+  it('is loose on a view its shape is taken off, and stays stuck on the other views', () => {
+    const ws = addView(stuck(), ROOT_VIEW_ID, 'Flow', true)
+    for (const card of ['Shop', 'Todo']) {
+      const off = removeCards(ws, 'view-1', [card])
+      validateWorkspace(off)
+      expect(off.views[1]!.attached).toBeUndefined()
+      expect(root(off).attached).toEqual({ Todo: 'Shop' })
+    }
   })
 
   it('is loose once it is no sticky note, or its shape becomes one', () => {

@@ -98,6 +98,27 @@ describe('WorkspaceLog', () => {
     expect(server.entries).toEqual([{ seq: 1, entry: { id: 'local-1', type: 'change', at: AT, event: add('Shop') } }])
   })
 
+  it('shows a comment at once and writes it, without a step to undo (J17)', async () => {
+    const { log, server } = await open()
+    log.dispatch(add('Shop'), AT)
+    const said = { type: 'started' as const, thread: 't1', comment: 'c1', view: ROOT_VIEW_ID, at: { x: 1, y: 2 }, author: 'Ada', text: 'Who owns this?' }
+    log.comment(said, AT)
+    expect(log.history.comments.map((thread) => thread.id)).toEqual(['t1'])
+    expect(log.history.log).toHaveLength(1)
+    await log.settled()
+    expect(server.entries.map((kept) => kept.entry)).toEqual([
+      { id: 'local-1', type: 'change', at: AT, event: add('Shop') },
+      { id: 'local-2', type: 'comment', at: AT, event: said },
+    ])
+    // Undo takes back the change; the comment stays.
+    log.goTo(0)
+    expect(log.history.comments).toHaveLength(1)
+    // An empty comment is nothing to write.
+    log.comment({ ...said, thread: 't2', comment: 'c2', text: ' ' }, AT)
+    await log.settled()
+    expect(server.entries).toHaveLength(3)
+  })
+
   it('confirms a requested change only after its entry reaches storage', async () => {
     const { log, server, names } = await open()
     let release = () => {}

@@ -271,16 +271,31 @@ Test: `apps/web/e2e/j16-draft-and-versions.spec.ts`
 Expected: outside the draft "Payment Service" is not shown until the merge; after the merge it is
 shown; after the revert it is gone again.
 
-## J17 Comment on an object
+## J17 Comment on the diagram
 
 Test: `apps/web/e2e/j17-comments.spec.ts`
 
-1. Open the app and add a software system "Online Shop".
-2. Add a question "Who owns this?" to "Online Shop".
-3. Resolve it.
+1. Without a server: add a software system "Online Shop". Press "Comment" in the toolbar and
+   click "Online Shop". Give your name, "Ada", write "Who owns this?" and post it.
+2. Move "Online Shop", reload, open the comment and reply "The shop team.". Undo, and open the
+   history.
+3. Comment on the empty canvas beside the card: "Is payment missing?".
+4. Resolve "Who owns this?". Open "Comments" in the top bar and reopen it. Delete "Is payment
+   missing?".
+5. With a server: comment as the user who is signed in; lock the workspace and comment again.
+6. Share the workspace as "Ada"; Ben joins and comments on "Online Shop"; Ada replies.
 
-Expected: the question is shown on the canvas until it is resolved; afterwards it is in the list of
-resolved comments only.
+Expected: a comment is a pin on the canvas, a speech bubble with the first letter of its
+author's name, in a colour that goes with that name; one placed on a card goes where the card
+goes. Without a server the app asks for a name with the first comment only and keeps it in the
+browser: the name "Share" starts with too. Opened, a pin shows its comments, each with its
+author, time and text, and takes a reply. Comments are no change of the diagram: undo, redo
+and the timeline leave them alone and the history does not list them, but they are in the
+workspace's log all the same: they survive a reload, go along in a workspace file and reach
+the others in a shared session at once. A resolved comment leaves the canvas and is in
+"Comments" under "Resolved" only, where it can be reopened; a deleted one is gone. With a
+server the author is the user who is signed in, and in a shared session the name somebody
+shares or joins with: nobody is asked. A locked workspace still takes comments.
 
 ## J18 A connection made inside a box shows one level up
 

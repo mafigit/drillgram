@@ -147,6 +147,19 @@ describe('a shared session', () => {
     expect(log.head).toBe(0)
   })
 
+  it('lets a guest write comments (J17)', async () => {
+    const { log, join } = hosting()
+    const ben = await join('Ben')
+    const comment: LogEntry = {
+      id: 'c',
+      type: 'comment',
+      at: '2026-01-01T09:00:00.000Z',
+      event: { type: 'started', thread: 't1', comment: 'c1', view: ROOT_VIEW_ID, at: { x: 0, y: 0 }, author: 'Ben', text: 'Who owns this?' },
+    }
+    expect(await ben.guest.server.append(0, [comment])).toEqual({ ok: true, head: 1 })
+    expect(log.entries.map((kept) => kept.entry)).toEqual([comment])
+  })
+
   it('says the host\'s refusal with its status', async () => {
     const { log, join } = hosting()
     log.read = () => Promise.reject(Object.assign(new Error('gone'), { status: 404 }))

@@ -14,7 +14,6 @@ type Corner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
 export type ElementDetails = { description?: string; technology?: string; external?: boolean }
 export type ExportFormat = 'PNG' | 'SVG' | 'Mermaid' | 'D2'
 export type DiagramKind = 'System Landscape' | 'Free-form'
-export type CommentKind = 'Question' | 'Inaccuracy' | 'Idea'
 
 export class DiagramEditor {
   readonly canvas: Locator
@@ -797,12 +796,63 @@ export class DiagramEditor {
     await item.filter({ hasText: version }).getByRole('button', { name: 'Revert' }).click()
   }
 
-  async comment(element: string, kind: CommentKind, text: string): Promise<void> {
-    await this.element(element).click()
-    await this.page.getByRole('button', { name: 'New comment' }).click()
-    await this.page.getByRole('radio', { name: kind }).check()
-    await this.page.getByRole('textbox', { name: 'Comment' }).fill(text)
-    await this.page.keyboard.press('ControlOrMeta+Enter')
+  // Comments (J17): pins on the canvas, each with its comments.
+
+  /** "Comment" in the toolbar: pressed while a click on the canvas places a comment. */
+  get commentButton(): Locator {
+    return this.page.getByRole('toolbar', { name: 'Diagram tools' }).getByRole('button', { name: 'Comment', exact: true })
+  }
+
+  /** Press "Comment", then click where the comment goes: on a card (its middle) or a point of the screen. */
+  async startComment(on: Locator | { x: number; y: number }): Promise<void> {
+    await this.commentButton.click()
+    if ('click' in on) await on.click()
+    else await this.page.mouse.click(on.x, on.y)
+  }
+
+  /** Comment there; `name`: the one the app asks for the first time, without a server. */
+  async comment(on: Locator | { x: number; y: number }, text: string, name?: string): Promise<void> {
+    await this.startComment(on)
+    if (name !== undefined) await this.commentThread.getByRole('textbox', { name: 'Your name' }).fill(name)
+    await this.commentThread.getByRole('textbox', { name: 'Comment' }).fill(text)
+    await this.commentThread.getByRole('button', { name: 'Post' }).click()
+  }
+
+  /** A comment that is open: a new one, or a pin that was pressed. */
+  get commentThread(): Locator {
+    return this.page.getByRole('dialog', { name: 'Comment' })
+  }
+
+  /** The comments of an open pin, the first one first. */
+  get threadComments(): Locator {
+    return this.commentThread.getByRole('article')
+  }
+
+  /** The pin of a comment on the canvas, by the text it begins with. */
+  commentPin(text: string): Locator {
+    return this.canvas.getByRole('button', { name: new RegExp(`^Comment by .+: ${text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`) })
+  }
+
+  /** Every pin of a comment on the canvas. */
+  get commentPins(): Locator {
+    return this.canvas.getByRole('button', { name: /^Comment by / })
+  }
+
+  /** Open a pin and reply in it. */
+  async reply(to: string, text: string): Promise<void> {
+    await this.commentPin(to).click()
+    await this.commentThread.getByRole('textbox', { name: 'Reply' }).fill(text)
+    await this.commentThread.getByRole('button', { name: 'Reply', exact: true }).click()
+  }
+
+  /** "Comments" in the top bar: the open and the resolved comments of the diagram. */
+  async openComments(): Promise<void> {
+    await this.page.getByRole('button', { name: 'Comments', exact: true }).click()
+  }
+
+  /** The open ("Open") or the resolved ("Resolved") comments of the diagram, in "Comments". */
+  commentList(which: 'Open' | 'Resolved'): Locator {
+    return this.page.getByRole('list', { name: `${which} comments` }).getByRole('listitem')
   }
 
   /** What "Share" in the top bar opens. */

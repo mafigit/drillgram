@@ -8,6 +8,8 @@ import {
   EyeOffIcon,
   StickyNoteIcon,
   HistoryIcon,
+  MessageSquarePlusIcon,
+  MessagesSquareIcon,
   LayoutDashboardIcon,
   ListChecksIcon,
   LoaderCircleIcon,
@@ -83,6 +85,9 @@ import CanvasToolDrop from './canvas/CanvasToolDrop.vue'
 import CanvasMarks from './canvas/CanvasMarks.vue'
 import MinimapMarks from './canvas/MinimapMarks.vue'
 import type { CameraMarks } from './canvas/cameraMarks'
+import CanvasComments from './comments/CanvasComments.vue'
+import CommentsPanel from './comments/CommentsPanel.vue'
+import { useComments } from './comments/useComments'
 import type { QuickMenuItem } from './canvas/CanvasQuickMenu.vue'
 import ConnectionEdgeView from './canvas/ConnectionEdge.vue'
 import ObjectNodeView from './canvas/ObjectNode.vue'
@@ -159,6 +164,13 @@ const view = computed(() => {
   return views.find((v) => v.id === props.viewId) ?? views.find((v) => v.id === ROOT_VIEW_ID)!
 })
 const viewId = computed(() => view.value.id)
+// Comments (J17): pins on the diagram, kept in the log but no change of it; taken also while locked.
+const comments = useComments(store, workspace, view, sharing)
+const showComments = ref(false)
+watch(viewId, () => {
+  comments.placing.value = false
+  comments.opened.value = undefined
+})
 const kinds = computed(() => KINDS)
 const trail = computed(() => breadcrumb(workspace.value, viewId.value))
 const title = computed(() => viewTitle(workspace.value, viewId.value))
@@ -1775,7 +1787,7 @@ function movesCards(before: typeof view.value, after: typeof view.value): boolea
 
 // The minimap stands in the top right corner, over the canvas. A card that is added or comes
 // into a newly opened diagram under it counts as out of sight: the view then fits itself.
-const minimapShown = computed(() => nodes.value.length > 0 && !showHistory.value)
+const minimapShown = computed(() => nodes.value.length > 0 && !showHistory.value && !showComments.value)
 /** The minimap with the space around it, in px of the screen. */
 const MINIMAP_ROOM = { width: 210, height: 150 }
 /** The camera marks of the open diagram (J73), kept by CanvasMarks and drawn on the minimap. */
@@ -1907,6 +1919,11 @@ useEventListener(window, 'keydown', (event: KeyboardEvent) => {
   // A field being typed in keeps its own undo and its own Delete.
   const field = 'input:not([type=range], [type=checkbox]), textarea, select, [contenteditable]'
   if (event.target instanceof Element && event.target.matches(field)) return
+  // "C" places a comment (J17): that is no change, a locked workspace takes it too.
+  if (!event.ctrlKey && !event.metaKey && !event.altKey && event.key.toLowerCase() === 'c') {
+    comments.placing.value = !comments.placing.value
+    return
+  }
   // The other keys change the workspace.
   if (locked.value) return
   const key = event.key.toLowerCase()
@@ -2053,9 +2070,27 @@ const keyKinds = computed(() =>
           :disabled="locked"
           :aria-pressed="showHistory"
           :class="{ 'bg-accent': showHistory }"
-          @click="showHistory = !showHistory"
+          @click="(showHistory = !showHistory), (showComments = false)"
         >
           <HistoryIcon aria-hidden="true" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Comments"
+          title="Comments: the open and the resolved ones of this diagram"
+          class="relative"
+          :aria-pressed="showComments"
+          :class="{ 'bg-accent': showComments }"
+          @click="(showComments = !showComments), (showHistory = false)"
+        >
+          <MessagesSquareIcon aria-hidden="true" />
+          <span
+            v-if="comments.pins.value.length > 0"
+            class="bg-primary text-primary-foreground absolute -top-0.5 -right-0.5 min-w-4 rounded-full px-1 text-[10px] leading-4 font-semibold"
+            aria-hidden="true"
+            >{{ comments.pins.value.length }}</span
+          >
         </Button>
         <ImportMenu :bring="bringDiagram" :disabled="locked" />
         <!-- To empty a shared workspace is for the one who shares it. -->
@@ -2093,7 +2128,7 @@ const keyKinds = computed(() =>
           :edges-focusable="false"
           snap-to-grid
           :snap-grid="[SNAP_GRID, SNAP_GRID]"
-          :nodes-draggable="!locked"
+          :nodes-draggable="!locked && !comments.placing.value"
           :nodes-connectable="!locked"
           attribution-position="bottom-left"
           @connect="onConnect"
@@ -2163,6 +2198,7 @@ const keyKinds = computed(() =>
           <CanvasPointers v-if="sharing" :sharing="sharing" :view="viewId" />
           <CanvasToolDrop @drop="onToolDropped" />
           <CanvasMarks v-model:marks="cameraMarks" v-model:lit="marksLit" :workspace="workspaceKey" :view="viewId" />
+          <CanvasComments :comments="comments" />
           <CanvasQuickMenu
             :items="quickMenuItems"
             :open-at="quickMenuAt"
@@ -2340,6 +2376,7 @@ const keyKinds = computed(() =>
         </VueFlow>
       </div>
 
+      <CommentsPanel v-if="showComments" class="absolute top-3 right-3 z-20 max-h-[calc(100%-7.5rem)] overflow-y-auto max-sm:max-h-[30vh]" :comments="comments" />
       <HistoryPanel
         v-if="showHistory"
         class="absolute top-3 right-3 z-20 max-h-[calc(100%-7.5rem)] max-sm:max-h-[30vh]"
@@ -2449,6 +2486,17 @@ const keyKinds = computed(() =>
             Unlock
           </Button>
           <Button
+            variant="ghost"
+            size="icon-lg"
+            aria-label="Comment"
+            title="Comment: click where it goes, on the canvas or a card (C)"
+            :aria-pressed="comments.placing.value"
+            :class="{ 'bg-accent': comments.placing.value }"
+            @click="comments.placing.value = !comments.placing.value"
+          >
+            <MessageSquarePlusIcon aria-hidden="true" />
+          </Button>
+          <Button
             v-if="notesHere"
             variant="ghost"
             size="icon-lg"
@@ -2496,14 +2544,28 @@ const keyKinds = computed(() =>
             <component :is="notesHidden ? EyeIcon : EyeOffIcon" aria-hidden="true" />
           </Button>
 
+          <Button
+            variant="ghost"
+            size="lg"
+            aria-label="Comment"
+            title="Comment: click where it goes, on the canvas or a card (C)"
+            :aria-pressed="comments.placing.value"
+            :class="{ 'bg-accent': comments.placing.value }"
+            @click="comments.placing.value = !comments.placing.value"
+          >
+            <MessageSquarePlusIcon aria-hidden="true" />
+            <span class="max-lg:sr-only">Comment</span>
+          </Button>
+
           <span class="bg-border mx-1 h-5 w-px" aria-hidden="true" />
 
           <Popover :open="pickingExisting && !floatAt" @update:open="(open: boolean) => (open ? (pickingExisting = true) : stopAdding())">
             <PopoverTrigger as-child>
-              <!-- On a phone the toolbar keeps to the screen: the buttons after "Add shape" show their signs only. -->
+              <!-- On a phone the toolbar keeps to the screen: the buttons after "Add shape" show their signs only.
+                   This one, the longest, already on a tablet: else the toolbar covers the zoom buttons. -->
               <Button variant="ghost" size="lg" :disabled="existing.length === 0" aria-label="Add existing object" title="Add existing object">
                 <CopyPlusIcon aria-hidden="true" />
-                <span class="max-sm:sr-only">Add existing object</span>
+                <span class="max-lg:sr-only">Add existing object</span>
               </Button>
             </PopoverTrigger>
             <PopoverContent side="top" class="w-72 p-0">

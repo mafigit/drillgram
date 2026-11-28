@@ -19,6 +19,8 @@ you sign in, and your diagrams are kept there, in as many workspaces as you like
 - **Undo, redo and a timeline**: every change is logged with its time. Step back and forth, or
   drag the timeline to see the diagram as it was. The log survives a reload.
 - **Lock**: look at a workspace without changing it by accident. Kept in the browser.
+- **Comments**: pin a remark to a place on the diagram or to a card, reply, resolve. They
+  reach the others in a shared session at once, and undo leaves them alone.
 - **Import and export**: SVG, PNG, Mermaid and D2 out; Mermaid (C4 and flowcharts) and D2 in.
 - **Working together**: without a server, share a workspace under a link. Whoever opens it
   changes the diagrams with you, live, and you see each other's pointers. The browsers talk to
@@ -34,7 +36,7 @@ you sign in, and your diagrams are kept there, in as many workspaces as you like
 
 - **MCP sharing**: let an agent navigate and edit the workspace, arrange diagrams, import and export, and undo changes in the Cloudflare build.
 - **Working together with a server**: sharing a workspace in the app that has one (the
-  server can already), and comments. Without a server it is there.
+  server can already). Without a server it is there.
 - **More export formats**, decided in issues. iOS and Android apps may follow the web app.
 
 ## Run it

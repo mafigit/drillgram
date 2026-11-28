@@ -1,6 +1,6 @@
 import { computed, inject, provide, shallowRef } from 'vue'
 import type { ComputedRef, InjectionKey, ShallowRef } from 'vue'
-import type { History, Workspace, WorkspaceEvent } from '@drillgram/model'
+import type { CommentEvent, CommentThread, History, Workspace, WorkspaceEvent } from '@drillgram/model'
 import { hostSharing, joinSharing } from '../collab/sharing'
 import type { HostSharing, Sharing } from '../collab/sharing'
 import { api, ApiError, browserOnly } from '../lib/api'
@@ -17,6 +17,10 @@ export interface WorkspaceStore {
   /** The one way to change the workspace: the change is applied and logged with its time. */
   dispatch: (event: WorkspaceEvent) => void
   dispatchSaved: (event: WorkspaceEvent) => Promise<boolean>
+  /** What people said about the diagrams (J17), resolved ones too: no change, out of reach of undo. */
+  comments: ComputedRef<readonly CommentThread[]>
+  /** Says something about a diagram: shown at once and written to the log, with its time. */
+  comment: (event: CommentEvent) => void
   undo: () => void
   redo: () => void
   /** Go to the workspace as it was after this many changes. */
@@ -144,6 +148,8 @@ function storeOf({ log, history: now }: Opened, sharing?: Sharing): WorkspaceSto
     history: now,
     dispatch: (event) => log.dispatch(event, new Date().toISOString()),
     dispatchSaved: (event) => log.dispatchSaved(event, new Date().toISOString()),
+    comments: computed(() => now.value.comments),
+    comment: (event) => log.comment(event, new Date().toISOString()),
     undo: () => log.goTo(now.value.cursor - 1),
     redo: () => log.goTo(now.value.cursor + 1),
     goTo: (position) => log.goTo(position),

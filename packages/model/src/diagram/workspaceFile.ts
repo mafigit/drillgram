@@ -14,9 +14,10 @@ export class WorkspaceFileError extends Error {}
 
 const isObject = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value)
 
-/** An entry a log can hold again: a change, or a step along the timeline. */
+/** An entry a log can hold again: a change, a comment, or a step along the timeline. */
 function entryOf(found: unknown): LogEntry | undefined {
   if (!isObject(found) || typeof found.id !== 'string') return undefined
+  if (found.type === 'comment' && typeof found.at === 'string' && isObject(found.event) && typeof found.event.type === 'string') return found as unknown as LogEntry
   if (found.type === 'change' && typeof found.at === 'string' && isObject(found.event) && typeof found.event.type === 'string') return found as unknown as LogEntry
   if (found.type === 'wentTo' && typeof found.position === 'number' && Number.isInteger(found.position) && found.position >= 0) return found as unknown as LogEntry
   return undefined

@@ -374,12 +374,25 @@ Project started 2026-11-03.
   (`AgentPresence.vue` in `App.vue`), and the router asks before the workspace is left, which
   ends the connection (`lib/agentSharing.ts`: a guard for every way out but a deleted
   workspace).
+- Comments (J17, 2026-11-27): "Comment" in the toolbar (or C), then a click on the canvas or
+  a card places a pin there, a speech bubble with the first letter of its author's name in a
+  colour of that name (`components/comments/`). One on a card goes where the card goes
+  (`threadPlace`). A pin opens its card: the comments with author and time, a reply, "Resolve"
+  (off the canvas, into "Comments" in the top bar under "Resolved", where it is reopened) and
+  "Delete". The author is the name somebody shares or joined with in a shared session, the
+  signed-in user with a server, else the name the browser keeps (`drillgram.name`, the one
+  "Share" starts with), asked for with the first comment. Comments are `comment` entries of the
+  workspace's log (`CommentEvent`, `History.comments`): kept and shared like changes, in a
+  workspace file too, but no change of the diagram: undo, redo and the timeline leave them alone,
+  the history does not list them, and a locked workspace still takes them. Not yet: editing a
+  comment, comments in the exports, an agent's tools for them, J17's kinds (question,
+  inaccuracy, idea) of the first sketch.
 - Lock (J66, 2026-11-26): "Lock" in the top bar makes the editor look-only for that workspace,
   kept in the browser (`drillgram.locked.<workspace or room>`, `useLock`). The controls that
   change anything are disabled or gone, and the editor's own `dispatch` does nothing while
   locked; agents write to the store directly and are not held back.
-- Journeys J1 to J5, J7, J9, J11, J15 and J18 to J70 are real tests. J6, J8, J10,
-  J12 to J14, J16 and J17 are still `test.fixme`.
+- Journeys J1 to J5, J7, J9, J11, J15, J17 and J18 to J73 are real tests. J6, J8, J10,
+  J12 to J14 and J16 are still `test.fixme`.
 - Event sourcing (owner's call, 2026-11-22; begun 2026-11-26): the events are the truth and the
   workspace is what they add up to: the server keeps the log, the editor makes the workspace
   from it. Still to come for real multi-user behaviour (several people on one diagram): changes

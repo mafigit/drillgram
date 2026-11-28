@@ -1,5 +1,5 @@
-import { changeEntry, emptyWorkspace, moveEntry, replay, startHistory } from '@drillgram/model'
-import type { History, LogEntry, WorkspaceEvent } from '@drillgram/model'
+import { changeEntry, commentEntry, emptyWorkspace, moveEntry, replay, startHistory } from '@drillgram/model'
+import type { CommentEvent, History, LogEntry, WorkspaceEvent } from '@drillgram/model'
 
 /** An entry as the server gives it back, with its number in the log. */
 export interface ServerEntry {
@@ -111,6 +111,11 @@ export class WorkspaceLog {
   /** Makes a change and reports whether its specific entry reached storage. */
   dispatchSaved(event: WorkspaceEvent, at: string): Promise<boolean> {
     return this.takeConfirmed(changeEntry(this.history, event, at, this.deps.newId()))
+  }
+
+  /** Says something about a diagram (J17): shown at once, then written; no step to undo. */
+  comment(event: CommentEvent, at: string): void {
+    this.took(commentEntry(this.history, event, at, this.deps.newId()))
   }
 
   /** Goes to the workspace as it was after `position` changes. */

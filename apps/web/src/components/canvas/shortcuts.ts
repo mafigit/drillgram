@@ -11,6 +11,7 @@ export const SHORTCUTS: { what: string; keys: string[] }[] = [
   { what: 'Arrange', keys: ['A'] },
   { what: 'Set a camera mark', keys: ['Hold M', '1–9'] },
   { what: 'Jump to a camera mark', keys: ['M', '1–9'] },
+  { what: 'Comment: click where it goes', keys: ['C'] },
   { what: 'Undo', keys: [MOD, 'Z'] },
   { what: 'Redo', keys: [MOD, 'Shift', 'Z'] },
   { what: 'Copy the selection', keys: [MOD, 'D'] },

@@ -62,10 +62,10 @@ function pointerOf(said: unknown): Pointer | undefined {
     : undefined
 }
 
-/** What a guest may write: changes and steps along the timeline. Clearing is the host's. */
+/** What a guest may write: changes, comments and steps along the timeline. Clearing is the host's. */
 function entriesOf(said: unknown): LogEntry[] | undefined {
   if (!Array.isArray(said) || said.length === 0 || said.length > MAX_BATCH) return undefined
-  const fine = said.every((entry) => isObject(entry) && typeof entry.id === 'string' && entry.id.length <= 100 && (entry.type === 'change' || entry.type === 'wentTo'))
+  const fine = said.every((entry) => isObject(entry) && typeof entry.id === 'string' && entry.id.length <= 100 && (entry.type === 'change' || entry.type === 'comment' || entry.type === 'wentTo'))
   return fine ? (said as LogEntry[]) : undefined
 }
 

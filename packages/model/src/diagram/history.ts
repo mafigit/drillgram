@@ -1,3 +1,4 @@
+import type { CommentThread } from './comments'
 import { applyEvent } from './events'
 import type { WorkspaceEvent } from './events'
 import { DiagramFormatError } from './model'
@@ -22,13 +23,18 @@ export interface History {
   cursor: number
   /** `states[i]` is the workspace after `i` events. Derived from base and log, never saved. */
   states: Workspace[]
+  /**
+   * What people said about the diagrams (J17). Kept in the same log, but no change of the
+   * diagram: undo, redo and the timeline leave them alone. Derived from the log, never saved here.
+   */
+  comments: readonly CommentThread[]
 }
 
 /** The log keeps this many changes; older ones become part of the base. */
 export const MAX_LOG = 1000
 
 export function startHistory(base: Workspace): History {
-  return { base, log: [], cursor: 0, states: [base] }
+  return { base, log: [], cursor: 0, states: [base], comments: [] }
 }
 
 /** Apply a change and log it. A change that changes nothing is not logged. */
@@ -57,7 +63,7 @@ export function record(history: History, event: WorkspaceEvent, at: string): His
     states = states.slice(1)
     base = states[0]!
   }
-  return { base, log, cursor: log.length, states }
+  return { base, log, cursor: log.length, states, comments: history.comments }
 }
 
 /** Show the workspace as it was after `position` events. The log stays: redo leads forward. */
@@ -101,7 +107,7 @@ export function parseHistory(text: string): History {
   } catch {
     throw new DiagramFormatError('Not a history: an event cannot be applied')
   }
-  return { base: states[0]!, log, cursor: cursor!, states }
+  return { base: states[0]!, log, cursor: cursor!, states, comments: [] }
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {

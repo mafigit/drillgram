@@ -1,3 +1,5 @@
+import { applyComment } from './comments'
+import type { CommentEvent } from './comments'
 import type { WorkspaceEvent } from './events'
 import { goTo, record, startHistory } from './history'
 import type { History } from './history'
@@ -14,6 +16,8 @@ import { emptyWorkspace } from './workspace'
 export type LogEntry =
   /** A change, with the time it was made at. */
   | { id: string; type: 'change'; at: string; event: WorkspaceEvent }
+  /** Somebody said something about a diagram (J17): no change of it, out of reach of undo. */
+  | { id: string; type: 'comment'; at: string; event: CommentEvent }
   /** The editor went to the workspace as it was after `position` changes: undo, redo, the timeline. */
   | { id: string; type: 'wentTo'; position: number }
   /** Everything before was deleted: the workspace starts again, empty. Written by the server. */
@@ -26,6 +30,12 @@ export type LogEntry =
 export function changeEntry(history: History, event: WorkspaceEvent, at: string, id: string): { history: History; entry?: LogEntry } {
   const next = record(history, event, at)
   return next === history ? { history } : { history: next, entry: { id, type: 'change', at, event } }
+}
+
+/** A comment applied to a history, and the entry that says it. No entry for one that changes nothing. */
+export function commentEntry(history: History, event: CommentEvent, at: string, id: string): { history: History; entry?: LogEntry } {
+  const comments = applyComment(history.comments, event, at)
+  return comments === history.comments ? { history } : { history: { ...history, comments }, entry: { id, type: 'comment', at, event } }
 }
 
 /** A history at another place of its log, and the entry that says where. No entry when it is there already. */
@@ -45,7 +55,9 @@ export function replay(entries: readonly unknown[], from: History = startHistory
     if (!isObject(entry)) continue
     if (entry.type === 'cleared') history = startHistory(emptyWorkspace())
     else if (entry.type === 'wentTo' && typeof entry.position === 'number') history = goTo(history, entry.position)
-    else if (entry.type === 'change' && typeof entry.at === 'string' && isObject(entry.event) && typeof entry.event.type === 'string') {
+    else if (entry.type === 'comment' && typeof entry.at === 'string' && isObject(entry.event)) {
+      history = commentEntry(history, entry.event as CommentEvent, entry.at, '').history
+    } else if (entry.type === 'change' && typeof entry.at === 'string' && isObject(entry.event) && typeof entry.event.type === 'string') {
       try {
         history = record(history, entry.event as WorkspaceEvent, entry.at)
       } catch {

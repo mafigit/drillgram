@@ -110,7 +110,7 @@ export function tourSteps(browserOnly: boolean): TourStep[] {
     {
       id: 'add',
       title: 'Add a shape',
-      text: 'Shapes come in libraries: a plain box, the people and systems of C4, 46 flowchart outlines, database tables and code. Press "Add shape", pick one and give it a name. "Sticky note" beside it adds a note: let go on a shape, it sticks there and goes along with it.',
+      text: 'Shapes come in libraries: a plain box, the people and systems of C4, 46 flowchart outlines, database tables and code. Press "Add shape", pick one and give it a name. "Sticky note" beside it adds a note: let go on a shape, it sticks there and goes along with it. "Comment" pins a remark to the canvas or a card, for the others to answer; "Comments" in the top bar lists them.',
       target: [TOOLBAR],
       side: 'top',
       at: 'overview',
